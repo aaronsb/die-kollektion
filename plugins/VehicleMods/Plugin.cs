@@ -36,6 +36,8 @@ public class Plugin : BasePlugin
     public override void Load()
     {
         Logger = Log;
+        // As early as our code runs: claim the memory the hooks' jump slots will live in (native calls only).
+        DobbyNearPages.Reserve();
         var unityLog = UnityLogPath();
         new Thread(() => PatchEntryWhenBooted(unityLog)) { IsBackground = true, Name = "VehicleMods.Entry" }.Start();
     }
@@ -58,13 +60,22 @@ public class Plugin : BasePlugin
             if (!WaitForLogLine(unityLog, BootMarker, BootTimeout))
                 Logger.LogWarning($"No '{BootMarker}' in {unityLog} after {BootTimeout.TotalSeconds}s; patching anyway");
             IL2CPP.il2cpp_thread_attach(IL2CPP.il2cpp_domain_get());
+            // Without safe pages for the jump slots a hooked method would sooner or later jump through garbage,
+            // so the plugin installs no hooks at all and the game runs without the mod.
+            bool pagesReady;
             try
             {
-                DobbyNearPages.Install();
+                pagesReady = DobbyNearPages.Install();
             }
             catch (Exception e)
             {
                 Logger.LogError($"Dobby pages failed: {e}");
+                pagesReady = false;
+            }
+            if (!pagesReady)
+            {
+                Logger.LogError("No hooks installed: Die Kollektion is inactive this session");
+                return;
             }
             harmony.CreateClassProcessor(typeof(MainThreadEntry)).Patch();
             Logger.LogInfo("Entry patch applied");

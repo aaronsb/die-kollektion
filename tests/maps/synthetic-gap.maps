@@ -1,0 +1,7 @@
+# expect: Gap (positive control: an unmapped gap within reach must win over coreclr's reservation)
+7f0000000000-7f0000001000 r--p 00000000 00:00 0 /game/System.Private.CoreLib.dll
+7f0000001000-7f0040000000 ---p 00000000 00:00 0
+7f0040000000-7f0040100000 r-xp 00000000 00:00 0 /game/libcoreclr.so
+7f0050000000-7f0050100000 r--p 00000000 00:00 0 /game/GameAssembly.so
+7f0050100000-7f0056000000 r-xp 00000000 00:00 0 /game/GameAssembly.so
+7f0056000000-7f0056800000 rw-p 00000000 00:00 0 /game/GameAssembly.so

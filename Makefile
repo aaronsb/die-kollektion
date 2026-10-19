@@ -40,8 +40,9 @@ build: ## Build every vehicle's meshes and icons from vehicles/
 	$(PY) tools/trace_icons.py
 	$(PY) -I tools/rasterize_icons.py
 
-check: ## Run every gate (holes, slivers, names, catalogue); fails if any does
+check: ## Run every gate (holes, slivers, names, catalogue, hook-page placement); fails if any does
 	@$(WS) gates
+	@dotnet run --project tools/near-plan -v quiet -- tests/maps/*.maps
 
 contact: ## Render every vehicle's contact sheet (needs Blender)
 	@for d in $$($(PY) -I -c 'import glob, json; print(" ".join(sorted({json.load(open(p))["donor"] for p in glob.glob("vehicles/*/vehicle.json")})))'); do $(PY) tools/composite_atlas.py $$d || exit 1; done

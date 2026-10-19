@@ -18,12 +18,13 @@ The BepInEx 6 IL2CPP plugin ("Die Kollektion") that puts the trucks in the game.
 
 ## Hook pages (`DobbyNearPages.cs`)
 
-Dobby keeps each hook's 8-byte jump slot in near pages that can fall inside coreclr's executable reservation; once coreclr commits that memory for JIT code, the next call through a hook jumps into garbage (it crashed the mechanic twice on 2026-10-18). The plugin finds the reservation from `System.Private.CoreLib.dll` and maps four pages at its top, which coreclr fills last. A healthy start logs:
+Dobby keeps each hook's 8-byte jump slot and relocated prologue in near pages that can fall inside coreclr's executable reservation; once coreclr commits that memory, the next call through a hook jumps into garbage (the mechanic twice on 2026-10-18; the logo after a game update on 2026-10-19). `Plugin.Load` calls `DobbyNearPages.Reserve()`, which claims a 4 MB block chosen by `NearBlockPlanner.cs` (pure logic over /proc/self/maps: an unmapped gap within 1 GB of GameAssembly's code, else the top of coreclr's reservation); `Install()` re-validates it before the hooks and returns false when nothing is safe, and then the plugin installs no hooks. Details and the evidence: `docs/engine.md`, "Hook pages". A healthy start logs:
 
-- `Dobby pages: mapped 0x…-0x… in the top of coreclr's executable reservation (…, below <file>)` (or `in a free hole`)
+- `Dobby pages: reserved at Load: Gap …` or `… ReservationTop …`
+- `Dobby pages: using 0x…-0x… of the 0x…-0x… block`
 - `Dobby pages: 0x… holds 56 bytes of slots` (all seven hooks)
 
-An `Error … expect a crash` line means the hooks are unprotected: warn the player away from the mechanic.
+`No hooks installed: Die Kollektion is inactive this session` means no safe place was found: the game runs without the mod. Capture `/proc/<pid>/maps` while it runs, add it to `tests/maps/` and fix `NearBlockPlanner`. Change the planner only with `make check` green over every captured layout.
 
 ## Crashes
 
