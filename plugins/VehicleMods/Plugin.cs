@@ -104,6 +104,7 @@ public class Plugin : BasePlugin
                 Logger.LogError($"Patch {type.FullName} failed: {e}");
             }
         }
+        MenuSentinel.HooksFailed = failed;
         Logger.LogInfo($"Patches applied: {applied}, failed: {failed}");
     }
 
@@ -173,6 +174,7 @@ static class MainThreadEntry
         }
         catch (Exception e)
         {
+            MenuSentinel.SetupFailed = true;
             Plugin.Logger.LogError($"Setup failed: {e}");
         }
     }

@@ -22,6 +22,7 @@
     <Reference Include="$(BepInExDir)/core/BepInEx.Unity.IL2CPP.dll" Private="false" />
     <Reference Include="$(BepInExDir)/core/Il2CppInterop.Runtime.dll" Private="false" />
     <Reference Include="$(BepInExDir)/core/0Harmony.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/core/SemanticVersioning.dll" Private="false" />
     <Reference Include="$(BepInExDir)/interop/Assembly-CSharp.dll" Private="false" />
     <Reference Include="$(BepInExDir)/interop/Il2Cppmscorlib.dll" Private="false" />
     <Reference Include="$(BepInExDir)/interop/UnityEngine.CoreModule.dll" Private="false" />
@@ -33,6 +34,8 @@
     <Reference Include="$(BepInExDir)/interop/Fusion.Runtime.dll" Private="false" />
     <Reference Include="$(BepInExDir)/interop/Funselektor.FunCore.Runtime.dll" Private="false" />
     <Reference Include="$(BepInExDir)/interop/Unity.Localization.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/interop/Unity.TextMeshPro.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/interop/UnityEngine.UI.dll" Private="false" />
   </ItemGroup>
 
   <!-- The files a deploy copies, from each vehicle folder ../../vehicles/<name>/: its vehicle.json as

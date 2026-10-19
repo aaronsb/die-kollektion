@@ -2,6 +2,11 @@
 
 All notable changes to Die Kollektion Werkstatt. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **A status line on the main menu.** The game's build label ends with `Die Kollektion <version> | 4 vehicles, 2 patches registered` when the mod loaded and everything registered; the line turns amber, says what's short and points at `BepInEx/LogOutput.log` when a vehicle, patch or game hook failed, a truck kept its donor's name or icon, or no vehicles were found. No line means the game is running stock. Unconfirmed in game so far; if a working install shows no line, the log's `Main menu:` line reports whether the label was active.
+
 ## [0.5.0] - 2026-10-19
 
 The first public release, on GitHub and Nexus Mods. Werkstatt builds the trucks on your machine from your own copy of the game; nothing from the game ships. Native Linux today; Windows support is planned.

@@ -40,6 +40,8 @@ static class DerivedVehicles
         var directory = Path.Combine(pluginDirectory, "vehicles");
         foreach (var definition in VehicleDefinition.LoadAll(directory))
         {
+            if (definition.Patch) MenuSentinel.PatchesDefined++;
+            else MenuSentinel.VehiclesDefined++;
             var donor = Catalog.Find(catalog, definition.DonorCatalogName);
             if (donor == null)
             {
@@ -49,6 +51,7 @@ static class DerivedVehicles
             if (definition.Patch)
             {
                 entries.Add(new Entry { Definition = definition, CarInfo = donor });
+                MenuSentinel.PatchesApplied++;
                 Plugin.Logger.LogInfo($"{definition.Codename}: patching stock {definition.Donor}");
                 continue;
             }
@@ -63,12 +66,14 @@ static class DerivedVehicles
             car.carColliderBoundsCenter = new Vector3(center.x, center.y, center.z - lengthening / 2);
             // A copy, so the donor keeps its own; the suspension lift upgrade reads its base travel here.
             if (definition.Suspension != null || definition.Tyre != null) car.suspensionSetup = WithOverrides(donor.suspensionSetup, definition);
+            var keptDonors = false;
             try
             {
                 LocalizedText.Apply(car, definition.DisplayName, definition.Description);
             }
             catch (Exception e)
             {
+                keptDonors = true;
                 Plugin.Logger.LogError($"{definition.Codename}: localized text failed, keeping {definition.Donor}'s: {e}");
             }
             try
@@ -77,9 +82,11 @@ static class DerivedVehicles
             }
             catch (Exception e)
             {
+                keptDonors = true;
                 Plugin.Logger.LogError($"{definition.Codename}: icon failed, keeping {definition.Donor}'s: {e}");
             }
-            Catalog.Add(catalog, car, definition.CatalogName);
+            if (keptDonors) MenuSentinel.VehiclesWithDonorLooks++;
+            if (Catalog.Add(catalog, car, definition.CatalogName)) MenuSentinel.VehiclesRegistered++;
             entries.Add(new Entry { Definition = definition, CarInfo = car });
         }
     }
