@@ -330,7 +330,7 @@ class Vehicle:
             facts = json.load(f)["nodes"]
         with open(os.path.join(self.extracted, "upgrades.json"), encoding="utf-8") as f:
             upgrades = json.load(f)
-        self.cosmetic_root = upgrades["cosmeticRoot"]
+        self.cosmetic_root = upgrades.get("cosmeticRoot") or ""      # empty: the donor has no upgrade nodes
         self.shift, self.cut = self._sweep_parameters()
         moved = self._swept(facts)
         self.nodes = {}
@@ -349,7 +349,7 @@ class Vehicle:
                 node.kind = "group"
         self.attach_points = {}
         for f in facts:
-            if f["path"].startswith(self.cosmetic_root):
+            if self.cosmetic_root and f["path"].startswith(self.cosmetic_root):
                 continue
             types = {c["type"] for c in f["components"]}
             if self._is_attach_point(f["path"], types):

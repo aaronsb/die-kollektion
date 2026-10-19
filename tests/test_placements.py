@@ -176,6 +176,13 @@ class Vehicles(unittest.TestCase):
             model.Vehicle(self.root, "longcar")
         self.assertIn("make extract", str(caught.exception))
 
+    def test_a_donor_without_upgrade_nodes_still_opens(self):
+        with open(os.path.join(self.root, "extracted", "car", "upgrades.json"), "w") as f:
+            json.dump({"root": "Car_Car", "cosmeticRoot": None, "nodes": [], "notes": "no Parts/*_CosmeticParts node"}, f)
+        v = model.Vehicle(self.root, "longcar")
+        self.assertEqual(v.options(), [])
+        self.assertIn("Winch/WinchAttachPoints/Front", v.attach_points)
+
     def test_listing_vehicles(self):
         listed = model.list_vehicles(self.root)
         self.assertEqual([v["name"] for v in listed], ["longcar"])

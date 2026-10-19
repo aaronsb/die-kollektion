@@ -3,20 +3,15 @@
 Usage: python3 -I export_upgrades.py <out dir> <prefab root name> <bundle> [<bundle> ...]
        (the cars bundle, the scriptableobjects bundle, which holds the parts, and the monoscripts bundle)
 
-Writes <out dir>/upgrades.json and one OBJ per upgrade option in <out dir>/upgrades/. Every node under
-Parts/<Car>_CosmeticParts is listed with its local TRS and its car-root position, rotation and scale (Unity
+Writes <out dir>/upgrades.json and one OBJ per upgrade option in <out dir>/upgrades/. Every node under the car's
+Parts/*_CosmeticParts node is listed with its local TRS and its car-root position, rotation and scale (Unity
 convention: x right, y up, z forward; rotation as a quaternion x, y, z, w). A node carrying a
 VehicleUpgradeObject is an option: the part that shows it (name, ItemId, CosmeticType or UpgradeType, linked
 parts) and its OBJ, in which each mesh node of the option (LOD0 only) is an "o <path>" object in car-root
 metres with x negated (right-handed, as tools/export_car_mesh.py writes). Read from the player's own install
-into extracted/, which is never committed.
+into extracted/, which is never committed. A car without such a node gets an upgrades.json with no nodes.
 """
 import json, math, os, re, sys
-
-import UnityPy
-from UnityPy.helpers.MeshHelper import MeshHandler
-
-UnityPy.config.FALLBACK_UNITY_VERSION = "6000.0.75f1"
 
 # The enums as the interop declares them (VehicleCosmetic.CosmeticType, VehicleUpgrade.UpgradeType).
 COSMETIC_TYPES = ["Hidden", "FrontSection", "RearSection", "SideSection", "FrontBumper", "RearBumper", "Hood", "Roof",
@@ -24,6 +19,29 @@ COSMETIC_TYPES = ["Hidden", "FrontSection", "RearSection", "SideSection", "Front
 UPGRADE_TYPES = ["Engine", "Health", "Headlight", "Horn", "Inventory", "Suspension", "WaterResistance", "Tire", "Winch",
                  "Protection", "Drone"]
 HIGHER_LOD = re.compile(r"_LOD[1-9]$")
+
+
+CONVENTION = "Unity car-root space: x right, y up, z forward; rotations are quaternions (x, y, z, w)"
+
+
+def find_cosmetic_root(root):
+    """The path of the car's Parts/<name>_CosmeticParts node, or None. The name isn't always the car's own
+    (The Ding's is DingDing_SUV_CosmeticParts, the Trailrat's TrailRat_CosmeticParts)."""
+    for child in root.m_Children:
+        parts = child.read()
+        if parts.m_GameObject.read().m_Name != "Parts":
+            continue
+        for grandchild in parts.m_Children:
+            name = grandchild.read().m_GameObject.read().m_Name
+            if name.lower().endswith("_cosmeticparts"):
+                return f"Parts/{name}"
+    return None
+
+
+def write_json(path, data):
+    with open(path + ".tmp", "w") as f:
+        json.dump(data, f, indent=1)
+    os.replace(path + ".tmp", path)
 
 
 def mat_mul(a, b):
@@ -50,6 +68,9 @@ def rounded(values, digits=6):
 
 
 def main():
+    import UnityPy        # here, so tests can import this module's helpers without UnityPy
+    from UnityPy.helpers.MeshHelper import MeshHandler
+    UnityPy.config.FALLBACK_UNITY_VERSION = "6000.0.75f1"
     out_dir, root_name, *bundles = sys.argv[1:]
     env = UnityPy.load(*bundles)
     root = None
@@ -63,8 +84,7 @@ def main():
                         root = t
     if root is None:
         sys.exit(f"no prefab root named {root_name}")
-    car = root_name[len("Car_"):] if root_name.startswith("Car_") else root_name
-    cosmetic_root = f"Parts/{car}_CosmeticParts"
+    cosmetic_root = find_cosmetic_root(root)
 
     nodes, meshes = [], []      # meshes: (option path, node path, Mesh, root matrix)
 
@@ -142,9 +162,16 @@ def main():
             walk(c, name if path is None else f"{path}/{name}", path, here, here_rot, here_scale, here_option)
 
     identity = [[1.0 if i == j else 0.0 for j in range(4)] for i in range(4)]
-    walk(root, None, None, identity, (0.0, 0.0, 0.0, 1.0), (1.0, 1.0, 1.0), None)
+    if cosmetic_root is not None:
+        walk(root, None, None, identity, (0.0, 0.0, 0.0, 1.0), (1.0, 1.0, 1.0), None)
+    out = os.path.join(out_dir, "upgrades.json")
+    os.makedirs(out_dir, exist_ok=True)
     if not nodes:
-        sys.exit(f"{root_name} has no {cosmetic_root}")
+        # Not every car has upgrade nodes; the add-on then shows the vehicle without any, and extraction goes on.
+        write_json(out, {"root": root_name, "cosmeticRoot": cosmetic_root, "convention": CONVENTION, "nodes": [],
+                         "notes": f"{root_name} has no Parts/*_CosmeticParts node, so no upgrade nodes"})
+        print(f"{out}: {root_name} has no Parts/*_CosmeticParts node; written with no upgrade nodes")
+        return
 
     os.makedirs(os.path.join(out_dir, "upgrades"), exist_ok=True)
     by_option = {}
@@ -178,12 +205,7 @@ def main():
     for entry in nodes:
         if entry["path"] in files:
             entry["file"] = files[entry["path"]]
-    out = os.path.join(out_dir, "upgrades.json")
-    with open(out + ".tmp", "w") as f:
-        json.dump({"root": root_name, "cosmeticRoot": cosmetic_root,
-                   "convention": "Unity car-root space: x right, y up, z forward; rotations are quaternions (x, y, z, w)",
-                   "nodes": nodes}, f, indent=1)
-    os.replace(out + ".tmp", out)
+    write_json(out, {"root": root_name, "cosmeticRoot": cosmetic_root, "convention": CONVENTION, "nodes": nodes})
     options = sum(1 for n in nodes if "part" in n)
     print(f"{out}: {len(nodes)} nodes, {options} options, {len(files)} option meshes")
 
