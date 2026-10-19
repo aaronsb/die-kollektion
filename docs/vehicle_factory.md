@@ -25,7 +25,7 @@ Non-goals:
 - Cheats such as money, unlock-all or fog of war; existing tools cover them.
 - New physics or VPP behaviour beyond what a definition sets: wheelbase, track, steer, tyre, suspension.
 - Asset bundles or new shaders. Items use a donor's prefab and shader; their textures may be their own (see Textures).
-- A standalone GUI for now. The Blender add-on is the visual editor; a GUI can wrap the CLI later.
+- A standalone GUI for now. The Blender add-on is the visual editor. A future editor that wraps the CLI is an idea, not a plan; see Contact sheets for what prepares it.
 
 ## Landscape (October 2026)
 
@@ -95,7 +95,7 @@ Internal tools       our Python (Glyptodon-family generator, cab scripts, gates,
 
 ## Items and the two pipelines
 
-An **item** is one thing a pack adds or changes. Every item has a directory and an `item.json`.
+An **item** is one thing a pack adds or changes. Every item has a directory and an `vehicle.json`.
 
 **Vehicle item** (new vehicle):
 ```jsonc
@@ -111,7 +111,6 @@ An **item** is one thing a pack adds or changes. Every item has a directory and 
              "basis": "styled on the two-door; no factory crew cab existed, wheelbase from the long crew-cab drawing",
              "description": "..."}   // factual description of the real vehicle for the catalogue; no personal stories
   },
-  "category": "kollektion/die-kollektion",   // a category from this or another pack, or a stock one
   "donor": "Mammoth",
   "chassis": {
     "wheelbase": 3.70, "track": 1.86, "maxSteerAngle": 37.8,
@@ -138,9 +137,48 @@ An **item** is one thing a pack adds or changes. Every item has a directory and 
 - The Blender add-on writes exactly this: it diffs the edited scene against the extracted base (`baseline.json`) and exports only the changes.
 - This replaces the separate `donor` (vehicle) and `target` (patch) fields below.
 
+**Three kinds, declared in the manifest (author, 2026-10-19).** Each vehicle is one portable folder whose manifest (`vehicle.json`) carries `"kind"`:
+
+| Kind | What it is | What ships | In the game |
+|---|---|---|---|
+| `novel` | A new vehicle with everything its own: meshes, colliders, textures, icon. Built on a template type (bonneted body, bonneted pickup, flat-front body, flat-front bed truck) | Everything; the author holds the rights to distribute it | A new item, in any group |
+| `based` | A new vehicle assembled from a shipped vehicle: the pipeline extracts the base on the player's machine and applies the differences, producing a local-only vehicle that behaves exactly like a novel one | Only the differences and own parts | A new item, in any group (a new category included) |
+| `patch` | Changes to a shipped vehicle, updated in place | Only the differences and own parts | The stock car, changed; no new item, no save entries |
+
+`based` and `patch` carry the `base` block. A novel vehicle still needs a stock prefab for physics and the wheel rig, which every stock car shares, so the plugin borrows its template type's donor as a rig only, with none of its geometry or textures, and nothing is extracted. Glyptodon, Megaloceros, Mastodon and Megatherium are `based` on the Mammoth today; the Mammoth changes are a `patch`; the example vehicle is `novel`.
+
+**What counts as novel (author, 2026-10-19).** A vehicle is `novel` when everything it ships is its own and it reuses from the game only what every vehicle needs: the vehicle object definition (prefab, physics, wheel rig, lights and points) and the wheels and tyres, referenced live from the running game by node (as the spare-wheel clone already does), never extracted or edited. Any extracted game mesh that is edited and shipped as differences (a stretched body, portal-axle operations on the stock axle, a re-used bed) makes it `based`. `kollektion check` decides it from provenance: each built mesh records which faces come from own OBJs and which from extracted base meshes, and a vehicle declared `novel` fails if any extracted face survives.
+- The square-cab trucks (Glyptodon, Megaloceros) are novel by design: own cab, frame, bed and undercarriage. Their builds still start from three Mammoth sources, so their manifests say `based` until those are replaced: the body mesh (most pieces removed, some kept and moved, stretched or widened), the skinned axles (portal and coil-spring operations on the stock axle) and the colliders (stretched and widened). Replacing them means own skinned axles weighted to the shared rig's bones, own colliders, and a body built only from own parts.
+- The round-cab trucks (Mastodon, Megatherium) are the Mammoth body reshaped and stay `based`. The Mastodon also takes its single cab and front from the mechanic's truck, a scene prop (see What ships), so its `base` names two sources.
+
+**Parts nest (author, 2026-10-19).** A vehicle manifest builds the vehicle as a tree of parts. Each part names a source, where it attaches, what is done to it, and its own child parts; moving a part moves everything under it. Example: the Megaloceros with the mechanic's camper body as a bed option.
+```jsonc
+"parts": [
+  {"id": "frame", "source": {"family": "glyptodon", "generate": "frame"}, "attach": "root",
+   "points": {"bed.mount": [0, 1.225, -0.10]},
+   "parts": [
+     {"id": "cab", "source": {"own": "meshes/cab_megaloceros_LOD{0..3}.obj"}, "attach": "root"},
+     {"id": "bed", "source": {"family": "glyptodon", "generate": "bed"}, "attach": "bed.mount",
+      "points": {"bed.floor": [0, 0, -1.40]},
+      "parts": [
+        {"id": "camper", "slot": "Bed", "option": "camper",             // an upgrade option, shown when fitted
+         "source": {"prop": {"bundle": "r1_canada", "path": "<scene path of the camper body>", "lods": 4}},
+         "transform": {"scale": 100, "offset": [0, 0, 0]}, "attach": "bed.floor",
+         "ops": [{"op": "fitToBed"}], "hides": ["roof.hatch"]}       // the camper selects the plain roof
+      ]}
+   ]}
+]
+```
+- **Sources:** `own` (OBJs in the vehicle folder), `family` (generated by the family code), `vehicle` (a part of an extracted game vehicle, by node path), `prop` (an extracted prop). Each part gets LODs, material class or own textures, and operations.
+- **Points:** a part may declare named attach points relative to itself; children attach to their parent's points, and the vehicle's attach points (hubs, winch, lights, slot anchors) are points too, so the attach-point check sees the whole tree.
+- **Upgrade options:** a part with `slot` and `option` becomes an option in that upgrade slot instead of always-on geometry; `hides` lists parts it switches off when fitted (the camper hides the roof hatch).
+- **Kind per part:** provenance is tracked per part. A vehicle is `novel` when every always-on part is its own; an optional part from an extracted source (the camper) makes only that option `based`. Its geometry is built on the player's machine like any based part, and a player without the source sees the option missing with a log line, not a broken vehicle.
+
+**The main manifest composes the pack (author, 2026-10-19).** Vehicle folders stay portable: a vehicle manifest says what the vehicle is, never where it goes. The pack's main manifest (`kollektion.json` at the pack root) defines everything loaded into the game: the pack's id, version and author; its groups (the merchant categories: id, names, sort position, base category to clone); which vehicle and patch folders it includes and which group each vehicle sits in; and the load order for patches on the same car. Moving a vehicle folder into another pack means adding one line to that pack's main manifest. A vehicle no main manifest places in a group falls back to its base or template donor's category.
+
 **Tweaking a stock vehicle is the main path (author):** most people only want to change an existing car, so that path is the shortest. `kollektion new patch <Car>` writes an item with the `base` pointer and an empty difference, listing every chassis and suspension value with the base's current number as a comment. Changing a number and running `kollektion build && kollektion install` is the whole job, with no Blender. Geometry and upgrade changes add Blender on top of the same item.
 
-**Names: fictional in the game, real in the catalogue (author, 2026-10-19).** Nothing real reaches Over the Hill: in-game names, descriptions, category names, icons, liveries and textures stay fictional, and so do file, part and tool names. Die Kollektion itself always presents the real data: `listing.real` (make, model, series, variant, years, `basis` saying how faithful the item is, and `description`, a factual description of the real vehicle; no personal stories) feeds the README catalogue, `kollektion list`/`info`, `pack.json` and the Nexus page text. `kollektion check` fails an item whose in-game strings contain any word of its `listing.real` make or model, or of a fixed list of manufacturer and model names. Showing the real name in the game is the player's choice, never the pack's: `kollektion names real|fictional [item…]` writes a local override file (`<mygames>/DieKollektion/names.json`) that the plugin applies over the pack's in-game names, built from `listing.real`. Packs never ship it, and the check doesn't apply to it.
+**Names: fictional in the game, real in the catalogue (author, 2026-10-19).** Nothing real reaches Over the Hill: in-game names, descriptions, category names, icons, liveries and textures stay fictional, and so do file, part and tool names. Die Kollektion itself always presents the real data: `listing.real` (make, model, series, variant, years, `basis` saying how faithful the item is, and `description`, a factual description of the real vehicle; no personal stories) feeds the README catalogue, `kollektion list`/`info`, `kollektion.json` and the Nexus page text. `kollektion check` fails an item whose in-game strings contain any word of its `listing.real` make or model, or of a fixed list of manufacturer and model names. Showing the real name in the game is the player's choice, never the pack's: `kollektion names real|fictional [item…]` writes a local override file (`<mygames>/DieKollektion/names.json`) that the plugin applies over the pack's in-game names, built from `listing.real`. Packs never ship it, and the check doesn't apply to it.
 
 **Patch item** (existing vehicle): the same blocks, with `"kind": "patch"` and `"target": "Mammoth"` in place of codename, itemId, names, category and donor. Mesh, transform and chassis changes never get an ItemId or touch the save, so removing them returns the car to stock. Upgrade changes, cheapest first:
 1. Full rotation and scale on transforms (today: position and yaw only).
@@ -150,7 +188,7 @@ An **item** is one thing a pack adds or changes. Every item has a directory and 
 
 The upgrade model: an upgrade node (`VehicleUpgradeObject`, all off in the prefab) names one item (`vehiclePartReference`) and shows when that item is mounted. The slot is the item's `CosmeticType` (the Mammoth uses 11: FrontSection, RearSection, FrontBumper, RearBumper, Roof, RoofLights, Bed, Fenders, SideSection, SideStep, Antenna). One item can drive several nodes, and `LinkedParts` pulls in other items (antenna toppers show the base). Each car offers its own `UpgradesLists` (209 entries on the Mammoth). The mounted state is a 256-bit set, inferred to index that list, which would leave room for about 40-55 new options per car **[test or disassembly]**. Item catalogue and cosmetic meshes are shared across cars; placement (full TRS, often non-uniform scale) is per car.
 
-**Category item**: an id, an asset name and names in all locales.
+**Groups** (the game's vehicle categories), defined in the main manifest: an id, an asset name and names in all locales.
 - A category is a `VehicleControllerSetup` asset that `CarInfo.carCategorySetup` points at. The four stock ones are `CarCategory_01_Trail` .. `04_Expedition`, each with a `CategoryName` (Content table string), a `HapticCategory` enum and a physics template (mass, steering, gearbox, engine tiers, tyre, suspension). No runtime reader of the physics block was found.
 - The merchant's `InitializeSelectVehicleScreen` groups every catalog vehicle by its category object, sorts the categories by asset name (ordinal), and makes one section per category, with no cap. A null category throws there.
 - The plugin clones a base category (default: the donor's) with `Object.Instantiate`, unedited apart from its name and `CategoryName`, marks it `DontUnloadUnusedAsset`, and points each item's `CarInfo` at it. The asset name sets the order, so it follows `CarCategory_NN_<Name>`; ours is `CarCategory_05_DieKollektion`. Items naming the same category share one instance. An unresolvable category falls back to the donor's.
@@ -163,7 +201,7 @@ The upgrade model: an upgrade node (`VehicleUpgradeObject`, all off in the prefa
 
 Gates and the pack build refuse an own OBJ that is a copy of donor geometry: Core compares vertex sets against the donor mesh and flags a high match **[decide: threshold, or advisory only]**.
 
-**Families.** The Glyptodon-family generator (`tools/glyptodon_family.py`) stays Python on our side. It writes the item directory: `item.json`, the operation lists and our own OBJs. Families are an authoring convenience; the runtime sees only items.
+**Families.** The Glyptodon-family generator (`tools/glyptodon_family.py`) stays Python on our side. It writes the item directory: `vehicle.json`, the operation lists and our own OBJs. Families are an authoring convenience; the runtime sees only items.
 
 ## Textures (author, 2026-10-19)
 
@@ -187,15 +225,19 @@ Die Kollektion's first release:
 | Patch | Das Mammoth: coil springs (with the portal axles), side exhaust, suspension parameters (with the steering lock); each its own item, added and removed independently | operations on the player's Mammoth |
 | Patch | Canary: one golf bag with clubs, strapped to the roof of the first vehicle a new player drives | our own geometry and SVG map |
 | Patch | Patch template: an empty, commented patch item to fill in | nothing |
-| Vehicle | The Mammoth-family pair, Das Mastodon and Das Megatherium | the player's Mammoth and the mechanic's truck, extracted locally, plus operations |
-| Vehicle | The Glyptodon-family pair, Das Glyptodon and Das Megaloceros | our own cabs and parts, plus Mammoth axles, wheels and bed parts extracted locally |
-| Template | The example vehicle (also the integration test) | our own geometry plus the donor, extracted locally |
+| Vehicle (`based`) | The Mammoth-family pair, Das Mastodon and Das Megatherium | the player's Mammoth, and for the Mastodon the mechanic's truck cab (a prop), extracted locally, plus operations |
+| Vehicle (`based` today, `novel` by design) | The Glyptodon-family pair, Das Glyptodon and Das Megaloceros | our own cabs and parts, plus the Mammoth body pieces, axles and colliders extracted locally until they are replaced |
+| Template (`novel`) | The example vehicle (also the integration test) | our own geometry on its template type's rig |
 | Category | Die Kollektion | a clone of the donor's category |
 
 **Nothing extracted from the game ships.** The Mastodon and Megatherium are mostly Mammoth and mechanic's-truck geometry, so their packs carry only operations and our own parts. **The extractor** (Core's donor reader) pulls the parts out of the player's own install: the plugin runs it on first load to fill its cache, and Werkstatt exposes it for anyone who wants to mod their own thing:
 - `kollektion extract --list` enumerates every vehicle in the player's install: catalogued cars, CatalogExcluded ones (Baguette, Grizzly), mesh-only leftovers (`BullV1`, `DingDing_SUV_CosmeticParts`) and scene vehicles (the mechanic's truck), with template type, category, dimensions and slot counts.
 - `kollektion extract <Car> <dir>` writes the car as an item directory: body LODs, colliders, axles with bone weights, wheels, every upgrade option, its four texture maps as PNG, attach points and node facts. This is what the Blender add-on imports.
 - `kollektion extract <Car> --pack <file>.kpack` (or `--all`) writes a pack from the game: a stock car as a ready-made patch item that changes nothing, to copy and edit.
+- **Vehicles and props.** A source is either a **vehicle** (a car prefab: body, colliders, axles, wheels, lights, points and upgrade slots, with the shared rig) or a **prop** (any mesh in a scene or asset bundle, such as the mechanic's truck in `r1_canada`, a building, a cabin: geometry and its material only, no rig and no attach points). `kollektion extract --props [<bundle>]` lists props by bundle, scene path and size; `kollektion extract <prop> <dir>` writes its meshes at their scene scale. The Mastodon uses both: the Mammoth (vehicle) and the mechanic's truck cab (prop, scale 100, offset (0, -0.071, 0.086) onto the Mammoth).
+- **`base` can list several sources,** each with `type` (`vehicle` or `prop`), its asset path and bundle, a transform onto the vehicle (scale, offset, rotation) and which pieces are used. Exactly one source is the rig: a vehicle, or for a vehicle built only from props, the template type's donor.
+- **Attach-point validation.** Props bring no attach points, so a vehicle built from them gets its points from the rig source or the author, and `kollektion check` validates the result against the template type: wheel hubs on the wheel colliders and inside the wheel arches of the geometry, centre of mass inside the colliders, colliders enclosing the visible body, winch and water points on the body surface at plausible heights, lights on lamp faces, each upgrade-slot anchor on or near the body, nothing floating or buried beyond a tolerance. The same check runs on every kind, so a novel vehicle is held to it too.
+- Anything can become a vehicle this way, a cabin from a map included: extract it as a prop, pick a template type for the rig, place the points, and build. It is `based` (it ships as differences against the player's own extracted prop).
 - Everything extracted is marked `"origin": "extracted"` in its item and file hashes. Such packs install locally, and `kollektion pack` refuses to build a distributable pack containing any extracted file, so the tool itself enforces the rule. It reads the cars bundle (vehicle prefabs) and the scene bundles (the mechanic's truck and camper body live in the `r1_canada` scene bundle, at scale 100 with an offset; see `docs/engine.md`), and writes OBJ with bone weights and node facts in the same form `export_car_mesh.py` and `export_named_mesh.py` do today, which it replaces.
 
 ## Examples and the integration test (author, 2026-10-19)
@@ -204,23 +246,34 @@ A newcomer learns the factory from two worked examples that ship with Werkstatt,
 
 - **Example vehicle** (`examples/template-vehicle/`): one new vehicle that uses every component once: a template type and donor, attach points, own geometry with LODs and colliders, an SVG texture map, an upgrade slot with an option, a category, names and `listing`. A newcomer builds it with one command and gets a pack that installs and spawns. CI builds and gates it on every push (the build needs donor data, so CI uses a small fixture extracted from the donor and kept out of the public repo, or runs only the steps that don't need it **[decide at implementation]**); a release is preceded by one in-game spawn of it, run by the author.
 - **Canary patch** (`examples/first-patch/`): a trivial patch on the vehicle a new player drives first (which car that is: **[research]**): one golf bag with clubs strapped to the roof, own geometry at the roof attach point with its own SVG map. No ItemId, no save change; installing shows the bag, uninstalling removes it.
-- **Our Mammoth patch becomes separate patch items** that install and uninstall independently: coil springs with the portal axles, the side-exit exhaust, and the suspension parameters with the steering lock. Each is its own `item.json` in Die Kollektion's pack, and `kollektion install/uninstall <pack>/<item>` toggles one.
+- **Our Mammoth patch becomes separate patch items** that install and uninstall independently: coil springs with the portal axles, the side-exit exhaust, and the suspension parameters with the steering lock. Each is its own `vehicle.json` in Die Kollektion's pack, and `kollektion install/uninstall <pack>/<item>` toggles one.
 
 **Patch composition.** Several patches may target one car. Each patch item declares what it touches (mesh nodes, transforms, chassis fields). Operation lists on the same donor mesh compose in install order; a whole-mesh replacement or two values for the same chassis field conflict, and `kollektion install` refuses the second with both names unless the author sets an order. Removing a patch rebuilds the car from stock plus the remaining patches, so removal never leaves residue. Later, a patch could become an in-game upgrade option (coil springs as a garage choice), which gives it an ItemId and puts it under the save rules.
+
+## Contact sheets (author, 2026-10-19)
+
+`kollektion contact <vehicle>` renders a contact sheet: a Markdown file plus images that show the build at a glance, for human review, for AI evaluation loops (an agent reads the sheet to judge a build and decide the next change), and for the pack page. It ships in the pack beside the vehicle (`contact/CONTACT.md`, `contact/*.png`).
+- **Views:** a simple isometric layout on a fixed grid, the same angles for every vehicle: one isometric render per corner (front-left, front-right, rear-left, rear-right) at LOD0, and the same four corners again as a rig view: the body ghosted, with the colliders, wheel colliders, attach points (hubs, centre of mass, winch and water points, lights, exhaust, upgrade-slot anchors) and part boundaries drawn and labelled. Upgrade options, liveries and LOD strips are left out until there's a reason.
+- **Analysis:** the mesh checks drawn and listed: open edges and gaps (`check_holes`: area per gap, location, a highlighted render), slivers, faces culled from behind, triangle counts per LOD, and the attach-point check (each point plotted, failures marked).
+- **Facts:** kind and provenance per part, dimensions (length, width, height, wheelbase, track, ground clearance), chassis and suspension values, and the `listing` block.
+- **Reproducible:** fixed cameras, lighting and resolution per template type, so two builds' sheets compare image by image; `kollektion contact --diff <a> <b>` puts two sheets side by side for a change review.
+- **Data first, Markdown second:** the command writes `contact/contact.json` (every fact, gate result, point, collider and gap with coordinates) and renders `CONTACT.md` from it. Every CLI command gets a `--json` output the same way.
+- **Towards an editor (an idea, not a plan):** an editor could read the same JSON and show the same views live. Its form is undecided: a standalone app (Electron was mentioned) or a panel inside the Blender add-on. Its role is clear either way: **Blender edits geometry; the editor edits everything else and verifies.** It edits the manifest's metadata and attach points (move a point, set a value, assign a group) and acts as the linter for the game: when a file in the vehicle folder is saved (from Blender, a text editor or the editor itself) it reruns the build steps and gates through the CLI's JSON output and shows what changed: gaps, failed points, triangle counts, a contact-sheet diff. The contact sheet is its static snapshot, so building it now fixes the data model an editor would use.
+- Renders use Blender headless, as `preview_vehicle.sh` does today. Renders of a based vehicle show geometry built from the player's own install; a shipped sheet is a picture of the result, like a screenshot, and contains no mesh data.
 
 ## Packs
 
 A pack is a zip with the extension `.kpack`:
 
 ```
-pack.json                # id ("<author>/<pack>"), version, schema, title, author, requires (plugin version range),
-                         # builtAgainst (game build), items[] (directory, kind, codename/target, itemId), file hashes
-items/<item>/item.json
+kollektion.json          # the main manifest: id ("<author>/<pack>"), version, schema, title, author, requires (plugin version range),
+                         # builtAgainst (game build), groups, items[] (directory, kind, group, codename/base, itemId), patch order, file hashes
+items/<item>/vehicle.json
 items/<item>/meshes/*.obj
 items/<item>/ops/*.json
 items/<item>/icon.png
+items/<item>/contact/CONTACT.md, contact.json, *.png  # contact sheet (see Contact sheets)
 items/<item>/textures/*.svg, *.png  # optional own texture maps: SVG source, rendered PNG (see Textures)
-categories/<id>.json
 ```
 
 - The plugin reads entries in place (`System.IO.Compression.ZipArchive`); nothing is unzipped into the game folder.
@@ -266,12 +319,12 @@ Either way the save code shares Core's rules: refuse while the game runs, refuse
 
 - Stock IDs look like hashed 32-bit values (Baguette 2077913603, Grizzly 2940455280).
 - Die Kollektion's four keep 3000000001-3000000004: saves already hold them.
-- New items get `fnv1a32("<author>/<pack>/<codename>")`, moved out of the stock values and our block on collision, issued once by `kollektion new` and written into `item.json`. After that the ID is the item's identity: renaming the item doesn't change it.
+- New items get `fnv1a32("<author>/<pack>/<codename>")`, moved out of the stock values and our block on collision, issued once by `kollektion new` and written into `vehicle.json`. After that the ID is the item's identity: renaming the item doesn't change it.
 - `Catalog.Add` already refuses an ItemId owned by another item; the plugin logs both claimants and skips the later pack.
 
 ## Runtime contract (plugin)
 
-- At Load (no IL2CPP): list `packs/*.kpack`, read each `pack.json`, check `schema` and `requires` against the plugin, check `builtAgainst` against the running game build (a mismatch is one warning), and build stale cache entries on the background thread.
+- At Load (no IL2CPP): list `packs/*.kpack`, read each `kollektion.json`, check `schema` and `requires` against the plugin, check `builtAgainst` against the running game build (a mismatch is one warning), and build stale cache entries on the background thread.
 - At the entry hook: register categories, then items, each in its own try/catch so one bad item never stops the others or the game. Log lines start with `<pack>/<item>` so `grep` finds them.
 - Validation before any IL2CPP work for an item: files present, OBJs parse, ItemId free, codename unique, donor or target in the catalog, category resolvable. Node paths are checked on the first spawn of the donor prefab; a missing node disables that item's reshape with a log line.
 - Patch items apply to the stock car's spawns; vehicle items work as derived vehicles do today.
@@ -350,7 +403,7 @@ The mod is always installable straight from GitHub; Nexus is where players find 
 - **The README** in the repo is the install guide: BepInEx 6 IL2CPP version, the Linux launch option, extract, uninstall order, Steam Cloud.
 - **Third-party packs** publish on their own GitHub releases (or anywhere): `kollektion install <file|url>`, where `github:<owner>/<repo>[@tag]` fetches the release's `.kpack` asset. No central index for now.
 
-What is public: the factory (Core, plugin, CLI, add-on), our pack sources (`item.json`, operations, our own OBJs, icons we drew), our Python tools, and the notes with branding removed. What never is: meshes, textures and icons extracted from the game, reference photos and drawings, and real manufacturer or model names outside the catalogue.
+What is public: the factory (Core, plugin, CLI, add-on), our pack sources (`vehicle.json`, operations, our own OBJs, icons we drew), our Python tools, and the notes with branding removed. What never is: meshes, textures and icons extracted from the game, reference photos and drawings, and real manufacturer or model names outside the catalogue.
 
 Decided (author, 2026-10-19):
 - **A public repository** with a clean history from its first commit.

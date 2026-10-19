@@ -4,6 +4,10 @@ New vehicles for *Over the Hill*, built on the game's own trucks.
 
 Die Kollektion is a BepInEx 6 IL2CPP mod that adds trucks to the game's merchant: each one is a stock donor reshaped at runtime (wheelbase, track, suspension, steering, tyres) and re-meshed with our own parts, under a new item ID. It is early: four trucks and a patch for the stock Mammoth, tested on the native Linux build. It is heading toward a vehicle factory, where anyone can author new vehicles and patches as packs with **Die Kollektion Werkstatt**, the authoring toolkit (Blender add-on, vehicle templates and a cross-platform CLI); the design draft is in [`docs/vehicle_factory.md`](docs/vehicle_factory.md).
 
+## Made with AI, for people with agents
+
+Everything here (code, models, textures and docs) was authored with AI. That is also how we expect most people to use it: an agent is what lets someone who simply loves a truck get it into the game without first learning decompiling, mesh pipelines and plugin crash rules. Die Kollektion is agent-friendly on purpose. Point your agent at [`AGENTS.md`](AGENTS.md); it tells the agent how to help, whether you want it to just make things work or to coach you while you stay in creative control.
+
 ## The catalogue
 
 In the game every vehicle has a fictional name. Here is what each one is modelled on.
@@ -53,7 +57,7 @@ Each vehicle is one self-contained folder, `vehicles/<name>/`: its manifest `veh
 
 - [`docs/engine.md`](docs/engine.md): what we know about the game as a modding target, the crash rules the plugin follows, and the mesh pipeline.
 - [`docs/vehicle_factory.md`](docs/vehicle_factory.md): the design draft for packs, the two pipelines (new vehicles and patches), lifecycle, and Die Kollektion Werkstatt.
-- [`CLAUDE.md`](CLAUDE.md): commands, gates and working rules.
+- [`AGENTS.md`](AGENTS.md): how an agent should help you, plus commands, gates and working rules.
 
 ## Licence
 
