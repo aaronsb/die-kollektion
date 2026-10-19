@@ -1,16 +1,52 @@
 # Die Kollektion Werkstatt
 
-A vehicle mod system for *Over the Hill*, with **Die Kollektion**, an example set of vehicle packs built with it.
+[![Das Megaloceros, a square-cab crew-cab truck in olive green with a snorkel, black bumper and drop-side bed, rendered from the front left](docs/images/megaloceros-hero.png)](vehicles/megaloceros/)
 
-It began as "better trucks in the game" and grew into the system those trucks needed. **Werkstatt** is the BepInEx 6 IL2CPP plugin, which adds vehicles to the game's merchant and changes stock ones (each built on a stock donor reshaped at runtime: wheelbase, track, suspension, steering, tyres, and re-meshed with our own parts), plus the Python and Blender toolchain that builds them. A cross-platform CLI, packs and a Blender add-on are designed but not built yet; the design is in [`docs/vehicle_factory.md`](docs/vehicle_factory.md). **Die Kollektion** is four trucks and a patch for the stock Mammoth, tested on the native Linux build.
+A vehicle mod system for *Over the Hill*: it adds new vehicles to the game's merchant and changes stock ones, built on your own machine from your own copy of the game. **Die Kollektion** is the example set of vehicle packs made with it: four trucks (above, Das Megaloceros), a patch for the stock Mammoth, and a golf bag on The Ding's roof. Clone it, run one command, and it walks you through the rest.
+
+## What you need
+
+- **Over the Hill** on Steam, the native Linux build. Windows isn't supported yet.
+- **A Linux machine** (Arch, Debian/Ubuntu or Fedora; `make start` prints the install command for yours) with:
+  - **Python 3.10 or newer**, for the build tools;
+  - **the .NET SDK 6 or newer**, to compile the plugin;
+  - **rsvg-convert** (`librsvg`) and **potrace**, to draw the vehicle icons;
+  - **Blender 5** (optional), only for contact-sheet renders and editing the cab models;
+  - **make**, plus **git** or nothing at all: GitHub's **Code → Download ZIP** works too.
+- **About 1 GB of free disk**: the mod loader (BepInEx) in the game folder, Python packages and build output.
+
+## Get it running
+
+```sh
+git clone https://github.com/aaronsb/die-kollektion
+cd die-kollektion
+make start
+```
+
+`make start` checks everything and prints one next step: install a missing program, `make setup`, `make bepinex` (the mod loader), the Steam launch option, starting the game once, then `make all`, which builds the trucks and installs the mod. Run `make start` again after each step until it says everything is ready. Each step is explained in [Setup in detail](#setup-in-detail).
+
+**Fastest: ask your agent.** Open this folder with an AI coding agent (Claude Code, or any agent that reads [`AGENTS.md`](AGENTS.md)) and say "set me up". It runs `make start` step by step, explains each step, and tells you when you need to click something in Steam.
+
+## The vehicles
+
+Each vehicle is one folder; its page is a contact sheet: renders, a rig view of its colliders and attach points, and the results of the mesh checks.
+
+| | Vehicle | Kind | |
+|---|---|---|---|
+| <img src="docs/images/thumbs/glyptodon.png" width="140" alt="Das Glyptodon"> | **Das Glyptodon**: square-cab two-door with a drop-side bed and snorkel | based on the Mammoth (own cab, frame and bed) | [contact sheet](vehicles/glyptodon/) |
+| <img src="docs/images/thumbs/megaloceros.png" width="140" alt="Das Megaloceros"> | **Das Megaloceros**: square-cab crew cab on a long wheelbase, spare in the bed | based on the Mammoth (own cab, frame and bed) | [contact sheet](vehicles/megaloceros/) |
+| <img src="docs/images/thumbs/mastodon.png" width="140" alt="Das Mastodon"> | **Das Mastodon**: round-cab two-door, long wheelbase, ribbed steel bed | based on the Mammoth and the mechanic's truck | [contact sheet](vehicles/mastodon/) |
+| <img src="docs/images/thumbs/megatherium.png" width="140" alt="Das Megatherium"> | **Das Megatherium**: round-cab crew cab, long wheelbase, side-exit exhaust | based on the Mammoth | [contact sheet](vehicles/megatherium/) |
+| <img src="docs/images/thumbs/mammoth.png" width="140" alt="Das Mammoth, patched"> | **Das Mammoth**: the stock truck with portal axles, coil springs, a side-exit exhaust and more steering lock | patch | [contact sheet](vehicles/mammoth/) |
+| <img src="docs/images/thumbs/dingding.png" width="140" alt="The Ding with a golf bag on its roof"> | **The Ding**: a starter car with a golf bag strapped to its roof, the canary for patching stock vehicles | patch | [contact sheet](vehicles/dingding/) |
 
 ## Made with AI, for people with agents
 
 Everything here (code, models, textures and docs) was authored with AI. That is also how we expect most people to use it: an agent is what lets someone who simply loves a truck get it into the game without first learning decompiling, mesh pipelines and plugin crash rules. Werkstatt is agent-friendly on purpose. Point your agent at [`AGENTS.md`](AGENTS.md); it tells the agent how to help, whether you want it to just make things work or to coach you while you stay in creative control.
 
-## The catalogue
+## What they're modelled on
 
-In the game every vehicle has a fictional name. Here is what each one is modelled on. Each name opens the vehicle's folder, whose page is its contact sheet: isometric renders, a rig view of its colliders and attach points, and the results of the mesh checks.
+In the game every vehicle has a fictional name. Here is the real vehicle behind each one.
 
 <!-- catalogue -->
 | In game | Family | Variant | Real vehicle | Series | About the real vehicle | How faithful |
@@ -27,13 +63,9 @@ In the game every vehicle has a fictional name. Here is what each one is modelle
 
 Most people will want to tweak a stock car rather than build a new one, so that is the shortest path in Werkstatt: `kollektion new patch <Car>` writes a patch listing every chassis and suspension value, with the car's current numbers in a `stock` block beside them. Change a number, build, install; no Blender. Geometry and upgrade changes add Blender on top of the same patch. The CLI isn't built yet; [`docs/vehicle_factory.md`](docs/vehicle_factory.md) has the design.
 
-## Installing
+## Setup in detail
 
-There are no release builds yet: Werkstatt builds the mod on your machine from this repo, using parts of your own copy of the game, and installs it into the game folder. It runs on Linux today (the game's native Linux build).
-
-**Fastest: ask your agent.** Open this folder with an AI coding agent (Claude Code, or any agent that reads [`AGENTS.md`](AGENTS.md)) and say "set me up". It runs `make start` step by step, explains each step, and tells you when you need to click something in Steam.
-
-**By hand.** Every step is a command you paste into a terminal, or a click path in Steam.
+There are no release builds yet: Werkstatt builds the mod on your machine from this repo, using parts of your own copy of the game, and installs it into the game folder. Every step is a command you paste into a terminal, or a click path in Steam.
 
 1. Install Over the Hill in Steam, start it once, get past the intro, and quit. This creates your save.
 2. Install `make` if you don't have it:
