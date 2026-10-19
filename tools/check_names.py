@@ -27,6 +27,11 @@ def tracked():
         out = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
         return out.split()
     except (OSError, subprocess.CalledProcessError):
+        # A release zip has no git, but lists the files it ships (tools/release.py); the rest of the folder is
+        # the player's own (.venv/, extracted/, build output) and isn't checked.
+        listed = os.path.join(ROOT, "RELEASE-FILES.txt")
+        if os.path.isfile(listed):
+            return [l for l in open(listed).read().splitlines() if l and os.path.isfile(os.path.join(ROOT, l))]
         return [os.path.relpath(os.path.join(d, f), ROOT) for d, _, fs in os.walk(ROOT) if ".git" not in d for f in fs]
 
 

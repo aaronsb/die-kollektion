@@ -190,6 +190,8 @@ def cmd_build(args):
     with zipfile.ZipFile(werk_zip, "w", zipfile.ZIP_DEFLATED) as z:
         for f in sorted(files):
             z.write(os.path.join(ROOT, f), f"{prefix}/{f}")
+        # Without git, the name gate and `make pack` read the shipped file list from here.
+        z.writestr(f"{prefix}/RELEASE-FILES.txt", "\n".join(sorted(files)) + "\n")
         z.write(ws.SOURCE_DLL, f"{prefix}/prebuilt/VehicleMods.dll")
         z.writestr(f"{prefix}/prebuilt/VehicleMods.json", json.dumps(info, indent=1) + "\n")
     print(f"Wrote {os.path.relpath(werk_zip, ROOT)} ({len(files)} tracked files + prebuilt plugin)")
