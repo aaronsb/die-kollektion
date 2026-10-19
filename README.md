@@ -42,6 +42,8 @@ Each vehicle is one folder; its page is a contact sheet: renders, a rig view of 
 | <img src="docs/images/thumbs/mammoth.png" width="140" alt="Das Mammoth, patched"> | **Das Mammoth**: the stock truck with portal axles, coil springs, a side-exit exhaust and more steering lock | patch | [contact sheet](vehicles/mammoth/) |
 | <img src="docs/images/thumbs/dingding.png" width="140" alt="The Ding with a golf bag on its roof"> | **The Ding**: a starter car with a golf bag strapped to its roof, the canary for patching stock vehicles | patch | [contact sheet](vehicles/dingding/) |
 
+The four trucks run warm halogen headlights, a little dimmer than the stock cars' ([at dusk](docs/images/halogen-headlights.jpg)); a manifest's `headlights` block sets them.
+
 ## Made with AI, for people with agents
 
 Everything here (code, models, textures and docs) was authored with AI. That is also how we expect most people to use it: an agent is what lets someone who simply loves a truck get it into the game without first learning decompiling, mesh pipelines and plugin crash rules. Werkstatt is agent-friendly on purpose. Point your agent at [`AGENTS.md`](AGENTS.md); it tells the agent how to help, whether you want it to just make things work or to coach you while you stay in creative control.
