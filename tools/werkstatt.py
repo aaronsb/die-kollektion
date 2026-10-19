@@ -38,6 +38,7 @@ import platform
 import re
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -854,7 +855,9 @@ def cmd_preflight_deploy(args):
         if rec and changed and not move_aside(game, folder, "The game has changed since the last deploy"):
             return 1
         aside = aside_dir(folder)
-        prepared = aside_prepared(game, aside) if os.path.isdir(aside) else game_prepared(game)
+        # A plugin that fits the game needs no proof from BepInEx's log (which may be switched off).
+        prepared = (aside_prepared(game, aside) if os.path.isdir(aside) else
+                    True if recorded and not changed else game_prepared(game))
         if not prepared:
             print("The game has changed since BepInEx last started it, so the plugin can't be built for it yet.\n"
                   "Start the game once from Steam (it runs without Die Kollektion this time), quit, then deploy again.")
@@ -1104,9 +1107,10 @@ def game_prepared(game):
 
 
 def aside_dir(folder):
-    # BepInEx loads every DLL under plugins/, so the folder goes one level up, next to plugins/.
-    parent = os.path.dirname(folder)
-    if os.path.basename(parent) == "plugins":
+    # BepInEx loads every DLL under plugins/, so the folder goes one level up, next to plugins/. Next to the
+    # real plugins/ when it is a symlink: on the same filesystem, so moving it there is a rename.
+    parent = os.path.realpath(os.path.dirname(folder))
+    if os.path.basename(os.path.dirname(folder)) == "plugins":
         parent = os.path.dirname(parent)
     return os.path.join(parent, f"{os.path.basename(folder)}.aside")
 
@@ -1217,7 +1221,8 @@ def rebuild_refusal(record):
     if deployed != head:
         return (f"the plugin was deployed from {deployed[:7] if deployed else 'a copy without git'}, "
                 f"and {ROOT} is now at {head[:7] if head else 'no commit'}")
-    if repo and git("status", "--porcelain", "--untracked-files=no", "--", "plugins/VehicleMods"):
+    # Untracked files count: the project compiles every .cs file in the folder (build output is gitignored).
+    if repo and git("status", "--porcelain", "--untracked-files=normal", "--", "plugins/VehicleMods"):
         return f"plugins/VehicleMods in {ROOT} has uncommitted changes"
     return None
 
@@ -1425,8 +1430,14 @@ def cmd_launch_before(_args):
     launch; call launch-after once the game has exited. Any other exit also starts the game as it is."""
     game = game_dir()
     folder = default_deploy_dir(game)
-    with werkstatt_lock(game, wait=45) as held:
+    # With the plugin aside a stock launch is safe, and the rebuild checks for a running game before its rename,
+    # so a launch during a rebuild doesn't wait for it (Steam would show the game running with no window).
+    waiting_aside = os.path.isdir(aside_dir(folder)) and not os.path.isdir(folder)
+    with werkstatt_lock(game, wait=0 if waiting_aside else 5) as held:
         if not held:
+            if waiting_aside:
+                stamp("Launch: the plugin is aside and a rebuild is running; starting without it, trying again after the game exits")
+                return 3
             stamp("Launch: another Werkstatt step still holds the game folder; starting normally")
             return 0
         settle(game, folder)
@@ -1629,6 +1640,9 @@ if __name__ == "__main__":
         print(__doc__)
         sys.exit(2)
     args = sys.argv[2:]
+    # `timeout` and systemd stop with SIGTERM: exit through the finally/except blocks, so write_atomic removes
+    # its temp file and the lock is released.
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
     if "--log" in args:
         i = args.index("--log")
         log_to(args[i + 1])

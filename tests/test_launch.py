@@ -164,7 +164,7 @@ class FakeGame(unittest.TestCase):
         self.assertEqual(self.quiet(ws.cmd_launch_before, []), 3)
         aside = ws.aside_dir(self.folder)
         self.assertFalse(os.path.exists(self.folder))
-        self.assertEqual(aside, os.path.join(self.game, "BepInEx", "VehicleMods.aside"))
+        self.assertEqual(aside, os.path.join(os.path.realpath(self.game), "BepInEx", "VehicleMods.aside"))
         self.assertEqual(json.loads(self.read(aside, ws.ASIDE_NOTE))["interopHash"], "hash-v1")
         # The game exited before BepInEx regenerated its interop: the plugin waits.
         self.assertEqual(self.quiet(ws.rebuild_from_aside, self.game, self.folder, automatic=True), "waiting")
@@ -199,7 +199,8 @@ class FakeGame(unittest.TestCase):
     def update_game_files_only(self):
         """Steam replaces GameAssembly.so: new content, dated after BepInEx's last start."""
         self.write("GameAssembly.so", "+", append=True)
-        later = os.path.getmtime(os.path.join(self.game, "BepInEx", "LogOutput.log")) + 20
+        log = os.path.join(self.game, "BepInEx", "LogOutput.log")
+        later = (os.path.getmtime(log) if os.path.exists(log) else time.time() - 500) + 20
         os.utime(os.path.join(self.game, "GameAssembly.so"), (later, later))
 
     def test_failed_build_leaves_the_plugin_aside(self):
@@ -309,11 +310,108 @@ class FakeGame(unittest.TestCase):
         self.bepinex_started(after=True)
         self.assertEqual(self.quiet(ws.cmd_deploy, []), 0)
 
+    def test_a_launch_during_a_rebuild_does_not_wait_for_it(self):
+        self.update_game()
+        self.quiet(ws.cmd_launch_before, [])                                          # plugin aside
+        waits = []
+        real_lock = ws.werkstatt_lock
+        with real_lock(self.game) as held, mock.patch.object(
+                ws, "werkstatt_lock", side_effect=lambda game, wait=0.0: waits.append(wait) or real_lock(game, wait)):
+            self.assertTrue(held)                                                     # the rebuild holds the lock
+            started = time.monotonic()
+            self.assertEqual(self.quiet(ws.cmd_launch_before, []), 3)                 # stock now, retry after
+            self.assertLess(time.monotonic() - started, 1)
+        self.assertEqual(waits, [0])
+        self.assertFalse(os.path.exists(self.folder))
+
+    def test_a_launch_waits_briefly_when_the_plugin_is_in_place(self):
+        waits = []
+        real_lock = ws.werkstatt_lock
+        with mock.patch.object(ws, "werkstatt_lock", side_effect=lambda game, wait=0.0: waits.append(wait) or real_lock(game, wait)):
+            self.assertEqual(self.quiet(ws.cmd_launch_before, []), 0)
+        self.assertEqual(waits, [5])
+
+    def test_a_symlinked_plugins_folder_keeps_the_aside_folder_beside_its_target(self):
+        """plugins/ on another disk: the aside folder goes next to the real one, so moving there is a rename."""
+        elsewhere = os.path.join(self.tmp, "other disk", "BepInEx-plugins")
+        plugins = os.path.join(self.game, "BepInEx", "plugins")
+        os.makedirs(os.path.dirname(elsewhere))
+        os.rename(plugins, elsewhere)
+        os.symlink(elsewhere, plugins)
+        self.assertEqual(ws.aside_dir(self.folder), os.path.join(os.path.realpath(os.path.dirname(elsewhere)), "VehicleMods.aside"))
+        self.update_game()
+        self.assertEqual(self.quiet(ws.cmd_launch_before, []), 3)
+        self.assertFalse(os.path.exists(self.folder))
+        self.assertTrue(os.path.isdir(ws.aside_dir(self.folder)))
+        self.bepinex_regenerated()
+        self.assertEqual(self.quiet(ws.cmd_launch_after, []), 0)
+        self.assertTrue(os.path.isfile(os.path.join(elsewhere, "VehicleMods", "VehicleMods.dll")))
+        self.assertFalse(os.path.exists(ws.aside_dir(self.folder)))
+
+    def test_a_move_across_filesystems_is_refused(self):
+        self.update_game()
+        exdev = OSError(ws.errno.EXDEV, "Invalid cross-device link")
+        with mock.patch.object(ws.os, "rename", side_effect=exdev):
+            self.assertEqual(self.quiet(ws.cmd_launch_before, []), 0)
+        self.assertTrue(os.path.isdir(self.folder))
+
+    def test_deploy_needs_no_bepinex_log_when_the_plugin_fits(self):
+        os.remove(os.path.join(self.game, "BepInEx", "LogOutput.log"))               # disk logging switched off
+        self.assertEqual(self.quiet(ws.cmd_deploy, []), 0)
+        self.update_game()
+        self.assertEqual(self.quiet(ws.cmd_deploy, []), 1)                            # after an update it still waits
+
+    def test_sigterm_leaves_no_temp_file(self):
+        """`timeout` stops launch-before with SIGTERM; the entry point exits through write_atomic's cleanup."""
+        code = ("import os, signal, sys, time; sys.path.insert(0, sys.argv[1]); import werkstatt as ws\n"
+                "signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))\n"
+                "real = os.replace\n"
+                "def slow(a, b): os.kill(os.getpid(), signal.SIGTERM); time.sleep(5); real(a, b)\n"
+                "os.replace = slow\n"
+                "ws.write_json(os.path.join(sys.argv[2], 'deployed.json'), {})\n")
+        r = subprocess.run([sys.executable, "-c", code, os.path.join(ROOT, "tools"), self.folder], capture_output=True)
+        self.assertEqual(r.returncode, 143)
+        self.assertEqual([n for n in os.listdir(self.folder) if n.startswith(".deployed.json.")], [])
+
     def test_one_step_at_a_time(self):
         with ws.werkstatt_lock(self.game) as held:
             self.assertTrue(held)
             self.assertEqual(self.quiet(ws.cmd_update, []), 1)
             self.assertEqual(self.quiet(ws.cmd_deploy, []), 1)
+
+
+class Refusal(unittest.TestCase):
+    """rebuild_refusal over a scratch git repository standing in for the Werkstatt checkout."""
+
+    def setUp(self):
+        self.repo = tempfile.mkdtemp(prefix="werkstatt-git-")
+        self.addCleanup(shutil.rmtree, self.repo)
+        os.makedirs(os.path.join(self.repo, "plugins", "VehicleMods"))
+        self.write("plugins/VehicleMods/Plugin.cs", "class Plugin {}\n")
+        self.write(".gitignore", "plugins/*/bin/\n")
+        for cmd in (["init", "-q"], ["add", "-A"], ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "x"]):
+            subprocess.run(["git", *cmd], cwd=self.repo, check=True, capture_output=True)
+        patch = mock.patch.object(ws, "ROOT", self.repo)
+        patch.start()
+        self.addCleanup(patch.stop)
+        self.record = {"repoCommit": ws.checkout()[0]}
+
+    def write(self, rel, text):
+        path = os.path.join(self.repo, rel)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            f.write(text)
+
+    def test_a_clean_checkout_at_the_deployed_commit_rebuilds(self):
+        self.write("plugins/VehicleMods/bin/Release/VehicleMods.dll", "build output")    # ignored
+        self.assertIsNone(ws.rebuild_refusal(self.record))
+
+    def test_an_untracked_source_file_refuses(self):
+        self.write("plugins/VehicleMods/HalfDone.cs", "class HalfDone {")              # the csproj compiles every .cs
+        self.assertIn("uncommitted changes", ws.rebuild_refusal(self.record))
+
+    def test_another_commit_refuses(self):
+        self.assertIn("deployed from", ws.rebuild_refusal({"repoCommit": "0" * 40}))
 
 
 class Isolation(unittest.TestCase):
