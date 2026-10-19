@@ -7,6 +7,8 @@
     python3 tools/release.py ci                          every check that needs no game files (what CI runs)
     python3 tools/release.py build VERSION [--dry-run]   `make release`: check, compile, package, tag, publish
     python3 tools/release.py check-assets VERSION        the GitHub release has its zips and SHA256SUMS, and they match
+    python3 tools/release.py nexus-files VERSION DIR     for the Nexus workflow: the release's Werkstatt zip, checked
+                                                         against its SHA256SUMS, and that version's Nexus changelog
 
 `build` runs on a maintainer's machine with the game installed, because the plugin compiles against the interop
 BepInEx generates from the player's game. It refuses on uncommitted changes, a version mismatch, an existing tag
@@ -30,6 +32,7 @@ import zipfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PACK = os.path.join(ROOT, "packs", "die-kollektion")
 CHANGELOG = os.path.join(ROOT, "CHANGELOG.md")
+NEXUS_CHANGELOG = os.path.join(ROOT, "docs", "nexus", "changelog.txt")
 NEVER_SHIPPED = ("extracted/", "BepInEx/", "prebuilt/")
 
 
@@ -265,8 +268,45 @@ def cmd_check_assets(args):
     return 0
 
 
+def nexus_changelog(version):
+    """That version's entry in docs/nexus/changelog.txt (plain text, written for the Nexus page), else its
+    CHANGELOG.md section, else None."""
+    if os.path.isfile(NEXUS_CHANGELOG):
+        block = []
+        for line in open(NEXUS_CHANGELOG).read().splitlines():
+            if block and not line.strip():
+                break
+            if block or line.startswith(f"{version} ("):
+                block.append(line)
+        if block:
+            return "\n".join(block)
+    return next((b for v, _d, b in changelog_sections() if v == version), None)
+
+
+def cmd_nexus_files(args):
+    """Download the release's Werkstatt zip into DIR, check it against the release's SHA256SUMS, and write the
+    version's Nexus changelog to DIR/changelog.txt."""
+    version, out = args[0], args[1]
+    zip_name = f"die-kollektion-werkstatt-{version}.zip"
+    changelog = nexus_changelog(version)
+    if not changelog:
+        print(f"No changelog entry for {version} in docs/nexus/changelog.txt or CHANGELOG.md", file=sys.stderr)
+        return 1
+    os.makedirs(out, exist_ok=True)
+    sh("gh", "release", "download", f"v{version}", "--dir", out, "--pattern", zip_name, "--pattern", "SHA256SUMS",
+       "--clobber")
+    sums = dict(reversed(line.split()) for line in open(os.path.join(out, "SHA256SUMS")) if line.strip())
+    if sums.get(zip_name) != sha256(os.path.join(out, zip_name)):
+        print(f"{zip_name} doesn't match the release's SHA256SUMS", file=sys.stderr)
+        return 1
+    with open(os.path.join(out, "changelog.txt"), "w") as f:
+        f.write(changelog + "\n")
+    print(f"{zip_name}: matches SHA256SUMS; changelog: {len(changelog.splitlines())} line(s)")
+    return 0
+
+
 COMMANDS = {"check-versions": cmd_check_versions, "notes": cmd_notes, "ci": cmd_ci, "build": cmd_build,
-            "check-assets": cmd_check_assets}
+            "check-assets": cmd_check_assets, "nexus-files": cmd_nexus_files}
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:
