@@ -36,6 +36,8 @@ for car in sorted(cars, key=lambda c: c["m_Name"]):
 if not result:
     sys.exit("no CarInfo found: pass the scriptableobjects, cars and monoscripts bundles")
 os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
-with open(out, "w", encoding="utf-8") as f:
+tmp = out + ".tmp"     # a run cut off midway leaves the old file (or none), never a truncated one
+with open(tmp, "w", encoding="utf-8") as f:
     json.dump({"cars": result}, f, indent=1)
+os.replace(tmp, out)
 print(f"{out}: {len(result)} cars, {len(parts)} parts")

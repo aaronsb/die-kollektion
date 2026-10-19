@@ -49,7 +49,7 @@ The mechanic's truck (`r1_canada` scene bundle, scale 100, offset (0, −0.071, 
 ## Saves and part ownership
 
 - The save (`~/My Games/over the hill/Saves/<profile>.json`, one compact JSON line, `Header.Version` 11) keeps no "unlocked" flag for parts. The garage offers what the save says a car owns (`InventoryUtility.IsOwned(item, vehicleItemId)`; `IsAvailableToBuy` and the merchant's `lockSprite` cover the rest):
-  - a cosmetic or performance upgrade is a `VehicleSpecificItem` with one `VehicleStates` entry `{"VehicleItemId", "Count", "InUse"}` per car that owns it (`InUse` = fitted);
+  - a cosmetic or performance upgrade is a `VehicleSpecificItem` with one `VehicleStates` entry `{"VehicleItemId", "Count"}` per car that owns it (the save shows no other key on states; the interop's `VehicleState` also declares `InUse`);
   - a livery is an `InventoryItem` with a `Count` (an entry without one, Count 0, isn't owned).
 - Cosmetics cost nothing (`Price` 0 on all 197); rewards unlock them, and an unlock writes a state for every car in the catalogue at that moment. The 16 performance upgrades cost money and are bought per car.
 - A derived vehicle offers its donor's parts: the plugin clones the donor's `CarInfo`, and the clone keeps its `UpgradesLists` reference (Mammoth: 183 cosmetics, 16 upgrades, 10 liveries).

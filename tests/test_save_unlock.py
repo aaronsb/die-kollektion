@@ -337,7 +337,8 @@ class SaveAddPrune(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         names = os.listdir(backups)
         self.assertEqual(len([n for n in names if n.startswith("Player1-test-save-")]), 12)
-        self.assertEqual(len([n for n in names if n[len("Player1-"):][:1].isdigit()]), 1)
+        # The save held no trucks, so this first add's backup is the never-pruned original.
+        self.assertEqual(len([n for n in names if n.startswith("Player1-original-")]), 1)
 
 
 if __name__ == "__main__":
