@@ -195,20 +195,23 @@ def cmd_pr(_args):
         path = os.path.join(v, "contact", "contact.json")
         sections.append(changes_text(old, path) + f"\nContact sheet on this branch: {WEB}/tree/{b}/vehicles/{name}\n")
     git("push", "--quiet", "-u", "origin", "HEAD", check=True)
-    body = ("## What changed\n\n" + "\n".join(f"- {c}" for c in commits) + "\n\n"
-            + ("## Vehicles\n\n" + "\n".join(sections) if sections else "No vehicle's contact sheet changed.\n")
-            + "\n## How to test in game\n\n```\nmake try PR=<this number>\n```\n\n"
-            "Drive it, then `make report V=<vehicle>` for what you noticed, `make comment PR=<n> MSG=\"...\"` "
-            "for a quick note, or `make approve PR=<n>` to merge it.\n\n"
-            "<!-- Written by `make pr` (tools/workshop.py); rerun it after new commits to refresh this description. -->\n")
+
+    def body(number):
+        return ("## What changed\n\n" + "\n".join(f"- {c}" for c in commits) + "\n\n"
+                + ("## Vehicles\n\n" + "\n".join(sections) if sections else "No vehicle's contact sheet changed.\n")
+                + f"\n## How to test in game\n\n```\nmake try PR={number}\n```\n\n"
+                f"Drive it, then `make report V=<vehicle>` for what you noticed, `make comment PR={number} MSG=\"...\"` "
+                f"for a quick note, or `make approve PR={number}` to merge it.\n\n"
+                "<!-- Written by `make pr` (tools/workshop.py); rerun it after new commits to refresh this description. -->\n")
     existing = pr_for_branch()
     if existing:
-        gh("pr", "edit", str(existing["number"]), "--body", body)
-        url, number = existing["url"], existing["number"]
+        number, url = existing["number"], existing["url"]
+        gh("pr", "edit", str(number), "--body", body(number))
         print(f"Updated pull request #{number}: {url}")
     else:
-        url = gh("pr", "create", "--base", "main", "--head", b, "--title", commits[0], "--body", body)
+        url = gh("pr", "create", "--base", "main", "--head", b, "--title", commits[0], "--body", body("<number>"))
         number = url.rstrip("/").rsplit("/", 1)[-1]
+        gh("pr", "edit", number, "--body", body(number))
         print(f"Opened pull request #{number}: {url}")
     ws.say("Next step:", f"Install it and drive it:\n    make try PR={number}")
     return 0
