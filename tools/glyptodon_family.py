@@ -114,6 +114,15 @@ FLAP_LENGTH = 0.10
 # road wheels (the game's mesh is 0.53 m radius, 0.372 m wide).
 WHEEL = {"radius": 0.52, "width": 0.4}
 SPARE_SOURCE = "Axles/WheelMeshes/FL/Mammoth_Wheel/Mammoth_wheel"
+HEADLIGHTS = {
+    "notes": [
+        "Halogen headlights, on this vehicle's own copy of the game's headlight config. Every stock car shares one",
+        "headlight at about 4200 K and intensity 9; the halogen lamps of this truck's period run near 3200 K and give",
+        "less light, so 3200 K at 0.8 of the game's intensity (7.2). The plugin applies it at spawn; stock cars keep theirs."
+    ],
+    "kelvin": 3200,
+    "intensity": 0.8
+}
 SPARE_AXLE_SCALE, SPARE_RADIAL_SCALE = TYRE["width"] / WHEEL["width"], TYRE["radius"] / WHEEL["radius"]
 SPARE_R, SPARE_HALF_W = 0.53 * SPARE_RADIAL_SCALE, 0.372 / 2 * SPARE_AXLE_SCALE
 # The spare's carrier, after a sketch (from above): a
@@ -409,6 +418,7 @@ def write(truck):
         "bodyCut": [[0.0, -0.62], [1.05, -0.865], [1.21, -1.45]],
         "wheel": dict(WHEEL, y=HUB_Y),
         "tyre": TYRE,
+        "headlights": HEADLIGHTS,
         "transforms": {
             "Effects/VehicleParticles/ExhaustParticlesManager": {"position": EXHAUST_OUTLET, "yaw": 90},
             **lamps,

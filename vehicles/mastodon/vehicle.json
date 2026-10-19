@@ -43,6 +43,15 @@
     "preloadDistance": 0.0,
     "bumpTravelOffset": 0.05
   },
+  "headlights": {
+    "notes": [
+      "Halogen headlights, on this vehicle's own copy of the game's headlight config. Every stock car shares one",
+      "headlight at about 4200 K and intensity 9; the halogen lamps of this truck's period run near 3200 K and give",
+      "less light, so 3200 K at 0.8 of the game's intensity (7.2). The plugin applies it at spawn; stock cars keep theirs."
+    ],
+    "kelvin": 3200,
+    "intensity": 0.8
+  },
   "bodyCut": [
     [
       0.0,

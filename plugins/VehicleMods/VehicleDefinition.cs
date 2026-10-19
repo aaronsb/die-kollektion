@@ -39,6 +39,8 @@ sealed class VehicleDefinition
     public WheelSize Tyre { get; set; }
     /// <summary>A spare wheel cloned from one of the donor's wheel visuals ("spare"), or null for none.</summary>
     public SpareWheel Spare { get; set; }
+    /// <summary>Headlight colour and brightness for this vehicle ("headlights"), or null for the game's.</summary>
+    public HeadlightSettings Headlights { get; set; }
 
     public string MeshDirectory { get; private set; }
     public string CatalogName => Codename.ToLowerInvariant();
@@ -77,6 +79,16 @@ sealed class VehicleDefinition
         public UnityEngine.Vector3 Position { get; set; }
         public UnityEngine.Vector3 Rotation { get; set; }
         public WheelSize Size { get; set; }
+    }
+
+    /// <summary>Every stock car shares one headlight config (colour about 4200 K, intensity 9); these
+    /// settings apply to this vehicle's own copy of it.</summary>
+    public sealed class HeadlightSettings
+    {
+        /// <summary>Colour temperature in kelvin, or null to keep the game's colour.</summary>
+        public float? Kelvin { get; set; }
+        /// <summary>Factor on the game's intensity.</summary>
+        public float Intensity { get; set; } = 1f;
     }
 
     public sealed class WheelSize
@@ -125,6 +137,7 @@ sealed class VehicleDefinition
                 Wheel = root.TryGetProperty("wheel", out var wheel) ? ReadWheel(wheel) : null,
                 Tyre = root.TryGetProperty("tyre", out var tyre) ? ReadWheel(tyre) : null,
                 Spare = root.TryGetProperty("spare", out var spare) ? ReadSpare(spare) : null,
+                Headlights = root.TryGetProperty("headlights", out var headlights) ? ReadHeadlights(headlights) : null,
             };
             definition.MeshDirectory = Path.Combine(directory, definition.CatalogName);
             definitions.Add(definition);
@@ -187,6 +200,12 @@ sealed class VehicleDefinition
         Position = ReadVector(obj.GetProperty("position")),
         Rotation = ReadVector(obj.GetProperty("rotation")),
         Size = obj.TryGetProperty("radius", out _) ? ReadWheel(obj) : null,
+    };
+
+    static HeadlightSettings ReadHeadlights(JsonElement obj) => new()
+    {
+        Kelvin = OptionalFloat(obj, "kelvin"),
+        Intensity = OptionalFloat(obj, "intensity") ?? 1f,
     };
 
     static UnityEngine.Vector3 ReadVector(JsonElement array)
