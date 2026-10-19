@@ -7,6 +7,12 @@
     python3 tools/release.py ci                          every check that needs no game files (what CI runs)
     python3 tools/release.py build VERSION [--dry-run]   `make release`: check, compile, package, tag, publish
     python3 tools/release.py check-assets VERSION        the GitHub release has its zips and SHA256SUMS, and they match
+    python3 tools/release.py nexus-files VERSION DIR [NEXUS_CHANGELOG CHANGELOG]
+                                                         for the Nexus workflow: the release's Werkstatt zip, checked
+                                                         against its SHA256SUMS, and that version's Nexus changelog
+                                                         (read from the given files: the tag's copies)
+    python3 tools/release.py nexus-preflight VERSION VERSIONS_JSON
+                                                         upload, skip (Nexus has it) or refuse (Nexus has a newer one)
 
 `build` runs on a maintainer's machine with the game installed, because the plugin compiles against the interop
 BepInEx generates from the player's game. It refuses on uncommitted changes, a version mismatch, an existing tag
@@ -30,6 +36,7 @@ import zipfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PACK = os.path.join(ROOT, "packs", "die-kollektion")
 CHANGELOG = os.path.join(ROOT, "CHANGELOG.md")
+NEXUS_CHANGELOG = os.path.join(ROOT, "docs", "nexus", "changelog.txt")
 NEVER_SHIPPED = ("extracted/", "BepInEx/", "prebuilt/")
 
 
@@ -55,9 +62,9 @@ def sha256(path):
     return h.hexdigest()
 
 
-def changelog_sections():
+def changelog_sections(path=CHANGELOG):
     """[(version, date, body)] in file order, skipping [Unreleased]."""
-    text = open(CHANGELOG).read()
+    text = open(path).read()
     heads = list(re.finditer(r"^## \[([^\]]+)\](?: - (\S+))?\s*$", text, re.M))
     out = []
     for i, m in enumerate(heads):
@@ -265,8 +272,84 @@ def cmd_check_assets(args):
     return 0
 
 
+def nexus_changelog(version, nexus_path=NEXUS_CHANGELOG, changelog_path=CHANGELOG):
+    """The changelog to post on Nexus for a version: its entry in docs/nexus/changelog.txt (plain text written for
+    the page) without the "VERSION (date): headline" line, since Nexus takes the version separately; the headline
+    alone when the entry has no bullets; else the version's CHANGELOG.md section; else None."""
+    if nexus_path and os.path.isfile(nexus_path):
+        block = []
+        for line in open(nexus_path).read().splitlines():
+            if block and not line.strip():
+                break
+            if block or line.startswith(f"{version} ("):
+                block.append(line)
+        if block:
+            body = "\n".join(block[1:]).strip()
+            return body or block[0].split("): ", 1)[-1].strip()
+    if changelog_path and os.path.isfile(changelog_path):
+        return next((b for v, _d, b in changelog_sections(changelog_path) if v == version), None)
+    return None
+
+
+def cmd_nexus_files(args):
+    """Download the release's Werkstatt zip into DIR, check it against the release's SHA256SUMS, and write the
+    version's Nexus changelog to DIR/changelog.txt. The workflow passes the tag's own changelog files, so a
+    re-run for an older tag posts that tag's text."""
+    version, out = args[0], args[1]
+    sources = args[2:4] if len(args) >= 4 else [NEXUS_CHANGELOG, CHANGELOG]
+    zip_name = f"die-kollektion-werkstatt-{version}.zip"
+    changelog = nexus_changelog(version, *sources)
+    if not changelog:
+        print(f"No changelog entry for {version} in {sources[0]} or {sources[1]}", file=sys.stderr)
+        return 1
+    os.makedirs(out, exist_ok=True)
+    sh("gh", "release", "download", f"v{version}", "--dir", out, "--pattern", zip_name, "--pattern", "SHA256SUMS",
+       "--clobber")
+    sums = dict(reversed(line.split()) for line in open(os.path.join(out, "SHA256SUMS")) if line.strip())
+    if sums.get(zip_name) != sha256(os.path.join(out, zip_name)):
+        print(f"{zip_name} doesn't match the release's SHA256SUMS", file=sys.stderr)
+        return 1
+    with open(os.path.join(out, "changelog.txt"), "w") as f:
+        f.write(changelog + "\n")
+    print(f"{zip_name}: matches SHA256SUMS; changelog: {len(changelog.splitlines())} line(s)")
+    return 0
+
+
+SEMVER = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
+
+
+def nexus_plan(version, versions):
+    """("upload" | "skip" | "refuse", why) for uploading `version` to a Nexus file whose versions are `versions`
+    (version strings). Versions that aren't x.y.z (the hand-uploaded first file is "1") are ignored."""
+    want = tuple(map(int, SEMVER.match(version).groups()))
+    known = sorted({tuple(map(int, m.groups())) for v in versions if (m := SEMVER.match(v.strip()))})
+    if want in known:
+        return "skip", f"Nexus already has {version}"
+    newer = [k for k in known if k > want]
+    if newer:
+        return "refuse", f"Nexus has {'.'.join(map(str, newer[-1]))}, newer than {version}"
+    ignored = [v for v in versions if not SEMVER.match(v.strip())]
+    return "upload", f"{version} is newer than every x.y.z version on Nexus" + (
+        f" (ignored: {', '.join(ignored)})" if ignored else "")
+
+
+def cmd_nexus_preflight(args):
+    """Print upload or skip for the Nexus workflow (exit 0), or refuse (exit 1), from GET /mod-files/{id}/versions."""
+    version = args[0]
+    if not SEMVER.match(version):
+        print(f"Not a release version: {version}", file=sys.stderr)
+        return 1
+    versions = [v["version"] for v in json.load(open(args[1]))["data"]["versions"]]
+    plan, why = nexus_plan(version, versions)
+    print(why, file=sys.stderr)
+    if plan == "refuse":
+        return 1
+    print(plan)
+    return 0
+
+
 COMMANDS = {"check-versions": cmd_check_versions, "notes": cmd_notes, "ci": cmd_ci, "build": cmd_build,
-            "check-assets": cmd_check_assets}
+            "check-assets": cmd_check_assets, "nexus-files": cmd_nexus_files, "nexus-preflight": cmd_nexus_preflight}
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:

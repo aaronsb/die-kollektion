@@ -32,3 +32,6 @@ tools/near-plan/bin/
 tools/near-plan/obj/
 # Written into release zips only (tools/release.py)
 RELEASE-FILES.txt
+
+# Local secrets (API keys); never committed
+.env*
