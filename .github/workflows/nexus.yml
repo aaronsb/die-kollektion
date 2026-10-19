@@ -89,8 +89,9 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           api() { printf 'apikey: %s\n' "$NEXUS_API_KEY" | curl -fsS -H @- -H "User-Agent: die-kollektion-ci" "https://api.nexusmods.com/v3$1"; }
-          api "/mods/$NEXUS_MOD_ID" > mod.json
-          echo "Nexus mod: $(python3 -c 'import json; m = json.load(open("mod.json"))["data"]; print(m["name"], "(game-scoped id", m["game_scoped_id"] + ")")')"
+          # The v3 API reads a mod by its game-scoped address; its id must be the one the upload's changelog goes to.
+          api "/games/overthehill/mods/51" > mod.json
+          python3 -c 'import json, os, sys; m = json.load(open("mod.json"))["data"]; print("Nexus mod:", m["name"], "(id", m["id"] + ")"); sys.exit(0 if m["id"] == os.environ["NEXUS_MOD_ID"] else "NEXUS_MOD_ID does not match overthehill/mods/51")'
           api "/mod-files/$NEXUS_FILE_ID/versions" > versions.json
           plan=$(python3 tools/release.py nexus-preflight "$VERSION" versions.json)
           if [ "$plan" = skip ]; then
