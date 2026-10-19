@@ -1,11 +1,11 @@
 """The vehicle model behind the Werkstatt add-on: files in, files out, and the maths between the game and Blender.
 
-Pure Python (no bpy), so tests run it without Blender. Three layers, kept apart so the add-on can later write
-meshes or ops as well as placements without a rewrite:
+Pure Python (no bpy), so tests run it without Blender. It is the middle of three layers, kept apart so the add-on
+can later write meshes or ops as well as placements without a rewrite:
 
   files  (vehicle.json, extracted/<donor>/nodes.json and upgrades.json, vehicles/<name>/placements.json)
     <-> model  (Vehicle: its parts, attach points, upgrade nodes at their pose after the reshape, placements)
-    <-> scene  (scene.py: collections, empties and meshes in Blender)
+    <-> scene  (the add-on's Blender side: collections, empties and meshes)
 
 Game space is Unity car-root space: x right, y up, z forward, metres, left-handed. Blender space is what the
 OBJ files import as: Blender (x, y, z) = (-x, -z, y) of the game. Placement semantics are the plugin's
@@ -148,22 +148,55 @@ def parent_path(path):
     return path.rsplit("/", 1)[0] if "/" in path else ""
 
 
-def _vector(value, where, name, positive=False):
+# The plugin's limits (PlacementPlan.cs): an item moved 10 m, turned past a full turn or scaled 100x is a typo.
+MAX_OFFSET, MAX_ROTATION, MIN_SCALE, MAX_SCALE = 10.0, 360.0, 0.01, 100.0
+FILE_KEYS = {"notes", "nodes", "copies"}
+ENTRY_KEYS = {"notes", "offset", "rotation", "scale"}
+COPY_KEYS = ENTRY_KEYS | {"source"}
+
+
+def _vector(value, where, name, lo, hi):
     if not (isinstance(value, list) and len(value) == 3 and all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in value)):
         raise WerkstattError(f"{where}: \"{name}\" must be three numbers")
-    if positive and any(v <= 0 for v in value):
-        raise WerkstattError(f"{where}: \"{name}\" must be above 0")
+    if any(not math.isfinite(v) or v < lo or v > hi for v in value):
+        raise WerkstattError(f"{where}: \"{name}\" out of range ({lo:g} to {hi:g})")
     return tuple(float(v) for v in value)
+
+
+def _is_path(path):
+    return isinstance(path, str) and bool(path) and "" not in path.split("/")
+
+
+def _no_duplicates(pairs):
+    seen = {}
+    for key, value in pairs:
+        if key in seen:
+            raise WerkstattError(f"duplicate key \"{key}\"")
+        seen[key] = value
+    return seen
+
+
+def _no_constants(name):
+    raise WerkstattError(f"{name} is not a number")
+
+
+def _keys(obj, where, allowed):
+    unknown = sorted(set(obj) - allowed)
+    if unknown:
+        raise WerkstattError(f"{where}: unknown key \"{unknown[0]}\"")
 
 
 def parse_placements(text, where="placements.json"):
     """(nodes, copies, notes) from a placements file's text, with the plugin's validation rules."""
     try:
-        data = json.loads(text)
+        data = json.loads(text, object_pairs_hook=_no_duplicates, parse_constant=_no_constants)
     except json.JSONDecodeError as e:
         raise WerkstattError(f"{where} isn't valid JSON: {e}") from None
+    except WerkstattError as e:
+        raise WerkstattError(f"{where}: {e}") from None
     if not isinstance(data, dict):
         raise WerkstattError(f"{where} must hold an object")
+    _keys(data, where, FILE_KEYS)
     nodes, copies = {}, {}
     for key, target, is_copy in (("nodes", nodes, False), ("copies", copies, True)):
         section = data.get(key, {})
@@ -171,21 +204,26 @@ def parse_placements(text, where="placements.json"):
             raise WerkstattError(f"{where}: \"{key}\" must be an object")
         for path, entry in section.items():
             here = f"{where}: {path}"
-            if not path or path.startswith("/") or path.endswith("/"):
+            if not _is_path(path):
                 raise WerkstattError(f"{where}: \"{path}\" is not a node path")
             if not isinstance(entry, dict):
                 raise WerkstattError(f"{here}: must be an object")
+            _keys(entry, here, COPY_KEYS if is_copy else ENTRY_KEYS)
             source = None
             if is_copy:
                 source = entry.get("source")
                 if not isinstance(source, str):
                     raise WerkstattError(f"{here}: a copy needs a \"source\" node path")
+                if not _is_path(source):
+                    raise WerkstattError(f"{here}: \"{source}\" is not a node path")
                 if parent_path(path) not in (parent_path(source), source) or path == source:
                     raise WerkstattError(f"{here}: a copy sits beside its source or inside it (source {source})")
+                if path in nodes:
+                    raise WerkstattError(f"{here}: in both nodes and copies")
             target[path] = Placement(
-                _vector(entry["offset"], here, "offset") if "offset" in entry else (0.0, 0.0, 0.0),
-                _vector(entry["rotation"], here, "rotation") if "rotation" in entry else (0.0, 0.0, 0.0),
-                _vector(entry["scale"], here, "scale", positive=True) if "scale" in entry else (1.0, 1.0, 1.0),
+                _vector(entry["offset"], here, "offset", -MAX_OFFSET, MAX_OFFSET) if "offset" in entry else (0.0, 0.0, 0.0),
+                _vector(entry["rotation"], here, "rotation", -MAX_ROTATION, MAX_ROTATION) if "rotation" in entry else (0.0, 0.0, 0.0),
+                _vector(entry["scale"], here, "scale", MIN_SCALE, MAX_SCALE) if "scale" in entry else (1.0, 1.0, 1.0),
                 source)
     return nodes, copies, data.get("notes")
 
@@ -215,7 +253,8 @@ def dump_placements(nodes, copies, notes=None):
     for key, entries in (("nodes", out_nodes), ("copies", out_copies)):
         if entries:
             # One line per entry, vectors inline: a nudge changes one line of the diff.
-            lines = [f"    {json.dumps(path, ensure_ascii=False)}: {json.dumps(entry, ensure_ascii=False)}" for path, entry in entries.items()]
+            lines = [f"    {json.dumps(path, ensure_ascii=False)}: {json.dumps(entry, ensure_ascii=False, allow_nan=False)}"
+                     for path, entry in entries.items()]
             sections.append(f'  "{key}": {{\n' + ",\n".join(lines) + "\n  }")
     return "{\n" + ",\n".join(sections) + "\n}\n"
 
@@ -242,24 +281,38 @@ def write_placements(path, nodes, copies, notes=None):
     return "written"
 
 
+def _mat_mul(a, b):
+    return [[sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
+
+
+def _mat_apply(m, v):
+    return tuple(sum(m[i][k] * v[k] for k in range(3)) for i in range(3))
+
+
+IDENTITY3 = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+
+
 def steps(nodes, copies):
-    """The plugin's PlacementPlan.Steps(): (path, offset, turn) in car-root space, in apply order."""
+    """The plugin's PlacementPlan.Steps(): (path, offset, turn) in car-root space, in apply order. An offset goes
+    through its placed ancestors' turns and scales exactly (as a child's location under its parent in Blender);
+    a turn through their turns only (under a non-uniformly scaled ancestor Blender would shear it)."""
     entries = dict(copies)
     entries.update(nodes)
-    turns, out = {}, []
+    frames, out = {}, []
     for path in sorted(entries, key=lambda p: (p.count("/"), p)):
         pl = entries[path]
-        anc_turn, anc_scale = (0.0, 0.0, 0.0, 1.0), (1.0, 1.0, 1.0)
+        anc_turn, anc_map = (0.0, 0.0, 0.0, 1.0), IDENTITY3
         parent = parent_path(path)
         while parent:
-            if parent in turns:
-                anc_turn, anc_scale = turns[parent]
+            if parent in frames:
+                anc_turn, anc_map = frames[parent]
                 break
             parent = parent_path(parent)
-        offset = quat_rotate(anc_turn, tuple(o * s for o, s in zip(pl.offset, anc_scale)))
+        offset = _mat_apply(anc_map, pl.offset)
         own = euler_to_quat(pl.rotation)
         turn = quat_mul(quat_mul(anc_turn, own), quat_inv(anc_turn))
-        turns[path] = (quat_mul(anc_turn, own), tuple(a * b for a, b in zip(anc_scale, pl.scale)))
+        scale = [[pl.scale[0], 0.0, 0.0], [0.0, pl.scale[1], 0.0], [0.0, 0.0, pl.scale[2]]]
+        frames[path] = (quat_mul(anc_turn, own), _mat_mul(_mat_mul(anc_map, quat_to_matrix(own)), scale))
         out.append((path, offset, turn))
     return out
 

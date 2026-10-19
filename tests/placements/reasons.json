@@ -1,0 +1,18 @@
+{
+  "notes": "Why each file in bad/ must be refused: any one of the listed phrases in the reader's message. tools/placement-check (the plugin's reader) and tests/test_placements.py (the add-on's model) both check it.",
+  "copy-elsewhere.json": ["sits beside its source or inside it"],
+  "copy-no-source.json": ["needs a \"source\""],
+  "duplicate-key.json": ["duplicate key"],
+  "empty-segment-source.json": ["is not a node path"],
+  "empty-segment.json": ["is not a node path"],
+  "far-offset.json": ["out of range"],
+  "infinite.json": ["out of range"],
+  "nan.json": ["not a number", "invalid start of a value", "isn't valid JSON"],
+  "nodes-and-copies.json": ["in both nodes and copies"],
+  "not-object.json": ["not an object", "must hold an object"],
+  "short-offset.json": ["must be three numbers"],
+  "string-number.json": ["must be three numbers"],
+  "unknown-entry-key.json": ["unknown key"],
+  "unknown-file-key.json": ["unknown key"],
+  "zero-scale.json": ["out of range"]
+}

@@ -30,17 +30,32 @@ foreach (var e in expected.EnumerateArray())
     Console.WriteLine($"{(ok ? "ok  " : "FAIL")} {step.Entry.Path}{(step.Entry.Path != path ? $" (expected {path})" : "")}");
     if (!ok) failed++;
 }
+// Each bad file's expected reason: tests/placements/reasons.json, beside bad/.
+JsonDocument reasons = null;
+if (args.Length > 2)
+    reasons = JsonDocument.Parse(File.ReadAllText(Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(args[2]))), "reasons.json")));
 for (var k = 2; k < args.Length; k++)
 {
+    var name = Path.GetFileName(args[k]);
+    if (!reasons.RootElement.TryGetProperty(name, out var wanted))
+    {
+        Console.WriteLine($"FAIL {name}: no reason listed in reasons.json");
+        failed++;
+        continue;
+    }
     try
     {
         PlacementPlan.Read(File.ReadAllText(args[k]));
-        Console.WriteLine($"FAIL {Path.GetFileName(args[k])}: accepted, should be refused");
+        Console.WriteLine($"FAIL {name}: accepted, should be refused");
         failed++;
     }
     catch (Exception x) when (x is FormatException || x is JsonException || x is InvalidOperationException)
     {
-        Console.WriteLine($"ok   {Path.GetFileName(args[k])} refused: {x.Message}");
+        var matched = false;
+        foreach (var phrase in wanted.EnumerateArray())
+            matched |= x.Message.Contains(phrase.GetString());
+        Console.WriteLine($"{(matched ? "ok  " : "FAIL")} {name} refused: {x.Message}");
+        if (!matched) failed++;
     }
 }
 return failed == 0 ? 0 : 1;

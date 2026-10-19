@@ -21,7 +21,10 @@ namespace VehicleMods;
 /// own pivot;</item>
 /// <item><c>scale</c>: a factor on the node's local scale.</item>
 /// </list>
-/// That is exactly how a child empty moves under its parent in Blender, which is what the add-on shows. Entries
+/// An offset goes through its placed ancestors' turns and scales exactly, as a child's location does under its
+/// parent in Blender, which is what the add-on shows. A turn under an ancestor scaled differently on different
+/// axes would shear in Blender and can't in Unity; the plugin turns it rigidly, so avoid non-uniform scale on a
+/// group whose children you turn. Entries
 /// apply parents first. A copy (<c>copies</c>, keyed by the copy's own node path) is made from <c>source</c>
 /// before any entry applies: a copy of an upgrade option becomes a child of that option, a copy of one of its
 /// pieces becomes the piece's sibling, so the game shows it exactly when it shows the item.
@@ -54,19 +57,40 @@ sealed class PlacementPlan
     public IEnumerable<Entry> All => Copies.Concat(Nodes);
 
     /// <summary>Reads a placements file. Throws <see cref="FormatException"/> with a reader-friendly message.</summary>
+    // Limits a hand edit can't sensibly exceed: an item moved 10 m, turned past a full turn, scaled 100x.
+    public const float MaxOffset = 10f, MaxRotation = 360f, MinScale = 0.01f, MaxScale = 100f;
+    static readonly string[] FileKeys = { "notes", "nodes", "copies" };
+    static readonly string[] EntryKeys = { "notes", "offset", "rotation", "scale" };
+    static readonly string[] CopyKeys = { "notes", "source", "offset", "rotation", "scale" };
+
     public static PlacementPlan Read(string json)
     {
         var plan = new PlacementPlan();
         using var document = JsonDocument.Parse(json, new JsonDocumentOptions { AllowTrailingCommas = false });
         var root = document.RootElement;
         if (root.ValueKind != JsonValueKind.Object) throw new FormatException($"the file is {root.ValueKind}, not an object");
+        Keys(root, "the file", FileKeys);
         if (root.TryGetProperty("nodes", out var nodes))
             foreach (var property in Members(nodes, "nodes"))
                 plan.Nodes.Add(ReadEntry(property.Name, property.Value, copy: false));
         if (root.TryGetProperty("copies", out var copies))
             foreach (var property in Members(copies, "copies"))
                 plan.Copies.Add(ReadEntry(property.Name, property.Value, copy: true));
+        foreach (var copy in plan.Copies)
+            if (plan.Nodes.Exists(n => n.Path == copy.Path))
+                throw new FormatException($"{copy.Path}: in both nodes and copies");
         return plan;
+    }
+
+    /// <summary>Refuses a duplicate key or one the format doesn't have (notes are free text anywhere).</summary>
+    static void Keys(JsonElement obj, string where, string[] allowed)
+    {
+        var seen = new HashSet<string>();
+        foreach (var property in obj.EnumerateObject())
+        {
+            if (!seen.Add(property.Name)) throw new FormatException($"{where}: duplicate key \"{property.Name}\"");
+            if (allowed != null && Array.IndexOf(allowed, property.Name) < 0) throw new FormatException($"{where}: unknown key \"{property.Name}\"");
+        }
     }
 
     public static PlacementPlan Load(string path) => File.Exists(path) ? Read(File.ReadAllText(path)) : new PlacementPlan();
@@ -74,34 +98,34 @@ sealed class PlacementPlan
     static IEnumerable<JsonProperty> Members(JsonElement element, string name)
     {
         if (element.ValueKind != JsonValueKind.Object) throw new FormatException($"\"{name}\" is {element.ValueKind}, not an object");
+        Keys(element, $"\"{name}\"", null);
         return element.EnumerateObject();
     }
 
     static Entry ReadEntry(string path, JsonElement value, bool copy)
     {
         if (value.ValueKind != JsonValueKind.Object) throw new FormatException($"{path}: {value.ValueKind}, not an object");
-        if (path.Length == 0 || path.StartsWith("/") || path.EndsWith("/")) throw new FormatException($"\"{path}\" is not a node path");
+        if (path.Length == 0 || Array.IndexOf(path.Split('/'), "") >= 0) throw new FormatException($"\"{path}\" is not a node path");
+        Keys(value, path, copy ? CopyKeys : EntryKeys);
         var entry = new Entry { Path = path };
         if (copy)
         {
             if (!value.TryGetProperty("source", out var source) || source.ValueKind != JsonValueKind.String)
                 throw new FormatException($"{path}: a copy needs a \"source\" node path");
             entry.Source = source.GetString();
+            if (entry.Source.Length == 0 || Array.IndexOf(entry.Source.Split('/'), "") >= 0)
+                throw new FormatException($"{path}: \"{entry.Source}\" is not a node path");
             if (Parent(path) != Parent(entry.Source) && Parent(path) != entry.Source)
                 throw new FormatException($"{path}: a copy sits beside its source or inside it (source {entry.Source})");
             if (path == entry.Source) throw new FormatException($"{path}: a copy needs its own name");
         }
-        if (value.TryGetProperty("offset", out var offset)) entry.Offset = Vector(offset, path, "offset");
-        if (value.TryGetProperty("rotation", out var rotation)) entry.Rotation = Vector(rotation, path, "rotation");
-        if (value.TryGetProperty("scale", out var scale))
-        {
-            entry.Scale = Vector(scale, path, "scale");
-            if (entry.Scale.X <= 0 || entry.Scale.Y <= 0 || entry.Scale.Z <= 0) throw new FormatException($"{path}: scale must be above 0");
-        }
+        if (value.TryGetProperty("offset", out var offset)) entry.Offset = Vector(offset, path, "offset", -MaxOffset, MaxOffset);
+        if (value.TryGetProperty("rotation", out var rotation)) entry.Rotation = Vector(rotation, path, "rotation", -MaxRotation, MaxRotation);
+        if (value.TryGetProperty("scale", out var scale)) entry.Scale = Vector(scale, path, "scale", MinScale, MaxScale);
         return entry;
     }
 
-    static Vector3 Vector(JsonElement element, string path, string name)
+    static Vector3 Vector(JsonElement element, string path, string name, float min, float max)
     {
         if (element.ValueKind != JsonValueKind.Array || element.GetArrayLength() != 3)
             throw new FormatException($"{path}: \"{name}\" must be three numbers");
@@ -110,7 +134,9 @@ sealed class PlacementPlan
         foreach (var item in element.EnumerateArray())
         {
             if (item.ValueKind != JsonValueKind.Number) throw new FormatException($"{path}: \"{name}\" must be three numbers");
-            v[i++] = item.GetSingle();
+            var f = item.GetSingle();
+            if (!float.IsFinite(f) || f < min || f > max) throw new FormatException($"{path}: \"{name}\" out of range ({min} to {max})");
+            v[i++] = f;
         }
         return new Vector3(v[0], v[1], v[2]);
     }
@@ -131,27 +157,30 @@ sealed class PlacementPlan
     }
 
     /// <summary>The entries in the order they apply (copies are made earlier), each resolved to car-root space
-    /// through the placements of its ancestors.</summary>
+    /// through the placements of its ancestors: the offset through their turns and scales (exactly), the turn
+    /// through their turns.</summary>
     public List<Step> Steps()
     {
-        var turns = new Dictionary<string, (Quaternion Turn, Vector3 Scale)>();
+        // Per placed node, its frame: the turn so far, and the linear map (turns and scales so far) that takes an
+        // offset in its children's frame to car-root space. Matrices act on row vectors (System.Numerics).
+        var frames = new Dictionary<string, (Quaternion Turn, Matrix4x4 Map)>();
         var steps = new List<Step>();
         foreach (var entry in All.OrderBy(e => e.Path.Count(c => c == '/')).ThenBy(e => e.Path, StringComparer.Ordinal))
         {
-            var (ancestorTurn, ancestorScale) = Ancestor(turns, entry.Path);
-            var offset = Vector3.Transform(entry.Offset * ancestorScale, ancestorTurn);
+            var (ancestorTurn, ancestorMap) = Ancestor(frames, entry.Path);
+            var offset = Vector3.Transform(entry.Offset, ancestorMap);
             var own = Euler(entry.Rotation);
             var turn = ancestorTurn * own * Quaternion.Inverse(ancestorTurn);
-            turns[entry.Path] = (ancestorTurn * own, ancestorScale * entry.Scale);
+            frames[entry.Path] = (ancestorTurn * own, Matrix4x4.CreateScale(entry.Scale) * Matrix4x4.CreateFromQuaternion(own) * ancestorMap);
             steps.Add(new Step(entry, offset, turn));
         }
         return steps;
     }
 
-    static (Quaternion, Vector3) Ancestor(Dictionary<string, (Quaternion, Vector3)> turns, string path)
+    static (Quaternion, Matrix4x4) Ancestor(Dictionary<string, (Quaternion, Matrix4x4)> frames, string path)
     {
         for (var parent = Parent(path); parent.Length > 0; parent = Parent(parent))
-            if (turns.TryGetValue(parent, out var found)) return found;
-        return (Quaternion.Identity, Vector3.One);
+            if (frames.TryGetValue(parent, out var found)) return found;
+        return (Quaternion.Identity, Matrix4x4.Identity);
     }
 }

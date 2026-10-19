@@ -323,6 +323,7 @@ static class DerivedVehicles
         clone.localScale = definition.Wheel == null || size == null
             ? Vector3.one
             : new Vector3(size.Width / definition.Wheel.Width, size.Radius / definition.Wheel.Radius, size.Radius / definition.Wheel.Radius);
+        Placements.Register(Placements.PropertyBlocks(root), clone.gameObject, definition.Codename);
         var renderers = clone.GetComponentsInChildren<Renderer>(true).Length;
         var behaviours = clone.GetComponentsInChildren<MonoBehaviour>(true).Length;
         Plugin.Logger.LogInfo($"{definition.Codename}: spare cloned from {spare.Source} onto {root.name}: {renderers} renderers, " +

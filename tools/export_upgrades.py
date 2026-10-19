@@ -16,8 +16,8 @@ import json, math, os, re, sys
 # The enums as the interop declares them (VehicleCosmetic.CosmeticType, VehicleUpgrade.UpgradeType).
 COSMETIC_TYPES = ["Hidden", "FrontSection", "RearSection", "SideSection", "FrontBumper", "RearBumper", "Hood", "Roof",
                   "Bed", "RoofLights", "Fenders", "SideStep", "Antenna", "BushCables", "Horns"]
-UPGRADE_TYPES = ["Engine", "Health", "Headlight", "Horn", "Inventory", "Suspension", "WaterResistance", "Tire", "Winch",
-                 "Protection", "Drone"]
+UPGRADE_TYPES = ["Default", "Drone", "Engine", "Health", "Headlight", "Horn", "Inventory", "Suspension", "WaterResistance",
+                 "Tire", "Winch", "Protection"]
 HIGHER_LOD = re.compile(r"_LOD[1-9]$")
 
 

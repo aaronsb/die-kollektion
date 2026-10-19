@@ -42,5 +42,13 @@ class CosmeticRoot(unittest.TestCase):
         self.assertIsNone(export_upgrades.find_cosmetic_root(Node("Car_X", Node("Axles"))))
 
 
+class Enums(unittest.TestCase):
+    def test_the_interops_upgrade_type_order(self):
+        # decomp UpgradeType.cs: Default, Drone, Engine, ..., Winch, Protection; the snorkels' part is WaterResistance (8).
+        self.assertEqual(export_upgrades.UPGRADE_TYPES[8], "WaterResistance")
+        self.assertEqual(export_upgrades.UPGRADE_TYPES[10], "Winch")
+        self.assertEqual(export_upgrades.COSMETIC_TYPES[7], "Roof")
+
+
 if __name__ == "__main__":
     unittest.main()

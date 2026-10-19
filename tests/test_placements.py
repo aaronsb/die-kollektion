@@ -1,4 +1,4 @@
-"""The placements format and the add-on's model (blender/addons/werkstatt/model.py), without Blender.
+"""The placements format and the add-on's model (blender/addons/werkstatt_addon/model.py), without Blender.
 
 tools/placement-check runs the plugin's PlacementPlan over the same fixture and expected steps, so the two
 implementations are held to one answer.
@@ -69,14 +69,22 @@ class Format(unittest.TestCase):
         self.assertEqual(model.write_placements(path, {"A/b": model.Placement()}, {}), "removed")
         self.assertFalse(os.path.exists(path))
 
-    def test_malformed_files_are_refused_with_a_message(self):
+    def test_malformed_files_are_refused_for_the_listed_reason(self):
+        with open(os.path.join(FIXTURES, "reasons.json")) as f:
+            reasons = json.load(f)
         bad = sorted(os.listdir(os.path.join(FIXTURES, "bad")))
-        self.assertGreaterEqual(len(bad), 6)
+        self.assertGreaterEqual(len(bad), 15)
         for name in bad:
             with open(os.path.join(FIXTURES, "bad", name)) as f, self.subTest(name):
+                self.assertIn(name, reasons)
                 with self.assertRaises(model.WerkstattError) as caught:
                     model.parse_placements(f.read(), name)
-                self.assertIn(name, str(caught.exception))
+                self.assertTrue(any(phrase in str(caught.exception) for phrase in reasons[name]), str(caught.exception))
+
+    def test_a_turned_non_uniformly_scaled_parent_carries_its_childs_offset_exactly(self):
+        steps = {p: o for p, o, _ in model.steps(self.nodes, self.copies)}
+        # Visual/Side: 30 degrees about up, z doubled; the jerrycan's 0.1 m forward becomes 0.2 m, turned.
+        self.assertTrue(close(steps["Parts/Mammoth_CosmeticParts/Visual/Side/Side_Jerrycan"], (0.1, 0.0, 0.2 * math.cos(math.radians(30)))))
 
 
 class Maths(unittest.TestCase):

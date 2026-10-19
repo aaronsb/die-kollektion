@@ -30,6 +30,20 @@
    ]
   },
   {
+   "path": "Parts/Mammoth_CosmeticParts/Visual/Side",
+   "offset": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "turn": [
+    0.0,
+    0.258819,
+    0.0,
+    0.965926
+   ]
+  },
+  {
    "path": "Parts/Mammoth_CosmeticParts/Performance/Winch/Winch_01",
    "offset": [
     0.0,
@@ -55,6 +69,20 @@
     0.0,
     -0.043619,
     0.999048
+   ]
+  },
+  {
+   "path": "Parts/Mammoth_CosmeticParts/Visual/Side/Side_Jerrycan",
+   "offset": [
+    0.1,
+    0.0,
+    0.173205
+   ],
+   "turn": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
    ]
   },
   {
