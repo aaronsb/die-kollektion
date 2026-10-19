@@ -15,8 +15,9 @@ Standard library only, so it runs before the Python environment exists. Usage:
     python3 tools/werkstatt.py status [--deploy-dir D]             repo, build and game folder side by side
     python3 tools/werkstatt.py save-add [ItemId ...]               add our trucks to the save (backs up first)
 
-Environment: GAME_DIR (the game folder), BEPINEX_ARCHIVE (a downloaded BepInEx zip to install from),
-PROFILE (save profile name, default Player1), FORCE=1 (undeploy files that changed since the deploy).
+Environment: GAME_DIR (the game folder), MY_GAMES (the game's documents folder holding Saves/, default
+~/My Games/over the hill), BEPINEX_ARCHIVE (a downloaded BepInEx zip to install from), PROFILE (save profile
+name, default Player1), FORCE=1 (undeploy files that changed since the deploy).
 """
 import concurrent.futures
 import datetime
@@ -120,6 +121,8 @@ def launch_options():
 
 
 def my_games():
+    if os.environ.get("MY_GAMES"):
+        return os.environ["MY_GAMES"]
     docs = os.path.join(os.path.expanduser("~"), "Documents") if WINDOWS else os.path.expanduser("~")
     return os.path.join(docs, "My Games", GAME_FOLDER)
 
@@ -234,6 +237,28 @@ def cfg_log_listening_off(game):
         return False
 
 
+def run_script_ready(game):
+    """run_bepinex.sh is executable and names the game's executable, as the tested install has it.
+
+    The archive ships it with executable_name="" and without the execute bit; Steam's launch option runs it
+    directly, so it needs both."""
+    path = os.path.join(game, "run_bepinex.sh")
+    try:
+        text = open(path).read()
+    except OSError:
+        return False
+    return os.access(path, os.X_OK) and f'executable_name="{EXE_LINUX}"' in text
+
+
+def prepare_run_script(game):
+    path = os.path.join(game, "run_bepinex.sh")
+    text = open(path).read()
+    new = re.sub(r'^executable_name=".*"$', f'executable_name="{EXE_LINUX}"', text, count=1, flags=re.M)
+    if new != text:
+        open(path, "w").write(new)
+    os.chmod(path, os.stat(path).st_mode | 0o755)
+
+
 def default_deploy_dir(game):
     return os.path.join(game, "BepInEx", "plugins", "VehicleMods")
 
@@ -253,7 +278,7 @@ class Step:
         "python": "Install Python 3.10 or newer", "game": "Install Over the Hill", "closed": "Quit the game",
         "setup": "Install Werkstatt's Python packages", "rsvg-convert": "Install rsvg-convert",
         "potrace": "Install potrace", "dotnet": "Install the .NET SDK", "blender": "Install Blender 5 (optional)",
-        "bepinex": "Install BepInEx", "bepinex-version": "Update BepInEx", "cfg": "Turn off BepInEx's Unity log listener",
+        "bepinex": "Install BepInEx", "bepinex-version": "Update BepInEx", "runscript": "Finish BepInEx's setup", "cfg": "Turn off BepInEx's Unity log listener",
         "launch": "Tell Steam to start the game through BepInEx", "interop": "Start the game once",
         "extract": "Copy the parts Werkstatt needs from your game", "build": "Build the vehicles",
         "deploy": "Install the mod into the game",
@@ -317,6 +342,10 @@ def steps():
         out.append(Step("bepinex-version", f"BepInEx is version {pin['version']}", False,
                         f"The installed BepInEx is {version}; Werkstatt is tested with {pin['version']}.",
                         "Run:\n    make bepinex FORCE=1", blocking=False))
+    if bep_ok and not WINDOWS:
+        out.append(Step("runscript", "BepInEx's start script is ready", run_script_ready(game),
+                        "Steam starts the game through run_bepinex.sh; it must be executable and name the game.",
+                        "Run:\n    make bepinex"))
     out.append(Step("cfg", "BepInEx's Unity log listener is off", cfg_log_listening_off(game),
                     "With it on, this game crashes at start (BepInEx/config/BepInEx.cfg: UnityLogListening = false).",
                     "Run:\n    make bepinex"))
@@ -354,7 +383,8 @@ def steps():
                      "legacy": "An installation not made by `make deploy` is there; deploying moves it aside.",
                      "stale": "The installed files are older than what you have built.",
                      "modified": "Installed files were changed by hand since the last deploy."}.get(dep, ""),
-                    "Run:\n    make deploy"))
+                    "Run:\n    make deploy FORCE=1\n(FORCE=1 replaces the files you changed by hand; `make status` lists them.)"
+                    if dep == "modified" else "Run:\n    make deploy"))
     return out
 
 
@@ -373,14 +403,22 @@ def cmd_start(_args):
             print(f"\n(Optional) {s.title}: {s.what}")
         return 0
     s = todo[0]
-    say(f"Next step: {s.action}.", f"{s.what}\n\n{s.todo}\n\nThen run `make start` again.")
+    if s.key == "extract" and all(t.key in ("extract", "build", "deploy") for t in todo):
+        # Everything left is Werkstatt's own work: one command does it all.
+        say("Next step: build the mod and install it into the game.",
+            "Setup is done; what's left is Werkstatt's own work: copy the game parts it needs, build the vehicles, "
+            "check them and install the mod into the game. One command does all of it (about a minute):\n"
+            "    make all")
+        return 0
+    say(f"Next step: {s.action}.", s.what + "\n\n" + s.todo +
+        ("" if "make start" in s.todo else "\n\nThen run `make start` again."))
     return 0
 
 
 def cmd_require(_args):
     """Stop `make all` early, with the plain next step, unless everything before building is set up."""
     before_build = ("python", "game", "closed", "setup", "rsvg-convert", "potrace", "dotnet",
-                    "bepinex", "cfg", "launch", "interop")
+                    "bepinex", "runscript", "cfg", "launch", "interop")
     todo = [s for s in steps() if not s.ok and s.blocking and s.key in before_build]
     if not todo:
         return 0
@@ -493,6 +531,9 @@ def cmd_bepinex(_args):
                 if mode and not info.is_dir():
                     os.chmod(os.path.join(game, info.filename), mode)
         print(f"Installed BepInEx {pin['version']} into {game}.")
+    if not WINDOWS:
+        prepare_run_script(game)
+        print(f"Start script: {os.path.join(game, 'run_bepinex.sh')} is executable and starts {EXE_LINUX}.")
     print(f"BepInEx config: {set_cfg(game)} {cfg_path(game)} (UnityLogListening = false).")
     if not WINDOWS:
         print(f"\nNow set Steam to start the game through BepInEx:\n    {LAUNCH_CLICKS}\n    {LAUNCH_OPTION}")
@@ -748,10 +789,17 @@ def cmd_save_add(args):
     if game_running():
         print("The game is running. Quit it first: the game overwrites the save when it quits.")
         return 1
-    save = os.path.join(my_games(), "Saves", os.environ.get("PROFILE", "Player1") + ".json")
+    # The Makefile exports PROFILE even when it is unset, so an empty value means the default.
+    profile = os.environ.get("PROFILE") or "Player1"
+    saves = os.path.join(my_games(), "Saves")
+    save = os.path.join(saves, profile + ".json")
     if not os.path.isfile(save):
-        print(f"No save at {save}. Start the game once and play past the start, then quit and try again.")
+        others = sorted(os.path.basename(p)[:-5] for p in glob.glob(os.path.join(saves, "*.json")))
+        print(f"No save at {save}." + (f" Profiles found: {', '.join(others)}; pick one with PROFILE=<name>."
+                                       if others else
+                                       " Start the game once and play past the start, then quit and try again."))
         return 1
+    print(f"Adding the trucks to {save} (backed up first if anything changes).", flush=True)
     ids = [a for a in args if a.isdigit()] or [str(i) for i in ITEM_IDS.values()]
     r = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "add_vehicle_to_save.py"), save] + ids)
     return r.returncode

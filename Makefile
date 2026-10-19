@@ -4,7 +4,7 @@
 PY      := .venv/bin/python
 WS      := python3 tools/werkstatt.py
 GAME_DIR ?= $(shell python3 tools/werkstatt.py game-dir 2>/dev/null)
-export GAME_DIR DEPLOY_DIR FORCE BEPINEX_ARCHIVE PROFILE
+export GAME_DIR MY_GAMES DEPLOY_DIR FORCE BEPINEX_ARCHIVE PROFILE
 
 .DEFAULT_GOAL := start
 .PHONY: start help doctor setup bepinex extract build check contact deploy undeploy status save-add all

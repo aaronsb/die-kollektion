@@ -7,6 +7,9 @@
     <Nullable>disable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <!-- Reproducible: the same sources give the same DLL wherever the repo is cloned. -->
+    <Deterministic>true</Deterministic>
+    <PathMap>$(MSBuildProjectDirectory)=/werkstatt/VehicleMods</PathMap>
     <!-- The game folder: pass -p:GameDir=<path> or set GameDir in the environment when the game
          isn't in Steam's default library. -->
     <GameDir Condition="'$(GameDir)' == '' And $([MSBuild]::IsOSPlatform('Windows'))">C:\Program Files (x86)\Steam\steamapps\common\over the hill</GameDir>

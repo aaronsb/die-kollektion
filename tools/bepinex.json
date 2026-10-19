@@ -1,7 +1,7 @@
 {
  "notes": [
   "The BepInEx build Werkstatt installs (`make bepinex`). Matches the install tested on 2026-10-19: BepInEx.Core.dll reports 6.0.0-be.789+6cea286d204eb3754d3b8363a5a1fd6640164a49, Doorstop 4.5.0.",
-  "Sizes are from the server's Content-Length (HEAD request). sha256 stays null until the archive has been downloaded once with the maintainer's approval and its checksum recorded here; until then `make bepinex` refuses to install."
+  "Sizes are from the server's Content-Length. The linux-x64 sha256 was recorded on 2026-10-19 from the archive downloaded with the maintainer's approval; its files are byte-identical to the tested install except run_bepinex.sh (Werkstatt sets executable_name and the execute bit after unzipping). win-x64 has no sha256 yet, so `make bepinex` refuses it until one is recorded."
  ],
  "version": "6.0.0-be.789+6cea286",
  "page": "https://builds.bepinex.dev/projects/bepinex_be",
@@ -9,7 +9,7 @@
   "url": "https://builds.bepinex.dev/projects/bepinex_be/789/BepInEx-Unity.IL2CPP-linux-x64-6.0.0-be.789%2B6cea286.zip",
   "file": "BepInEx-Unity.IL2CPP-linux-x64-6.0.0-be.789+6cea286.zip",
   "size": 33132950,
-  "sha256": null
+  "sha256": "d997880a1b009acae1a5b05d0259276df69b421510b87585e5356a371c1af655"
  },
  "win-x64": {
   "url": "https://builds.bepinex.dev/projects/bepinex_be/789/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.789%2B6cea286.zip",
