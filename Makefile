@@ -1,0 +1,67 @@
+# Werkstatt: set up, build, check and deploy Die Kollektion. `make` (or `make start`) says what to do next.
+# Every target is safe to rerun. GAME_DIR is found through Steam; pass GAME_DIR="..." if yours is elsewhere.
+
+PY      := .venv/bin/python
+WS      := python3 tools/werkstatt.py
+GAME_DIR ?= $(shell python3 tools/werkstatt.py game-dir 2>/dev/null)
+export GAME_DIR DEPLOY_DIR FORCE BEPINEX_ARCHIVE PROFILE
+
+.DEFAULT_GOAL := start
+.PHONY: start help doctor setup bepinex extract build check contact deploy undeploy status save-add all
+
+start: ## The next setup step, in plain words. Run it again after each step.
+	@$(WS) start
+
+help: ## List the targets
+	@grep -E '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  make %-10s %s\n", $$1, $$2}'
+
+doctor: ## Every check at once: what is missing and how to get it on this system
+	@$(WS) doctor
+
+setup: ## Create .venv/ and install the Python packages the tools use
+	python3 -m venv .venv
+	$(PY) -m pip install --quiet --upgrade pip
+	$(PY) -m pip install --quiet -r requirements.txt
+	@echo "Python packages installed. Next: make start"
+
+bepinex: ## Install BepInEx (pinned, checksum-verified; asks before downloading) and set its config
+	@$(WS) bepinex
+
+extract: ## Copy the game parts the build needs from your install into extracted/ (never shared)
+	@$(WS) require
+	tools/export_game_data.sh "$(GAME_DIR)"
+
+build: ## Build every vehicle's meshes and icons from vehicles/
+	$(PY) tools/make_glyptodon.py
+	$(PY) tools/make_megaloceros.py
+	@for v in vehicles/*/vehicle.json; do echo "build $$v"; $(PY) tools/build_vehicle.py "$$v" || exit 1; done
+	$(PY) tools/trace_icons.py
+	$(PY) -I tools/rasterize_icons.py
+
+check: ## Run every gate (holes, slivers, names, catalogue); fails if any does
+	@$(WS) gates
+
+contact: ## Render every vehicle's contact sheet (needs Blender)
+	$(PY) tools/composite_atlas.py Mammoth
+	@for v in vehicles/*/; do $(PY) tools/contact_sheet.py "$${v%/}" || exit 1; done
+
+deploy: check ## Install the mod into the game (game closed). DEPLOY_DIR=<dir> deploys elsewhere to inspect it
+	@$(WS) preflight-deploy
+	cd plugins/VehicleMods && dotnet build -c Release -nologo -v minimal -p:GameDir="$(GAME_DIR)" $(if $(DEPLOY_DIR),-p:DeployDir="$(abspath $(DEPLOY_DIR))")
+	@$(WS) record-deploy
+
+undeploy: ## Remove exactly the files the last deploy installed (FORCE=1 if you changed them since)
+	@$(WS) undeploy
+
+status: ## Compare the repo, the build and the game folder
+	@$(WS) status
+
+save-add: ## Put the four trucks in your save (game closed; backs the save up first). IDS="..." for some
+	@$(WS) save-add $(IDS)
+
+all: ## Everything after setup: extract, build, check, deploy
+	@$(WS) require
+	$(MAKE) --no-print-directory extract
+	$(MAKE) --no-print-directory build
+	$(MAKE) --no-print-directory deploy
+	@echo "Done. Next: make start"

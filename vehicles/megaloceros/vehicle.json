@@ -21,6 +21,23 @@
   "base": {
     "car": "Mammoth"
   },
+  "gates": {
+    "notes": [
+      "Long thin faces the cab has by design: its roof ribs and the trim strips running across the cab's",
+      "width at the window line and the roof edge. check_slivers allows slivers wholly inside this box;",
+      "any other sliver still fails."
+    ],
+    "sliverAllow": [
+      [
+        -0.9,
+        0.9,
+        1.83,
+        2.42,
+        -1.227,
+        1.25
+      ]
+    ]
+  },
   "donorAxleZ": {
     "front": 1.22,
     "rear": -1.3099999999999998

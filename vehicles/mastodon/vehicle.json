@@ -21,6 +21,13 @@
   "base": {
     "car": "Mammoth"
   },
+  "gates": {
+    "notes": [
+      "The bed's under-plates are single-sided, so the game shows through them from below (up to 527 cm2 culled at LOD1, measured 2026-10-19).",
+      "Known and accepted until they are closed; the threshold sits just above the measured worst so any new hole still fails."
+    ],
+    "failCulledCm2": 550
+  },
   "donorAxleZ": {
     "front": 1.22,
     "rear": -1.31

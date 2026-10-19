@@ -393,6 +393,12 @@ def write(truck):
         # says which kind it is (Die Kollektion's tools read this; the plugin reads "donor").
         "kind": truck["kind"],
         "base": {"car": "Mammoth"},
+        "gates": {
+            "notes": ["Long thin faces the cab has by design: its roof ribs and the trim strips running across the cab's",
+                      "width at the window line and the roof edge. check_slivers allows slivers wholly inside this box;",
+                      "any other sliver still fails."],
+            "sliverAllow": [[-0.9, 0.9, 1.83, 2.42, round(-0.1 - CAB_EXTRA, 3), 1.25]],
+        },
         "donorAxleZ": {"front": FRONT_AXLE, "rear": FRONT_AXLE - DONOR_WHEELBASE},
         "wheelbase": WHEELBASE,
         "track": TRACK,

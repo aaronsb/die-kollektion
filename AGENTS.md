@@ -12,6 +12,7 @@ Work out which of two modes fits; if the first message doesn't make it clear, as
 - Ask only what you can't decide: which car, what change, and what "done" looks like to them.
 - Pick safe defaults for everything else and say what you picked in one line.
 - Use plain words. Explain a concept only when the person needs it to make a choice.
+- Setting up means running `make start` again and again and doing what it says. It checks the system and prints one next step with the exact command or Steam click path. Run the commands you can run yourself (`make setup`, `make bepinex`, `make all`), and hand the person the steps only they can do (installing system packages with `sudo`, the Steam launch option, starting the game once) in plain words: what it is, why it's needed, exactly what to type or click. Then run `make start` again.
 - Aim for a working result in their game, then offer what's next.
 
 **"I want to build a vehicle, I don't know where to start, and I want creative control."** You coach.
@@ -33,10 +34,10 @@ Work out which of two modes fits; if the first message doesn't make it clear, as
 
 ## What runs today, and what doesn't yet
 
-Today Werkstatt is the plugin plus Python and Blender scripts, built from source. **The `kollektion` CLI, packs (`.kpack`), the Blender add-on and the vehicle templates are designed but not built** (`docs/vehicle_factory.md`). Never tell a person to run a `kollektion` command; use the commands below.
+Today Werkstatt is the plugin plus Python and Blender scripts, built from source and driven by the Makefile. **The `kollektion` CLI, packs (`.kpack`), the Blender add-on and the vehicle templates are designed but not built** (`docs/vehicle_factory.md`). Never tell a person to run a `kollektion` command; use the commands below.
 
 What a person can do today:
-- Build and install our four trucks and the Mammoth patch (Commands).
+- Set up from scratch and install our four trucks and the Mammoth patch: `make start`, repeated (Commands).
 - Tweak the Mammoth patch: edit `vehicles/mammoth/vehicle.json` (`maxSteerAngle`, `track`, `wheel`, `transforms`, and a `suspension` block shaped like the trucks', which the Mammoth patch hasn't used yet, so check it in-game), rebuild, deploy.
 - Tweak one of our trucks: for the Glyptodon family, change the constants in `tools/make_glyptodon.py` / `make_megaloceros.py` (they regenerate the manifest); for the Mastodon and Megatherium, edit their manifests directly.
 - A patch on a stock car other than the Mammoth means a new manifest shaped like `vehicles/mammoth/vehicle.json` with that car as `donor`. That path is untested: say so, keep the change small, and have the person check it in-game and read the logs with you.
@@ -51,16 +52,21 @@ The game's only official mod type is the livery, in the format of Funselektor's 
 
 ## Commands
 
-- Set up once: `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`; you also need Blender 5.x, `rsvg-convert` and the .NET SDK.
-- Extract game data once per game update: `tools/export_game_data.sh "<game folder>"` (into `extracted/`).
-- Build a truck: `python3 tools/make_megaloceros.py && python3 tools/build_vehicle.py vehicles/megaloceros/vehicle.json` (or `make_glyptodon` / `vehicles/glyptodon/vehicle.json`; the Mastodon, Megatherium and Mammoth have hand-written manifests, so only `build_vehicle.py`). Preview renders: `tools/preview_vehicle.sh vehicles/<name>/vehicle.json`.
-- Icons: `python3 tools/draw_icons.py` (Glyptodon family), `python3 tools/trace_icons.py` (Mammoth family, traced locally from the stock icon), then `.venv/bin/python -I tools/rasterize_icons.py`.
-- Contact sheet (needs Blender; run `python3 tools/composite_atlas.py Mammoth` once first, or bodies render flat grey): `python3 tools/contact_sheet.py vehicles/<name>` writes `vehicles/<name>/contact/contact.json`, renders `vehicles/<name>/README.md` from it, and puts `iso.png`, `rig.png` and `gaps.png` in `contact/`. `--no-render` / `--no-holes` skip the slow parts while iterating. Compare two builds: `python3 tools/contact_sheet.py --diff <a/contact.json> <b/contact.json> [--out <file.md>]`.
-- Gates after any mesh change: `python3 tools/check_holes.py` on each body LOD, `python3 tools/check_slivers.py` on the built OBJs (`vehicles/*/build/*.obj`), `python3 tools/check_names.py`. After a manifest's `listing` changes: `python3 tools/catalogue.py` (rewrites the README catalogue; `--check` only checks).
-- Deploy (game closed): `cd plugins/VehicleMods && dotnet build -c Release -p:GameDir="<game folder>"` copies the DLL and each vehicle folder's manifest, built meshes and icon into `<game folder>/BepInEx/plugins/VehicleMods/`. `-p:DeployDir=<dir>` deploys elsewhere to inspect what would ship; `-p:Deploy=false` only compiles.
-- Add a truck to a save (game closed; backs up first): `python3 tools/add_vehicle_to_save.py "$HOME/My Games/over the hill/Saves/Player1.json" <ItemId>`. ItemIds: Megatherium 3000000001, Mastodon 3000000002, Glyptodon 3000000003, Megaloceros 3000000004.
-- Logs: `<game folder>/BepInEx/LogOutput.log`, `~/.config/unity3d/Funselektor/over the hill/Player.log`.
-- First-time BepInEx setup (the README has it in full): BepInEx 6 IL2CPP be.789 in the game folder, Steam launch option `"./run_bepinex.sh" %command%` on Linux, and `UnityLogListening = false` in `BepInEx/config/BepInEx.cfg`.
+The Makefile is the front door; `make help` lists every target. Run them from the repo root.
+
+- `make start` (or plain `make`): the one next setup step, in plain words. Rerun after every step.
+- `make doctor`: every check at once, with what each thing is and the install command for this distro.
+- `make setup`: `.venv/` with `requirements.txt`.
+- `make bepinex`: installs BepInEx 6 IL2CPP from the pin in `tools/bepinex.json` (sha256-verified, asks before downloading; while the pin has no sha256 it refuses to download and only sets the config on an install made by hand) and sets `UnityLogListening = false`. Prints the Steam launch option `"./run_bepinex.sh" %command%` and its click path (Library → right-click Over the Hill → Properties → General → Launch Options).
+- `make extract`, `make build`, `make check`, `make contact`: game parts into `extracted/`; every vehicle's meshes and icons; all gates (exit 1 on any failure); contact sheets (needs Blender; textured renders also need `tools/composite_atlas.py Mammoth`, which `make contact` runs).
+- `make deploy` (game closed): gates, then the plugin build and install into `BepInEx/plugins/VehicleMods/` with `deployed.json` listing every file and its sha256. `DEPLOY_DIR=<dir>` installs elsewhere to inspect it. `make undeploy` removes exactly those files (`FORCE=1` if they changed). `make status` compares repo, build and game folder.
+- `make all`: extract, build, deploy, after `werkstatt.py require` confirms setup is done.
+- `make save-add` (game closed; backs the save up first): adds our four trucks. ItemIds: Megatherium 3000000001, Mastodon 3000000002, Glyptodon 3000000003, Megaloceros 3000000004.
+- Gate exceptions live in each manifest's `gates` block with `notes` saying why: `failCulledCm2` / `failGapCm2` for `check_holes`, `sliverAllow` boxes for `check_slivers`. Never raise one to make a new defect pass; fix the mesh.
+
+Underneath (for agents who need one step): `tools/werkstatt.py` (setup checks, BepInEx, gates, deploy bookkeeping), `tools/export_game_data.sh "<game folder>"`, `tools/make_glyptodon.py` / `make_megaloceros.py` (regenerate those manifests), `tools/build_vehicle.py vehicles/<name>/vehicle.json`, `tools/trace_icons.py` then `tools/rasterize_icons.py` (run with `-I`), `tools/draw_icons.py` (Glyptodon-family icon sources), `tools/check_holes.py`, `tools/check_slivers.py`, `tools/check_names.py`, `tools/catalogue.py` (`--check`), `tools/contact_sheet.py vehicles/<name>` (`--diff a b`), `tools/preview_vehicle.sh vehicles/<name>/vehicle.json`, and `dotnet build -c Release -p:GameDir="<game folder>"` in `plugins/VehicleMods/` (`-p:DeployDir=`, `-p:Deploy=false`).
+
+Logs: `<game folder>/BepInEx/LogOutput.log`, `~/.config/unity3d/Funselektor/over the hill/Player.log`.
 
 ## Repo map
 

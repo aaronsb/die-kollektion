@@ -1,8 +1,10 @@
 """Reports sliver faces in built meshes: longest edge over a length with an area under a limit.
 
-Usage: python3 tools/check_slivers.py <obj> [<obj> ...] [--length 1.5] [--area 0.01]
+Usage: python3 tools/check_slivers.py <obj> [<obj> ...] [--length 1.5] [--area 0.01] [--allow x0,x1,y0,y1,z0,z1 ...]
 
-Prints each sliver's piece bounds and atlas UV so its source can be found; exits 1 if any are found.
+Prints each sliver's piece bounds and atlas UV so its source can be found; exits 1 if any are found
+outside the --allow boxes. An --allow box (repeatable) names a region where long thin faces are
+intended, such as roof ribs; slivers lying wholly inside one are listed as allowed and don't fail.
 Stretched or misplaced bits (a lamp lens dragged across the bed, a collapsed bracket) show up here
 before they show up as stray lines in a render.
 """
@@ -36,17 +38,25 @@ def main():
     ap.add_argument("objs", nargs="+")
     ap.add_argument("--length", type=float, default=1.5)
     ap.add_argument("--area", type=float, default=0.01)
+    ap.add_argument("--allow", action="append", default=[])
     args = ap.parse_args()
+    boxes = [[float(x) for x in a.split(",")] for a in args.allow]
     bad = 0
     for path in args.objs:
         obj = meshlib.Obj.read(path)
         found = slivers(obj, args.length, args.area)
-        print(f"{path}: {len(found)} sliver faces (> {args.length} m, < {args.area} m2)")
+        rows, allowed = [], 0
         for n, longest, total, pts, uv in found:
             lo = [round(min(p[k] for p in pts), 3) for k in range(3)]
             hi = [round(max(p[k] for p in pts), 3) for k in range(3)]
-            print(f"  face {n}: edge {longest:.2f} m, area {total:.4f} m2, {lo}..{hi}, uv {uv}")
-        bad += len(found)
+            ok = any(all(b[2 * k] <= lo[k] and hi[k] <= b[2 * k + 1] for k in range(3)) for b in boxes)
+            allowed += ok
+            rows.append(f"  face {n}: edge {longest:.2f} m, area {total:.4f} m2, {lo}..{hi}, uv {uv}" + ("  (allowed)" if ok else ""))
+        print(f"{path}: {len(found) - allowed} sliver faces (> {args.length} m, < {args.area} m2)"
+              + (f", {allowed} allowed" if allowed else ""))
+        for row in rows:
+            print(row)
+        bad += len(found) - allowed
     sys.exit(1 if bad else 0)
 
 

@@ -28,28 +28,62 @@ Most people will want to tweak a stock car rather than build a new one, so that 
 
 ## Installing
 
-There are no release builds yet; build from source (below). Releases will be published here on GitHub first.
+There are no release builds yet: Werkstatt builds the mod on your machine from this repo, using parts of your own copy of the game, and installs it into the game folder. It runs on Linux today (the game's native Linux build).
 
-1. Install [BepInEx 6 IL2CPP](https://builds.bepinex.dev/projects/bepinex_be) (tested with be.789, linux-x64) into the game folder, and on Linux set the Steam launch options to `"./run_bepinex.sh" %command%`. In `BepInEx/config/BepInEx.cfg`, set `UnityLogListening = false`; the game crashes with it on.
-2. Build and deploy Werkstatt and the Die Kollektion trucks with the game closed (below).
-3. Buy the trucks at the merchant, or add them to a save with `tools/add_vehicle_to_save.py`.
+**Fastest: ask your agent.** Open this folder with an AI coding agent (Claude Code, or any agent that reads [`AGENTS.md`](AGENTS.md)) and say "set me up". It runs `make start` step by step, explains each step, and tells you when you need to click something in Steam.
+
+**By hand.** Every step is a command you paste into a terminal, or a click path in Steam.
+
+1. Install Over the Hill in Steam, start it once, get past the intro, and quit. This creates your save.
+2. Install `git` and `make` if you don't have them:
+   - Arch: `sudo pacman -S git make`
+   - Debian, Ubuntu: `sudo apt install git make`
+   - Fedora: `sudo dnf install git make`
+3. Get Werkstatt:
+   ```sh
+   git clone https://github.com/aaronsb/die-kollektion
+   cd die-kollektion
+   ```
+4. Run:
+   ```sh
+   make start
+   ```
+   It checks everything and prints **one** next step, with the exact command to paste or the place to click. Do that step, then run `make start` again. Repeat until it says everything is ready. Along the way it has you:
+   - install a few programs with your system's package manager (it prints the command for your system);
+   - run `make setup` (Werkstatt's Python packages);
+   - install BepInEx, the mod loader (for now by hand: `make start` gives you the download link and the unzip command), then run `make bepinex` to set its config;
+   - tell Steam to start the game through BepInEx: Library → right-click Over the Hill → Properties → General → Launch Options, and paste `"./run_bepinex.sh" %command%`;
+   - start the game once from Steam and quit at the main menu. BepInEx uses this first start (slow, once) to prepare files the Werkstatt plugin is compiled against, which is why the mod can only be built after it;
+   - run `make all`: it copies the parts it needs from your game, builds the trucks, checks them and installs the mod.
+5. Start the game. The trucks are at the merchant. Optional, with the game closed: `make save-add` puts all four in your garage.
 
 **Your save.** Back up `~/My Games/over the hill/Saves/` before you start, and edit a save only with the game closed (and Steam Cloud in mind). A save that holds one of these trucks still lists it after the mod is removed; how the game treats that is not yet tested.
 
-## Building from source
+**Undoing it.** `make undeploy` removes exactly the files `make deploy` installed. To remove BepInEx as well, clear the Steam launch option and delete `BepInEx/`, `dotnet/`, `libdoorstop.so`, `run_bepinex.sh`, `.doorstop_version` and `changelog.txt` from the game folder.
 
-You need the game installed, Python 3 with the packages in `requirements.txt`, Blender 5.x, `rsvg-convert` and the .NET SDK.
+## Werkstatt commands
 
-```sh
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-tools/export_game_data.sh "<game folder>"    # donor meshes, textures and icons from your own install, into extracted/
-python3 tools/make_glyptodon.py && python3 tools/make_megaloceros.py
-for v in vehicles/*/vehicle.json; do python3 tools/build_vehicle.py "$v"; done
-python3 tools/trace_icons.py && .venv/bin/python -I tools/rasterize_icons.py
-cd plugins/VehicleMods && dotnet build -c Release -p:GameDir="<game folder>"
-```
+`make help` lists them. The ones you'll use:
 
-The last step deploys into `<game folder>/BepInEx/plugins/VehicleMods/`; add `-p:Deploy=false` to only compile. Nothing taken from the game is committed here: the export step writes it into `extracted/`, and each vehicle's `build/` and `generated/` folders hold what is made from it; all three are gitignored.
+| Command | What it does |
+|---|---|
+| `make start` | Checks your setup and prints the one next step. Also the default: plain `make` does the same. |
+| `make doctor` | Every check at once, each with what it is and how to get it on your system. |
+| `make setup` | Creates `.venv/` and installs the Python packages. |
+| `make bepinex` | Installs BepInEx from the pinned build in `tools/bepinex.json` (checksum-verified, asks before downloading; until the checksum is recorded it only sets the config) and turns its Unity log listener off. |
+| `make extract` | Copies the game parts the trucks are built from into `extracted/` (never committed or shared). |
+| `make build` | Builds every vehicle in `vehicles/`: meshes, icons. |
+| `make check` | Runs every gate: holes and slivers on each built mesh (with any exception a vehicle declares in its manifest's `gates` block), real names outside the catalogue, the catalogue itself. |
+| `make deploy` | With the game closed: runs the gates, compiles the plugin and installs it with the vehicles into `BepInEx/plugins/VehicleMods/`, recording every file in `deployed.json`. An older install not made this way is moved aside, next to `plugins/`. `DEPLOY_DIR=<dir>` installs somewhere else to inspect it. |
+| `make undeploy` | Removes exactly what `deployed.json` lists (`FORCE=1` if you changed those files since). |
+| `make status` | Compares the repo, the build and the game folder. |
+| `make all` | `extract`, `build`, `deploy`, after checking the setup is done. |
+| `make contact` | Renders every vehicle's contact sheet (needs Blender). |
+| `make save-add` | Adds the four trucks to your save, game closed, backing it up first. |
+
+The game folder is found through Steam's library list; pass `GAME_DIR="/path/to/over the hill"` if yours isn't found. Underneath, the targets run the scripts in `tools/` (`werkstatt.py` for setup, gates and deploy bookkeeping; `export_game_data.sh`; `make_glyptodon.py`, `make_megaloceros.py`, `build_vehicle.py`; `trace_icons.py`, `rasterize_icons.py`; `contact_sheet.py`) and `dotnet build` in `plugins/VehicleMods/`.
+
+Nothing taken from the game is committed here: `make extract` writes it into `extracted/`, and each vehicle's `build/` and `generated/` folders hold what is made from it; all three are gitignored.
 
 Each vehicle is one self-contained folder, `vehicles/<name>/`: its manifest `vehicle.json` (whose `kind` says whether it is novel, based on a shipped vehicle, or a patch to one), its own meshes and Blender masters, its icon, and its contact sheet (`README.md`, written by `tools/contact_sheet.py`).
 
