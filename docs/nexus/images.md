@@ -1,16 +1,22 @@
 # Images for the Nexus page
 
-Upload in this order; the first is the primary image. All are our own renders from the repository (contact sheets may show stock-game geometry for the based trucks and patches; they are pictures, never mesh data).
+Made by `make nexus-images` (`tools/nexus_images.py`): reproducible renders of our vehicles, in the contact sheets' look, written to `docs/nexus/images/`. Renders of the based trucks and patches show geometry built from the player's own copy of the game; they are pictures, never mesh data.
 
-| # | File in the repository | Caption |
+## Banner
+
+`images/banner-1300x372.jpg` (1300x372): the four trucks lined up under the title. Upload it as the page banner, not in the gallery.
+
+## Gallery, in upload order
+
+| # | File | Caption |
 |---|---|---|
-| 1 | The README hero render (`docs/images/`, added by the README pull request; use it once that has merged) | Das Megaloceros or Das Glyptodon, Die Kollektion's square-cab trucks |
-| 2 | `vehicles/glyptodon/contact/iso.png` | Das Glyptodon from four corners |
-| 3 | `vehicles/megaloceros/contact/iso.png` | Das Megaloceros from four corners |
-| 4 | `vehicles/mastodon/contact/iso.png` | Das Mastodon from four corners |
-| 5 | `vehicles/megatherium/contact/iso.png` | Das Megatherium from four corners |
-| 6 | `vehicles/dingding/contact/iso.png` | The canary: a golf bag strapped to The Ding's roof |
-| 7 | `vehicles/megaloceros/contact/rig.png` | The rig view every vehicle gets: colliders, wheel colliders and labelled attach points |
-| 8 | `vehicles/mammoth/contact/iso.png` | The stock Mammoth, patched with portal axles, coil springs and a side-exit exhaust |
+| 1–3 | The maintainer's three in-game screenshots (uploaded directly on Nexus, not kept in the repository) | (as on Nexus) |
+| 4 | `images/megaloceros-1920x1080.jpg` | Das Megaloceros: the square cab as a crew cab, on a long wheelbase |
+| 5 | `images/glyptodon-1920x1080.jpg` | Das Glyptodon: the square-cab two-door with a drop-side bed |
+| 6 | `images/dingding-1920x1080.jpg` | The canary: a golf bag strapped to The Ding's roof, the first patch on a stock car other than the Mammoth |
+| 7 | `images/mastodon-1920x1080.jpg` | Das Mastodon: a round-cab two-door on a stretched chassis |
+| 8 | `images/megatherium-1920x1080.jpg` | Das Megatherium: the round-cab crew cab |
+| 9 | `images/how-its-built-1920x1080.jpg` | How it's built: the truck beside its rig view, with colliders, wheel colliders and labelled attach points |
+| 10 | `images/contact-sheet-1920x1080.jpg` | The contact sheet: every vehicle's four isometric corners, rendered the same way so builds compare tile for tile |
 
-In-game screenshots, when taken, go after image 1.
+Set image 1 (the first in-game screenshot) as the primary image.

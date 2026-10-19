@@ -7,7 +7,7 @@ GAME_DIR ?= $(shell python3 tools/werkstatt.py game-dir 2>/dev/null)
 export GAME_DIR MY_GAMES DEPLOY_DIR FORCE BEPINEX_ARCHIVE PROFILE VERSION DRY_RUN
 
 .DEFAULT_GOAL := start
-.PHONY: start help doctor setup bepinex extract build check contact loop pack deploy undeploy status save-add all release
+.PHONY: start help doctor setup bepinex extract build check contact loop pack deploy undeploy status save-add all release nexus-images
 
 start: ## The next setup step, in plain words. Run it again after each step.
 	@$(WS) start
@@ -78,6 +78,9 @@ pack: ## Build the shareable zip of a pack into dist/ (P=<pack>, default die-kol
 	@python3 tools/pack.py build packs/$(or $(P),die-kollektion)
 
 # ---------------------------------------------------------------- publishing (maintainers)
+
+nexus-images: ## Maintainers: render the Nexus page's banner and gallery into docs/nexus/images/ (needs Blender, built vehicles)
+	$(PY) tools/nexus_images.py
 
 release: ## Maintainers: tag and publish a release (VERSION=x.y.z; DRY_RUN=1 builds everything but publishes nothing)
 	@python3 tools/release.py build $(VERSION) $(if $(filter 1,$(DRY_RUN)),--dry-run)
