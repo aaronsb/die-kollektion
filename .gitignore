@@ -20,10 +20,15 @@ vehicles/*/contact/CHANGES.md
 vehicles/.old-contact.json
 
 # Build output and local captures
+/build/
 dist/
+# The ready-made plugin a release zip carries (`make release`); never committed
+prebuilt/
 plugins/*/bin/
 plugins/*/obj/
 renders/
 logs/
 tools/near-plan/bin/
 tools/near-plan/obj/
+# Written into release zips only (tools/release.py)
+RELEASE-FILES.txt

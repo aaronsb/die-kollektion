@@ -1,0 +1,7 @@
+Over the Hill on Steam. Werkstatt runs on the native Linux build today; Windows support is planned (the cross-platform CLI and a Windows plugin build are in the design) but not ready yet.
+
+BepInEx 6 IL2CPP, build be.789 (linux-x64). You don't need to fetch it yourself: `make bepinex` downloads the pinned build from the official BepInEx build server (asking first), checks it against the recorded checksum and installs it into the game folder.
+
+With the release zip (this download): make, Python 3 (with venv), rsvg-convert and potrace. The plugin comes ready-made, so no .NET SDK; Blender is only needed for contact sheets and editing models.
+
+Building from source (a git clone, or a game version newer than the release): the same plus the .NET SDK. `make start` and `make doctor` check each one and print the install command for Arch, Debian/Ubuntu or Fedora.

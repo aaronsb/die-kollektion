@@ -1,0 +1,1 @@
+A vehicle mod system for Over the Hill, with four trucks and two stock-car patches as its first packs. Built on your machine from your own copy of the game, so no game files ship. Native Linux today; Windows planned. make start walks you through every step. Made with AI, agent-friendly, open source (GPL-3.0 code, CC BY-SA 4.0 art).

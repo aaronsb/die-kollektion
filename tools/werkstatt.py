@@ -10,6 +10,8 @@ Standard library only, so it runs before the Python environment exists. Usage:
     python3 tools/werkstatt.py bepinex          install BepInEx from tools/bepinex.json and set its config
     python3 tools/werkstatt.py gates [vehicle ...]  run every gate (mesh gates for the named vehicles only); exit 1 if any fails
     python3 tools/werkstatt.py preflight-deploy [--deploy-dir D]   refuse unsafe deploys, clear the old one
+    python3 tools/werkstatt.py compile-plugin                      compile the plugin, unless the release's prebuilt one fits
+    python3 tools/werkstatt.py copy-deploy [--deploy-dir D]        copy the plugin and the built vehicles into the game
     python3 tools/werkstatt.py record-deploy [--deploy-dir D]      write deployed.json after a deploy
     python3 tools/werkstatt.py undeploy [--deploy-dir D] [--force] remove exactly what deployed.json lists
     python3 tools/werkstatt.py status [--deploy-dir D]             repo, build and game folder side by side
@@ -45,6 +47,10 @@ WINDOWS = platform.system() == "Windows"
 VENV_PY = os.path.join(ROOT, ".venv", "Scripts" if WINDOWS else "bin", "python.exe" if WINDOWS else "python")
 LAUNCH_OPTION = '"./run_bepinex.sh" %command%'
 LAUNCH_CLICKS = "In Steam: Library → right-click Over the Hill → Properties → General → Launch Options"
+PLUGIN_SOURCE = os.path.join(ROOT, "plugins", "VehicleMods", "Plugin.cs")
+SOURCE_DLL = os.path.join(ROOT, "plugins", "VehicleMods", "bin", "Release", "net6.0", "VehicleMods.dll")
+# A release zip carries the plugin ready-made here (`make release`), so a player needs no .NET SDK.
+PREBUILT_DIR = os.path.join(ROOT, "prebuilt")
 ITEM_IDS = {"Megatherium": 3000000001, "Mastodon": 3000000002, "Glyptodon": 3000000003, "Megaloceros": 3000000004}
 
 
@@ -238,6 +244,53 @@ def bepinex_pin():
     return json.load(open(os.path.join(ROOT, "tools", "bepinex.json")))
 
 
+def plugin_version():
+    m = re.search(r'BepInPlugin\("[^"]+",\s*"[^"]+",\s*"([^"]+)"\)', open(PLUGIN_SOURCE).read())
+    return m.group(1) if m else None
+
+
+def game_fingerprint(game):
+    """BepInEx's hash of the game assemblies its interop was generated from: the plugin is compiled against
+    that interop, so a plugin built for one value can hang the game at another (seen after a game update)."""
+    p = os.path.join(game, "BepInEx", "interop", "assembly-hash.txt") if game else ""
+    return open(p).read().strip() if p and os.path.isfile(p) else None
+
+
+def steam_build(game):
+    p = os.path.join(game, "..", "..", f"appmanifest_{APP_ID}.acf") if game else ""
+    m = re.search(r'"buildid"\s+"(\d+)"', open(p).read()) if p and os.path.isfile(p) else None
+    return m.group(1) if m else None
+
+
+def dotnet_sdk_major():
+    sdks = run(["dotnet", "--list-sdks"]).stdout if which("dotnet") else ""
+    return max((int(m.group(1)) for m in re.finditer(r"^(\d+)\.", sdks, re.M)), default=0)
+
+
+def prebuilt_plugin(game):
+    """(dll, None) when the release's prebuilt plugin fits this checkout and this game, else (None, why not)."""
+    dll, info_path = os.path.join(PREBUILT_DIR, "VehicleMods.dll"), os.path.join(PREBUILT_DIR, "VehicleMods.json")
+    if not (os.path.isfile(dll) and os.path.isfile(info_path)):
+        return None, "there is no prebuilt plugin here (a source checkout builds its own)"
+    info = json.load(open(info_path))
+    if info.get("version") != plugin_version():
+        return None, f"the prebuilt plugin is {info.get('version')} but the source is {plugin_version()}"
+    if sha256(dll) != info.get("sha256"):
+        return None, "the prebuilt plugin doesn't match its recorded checksum"
+    built_for = info.get("builtAgainst", {}).get("gameAssemblyHash")
+    now = game_fingerprint(game)
+    if built_for and now and built_for != now:
+        return None, ("the prebuilt plugin was built for another version of the game (the game has updated since "
+                      "this release), and a plugin built for another version can hang the game at start")
+    return dll, None
+
+
+def plugin_dll(game=None):
+    """The plugin a deploy installs: the release's prebuilt one when it fits, else the one compiled here."""
+    dll, _why = prebuilt_plugin(game if game is not None else game_dir())
+    return dll or SOURCE_DLL
+
+
 def bepinex_installed_version(game):
     dll = os.path.join(game, "BepInEx", "core", "BepInEx.Core.dll")
     if not os.path.isfile(dll):
@@ -333,10 +386,14 @@ def steps():
     for tool, what in (("rsvg-convert", "Turns the vehicles' SVG icons into the PNGs the game shows."),
                        ("potrace", "Traces the icons of the trucks built from the stock Mammoth.")):
         out.append(Step(tool, f"{tool} is installed", bool(which(tool)), what, install_hint(tool)))
-    sdks = run(["dotnet", "--list-sdks"]).stdout if which("dotnet") else ""
-    sdk_ok = any(int(m.group(1)) >= 6 for m in re.finditer(r"^(\d+)\.", sdks, re.M))
-    out.append(Step("dotnet", "The .NET SDK (6 or newer) is installed", sdk_ok,
-                    "Compiles the Werkstatt plugin that runs inside the game.", install_hint("dotnet")))
+    ready, why = prebuilt_plugin(game)
+    if ready:
+        out.append(Step("dotnet", "The plugin comes ready-made in this release (no .NET SDK needed)", True,
+                        "This release carries the Werkstatt plugin already compiled for your game.", ""))
+    else:
+        out.append(Step("dotnet", "The .NET SDK (6 or newer) is installed", dotnet_sdk_major() >= 6,
+                        "Compiles the Werkstatt plugin that runs inside the game"
+                        + ("." if "source checkout" in why else f": {why}."), install_hint("dotnet")))
     blender = run(["blender", "--version"]).stdout if which("blender") else ""
     m = re.search(r"Blender (\d+)\.(\d+)", blender)
     out.append(Step("blender", "Blender 5 is installed (optional)", bool(m and int(m.group(1)) >= 5),
@@ -615,6 +672,16 @@ def cmd_gates(args):
               + "".join("\n           " + os.path.relpath(l.split(':')[0], ROOT) + ":" + l.split(':', 1)[1] for l in counts))
         if r.returncode:
             failed.append(f"slivers: {name}")
+    if dotnet_sdk_major() >= 10:
+        maps = sorted(glob.glob(os.path.join(ROOT, "tests", "maps", "*.maps")))
+        r = run(["dotnet", "run", "--project", "tools/near-plan", "-v", "quiet", "--"] + maps, cwd=ROOT)
+        print(f"nearplan {'ok  ' if r.returncode == 0 else 'FAIL'} {len(maps)} memory layouts")
+        if r.returncode:
+            print(r.stdout + r.stderr)
+            failed.append("nearplan")
+    else:
+        print("nearplan skip the plugin's hook-page placement test needs the .NET 10 SDK; it tests the plugin's "
+              "source, which CI and every release already ran")
     for label, cmd in (("names   ", [sys.executable, "tools/check_names.py"]),
                        ("catalog ", [sys.executable, "tools/catalogue.py", "--check"]),
                        ("packs   ", [sys.executable, "tools/pack.py", "check"])):
@@ -642,7 +709,7 @@ def deploy_dir_arg(args):
 
 def expected_sources():
     """What a deploy copies, mirroring the csproj's VehicleDeployFiles task: destination -> repo source."""
-    out = {"VehicleMods.dll": os.path.join(ROOT, "plugins", "VehicleMods", "bin", "Release", "net6.0", "VehicleMods.dll")}
+    out = {"VehicleMods.dll": plugin_dll()}
     for v in vehicles():
         name = os.path.basename(v)
         out[f"vehicles/{name}.json"] = os.path.join(v, "vehicle.json")
@@ -741,6 +808,36 @@ def cmd_preflight_deploy(args):
     return 0
 
 
+def cmd_compile_plugin(_args):
+    """Use the release's prebuilt plugin when it fits this game; otherwise compile it with the .NET SDK."""
+    game = game_dir()
+    ready, why = prebuilt_plugin(game)
+    if ready:
+        print("Using the plugin that comes ready-made in this release (built for your version of the game).")
+        return 0
+    if dotnet_sdk_major() < 6:
+        say("The plugin has to be compiled here, and the .NET SDK isn't installed.",
+            f"Why compile: {why}.\n\n{install_hint('dotnet')}\n\nThen run the same command again.")
+        return 1
+    return subprocess.run(["dotnet", "build", "-c", "Release", "-nologo", "-v", "minimal", "-p:Deploy=false",
+                           f"-p:GameDir={game}"], cwd=os.path.join(ROOT, "plugins", "VehicleMods")).returncode
+
+
+def cmd_copy_deploy(args):
+    """Copy what expected_sources() lists (the plugin and each vehicle's manifest, meshes and icon) into place."""
+    folder = deploy_dir_arg(args)
+    sources = expected_sources()
+    missing = sorted(dest for dest, src in sources.items() if not os.path.isfile(src))
+    if missing:
+        print("Not built yet, so not deployed:\n  " + "\n  ".join(missing) + "\nRun `make all`.")
+        return 1
+    for dest, src in sorted(sources.items()):
+        target = os.path.join(folder, *dest.split("/"))
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        shutil.copyfile(src, target)
+    return 0
+
+
 def cmd_record_deploy(args):
     folder = deploy_dir_arg(args)
     files = listing(folder)
@@ -757,6 +854,7 @@ def cmd_record_deploy(args):
         # The repo's commit and branch when it is a git checkout, else null.
         "repoCommit": head + ("+dirty" if dirty else "") if head else None,
         "branch": branch,
+        "plugin": "prebuilt" if expected_sources()["VehicleMods.dll"] != SOURCE_DLL else "compiled",
         "files": [{"path": rel, "sha256": sha256(p),
                    "source": os.path.relpath(sources[rel], ROOT).replace(os.sep, "/") if rel in sources else None}
                   for rel, p in sorted(files.items())],
@@ -914,7 +1012,8 @@ def cmd_loop(args):
 COMMANDS = {
     "start": cmd_start, "require": cmd_require, "doctor": cmd_doctor, "game-dir": cmd_game_dir, "bepinex": cmd_bepinex,
     "gates": cmd_gates, "preflight-deploy": cmd_preflight_deploy, "record-deploy": cmd_record_deploy,
-    "undeploy": cmd_undeploy, "status": cmd_status, "save-add": cmd_save_add, "loop": cmd_loop,
+    "undeploy": cmd_undeploy, "status": cmd_status,
+    "compile-plugin": cmd_compile_plugin, "copy-deploy": cmd_copy_deploy, "save-add": cmd_save_add, "loop": cmd_loop,
 }
 
 if __name__ == "__main__":

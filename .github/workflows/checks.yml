@@ -1,0 +1,25 @@
+# Every check that needs no game files: CI can't build vehicles (they're made from the player's own install),
+# so meshes, gates on built meshes and the plugin compile run on a machine with the game (`make check`, `make release`).
+name: checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Checks (tools compile, versions, real names, catalogue, pack manifests, hook-page placement)
+        run: python3 tools/release.py ci

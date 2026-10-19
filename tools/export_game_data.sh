@@ -37,4 +37,7 @@ cd "$root"
 "$py" -I tools/export_node_facts.py "$cars" Car_Mammoth extracted/mammoth/nodes.json
 for donor in $("$py" -I -c 'import glob, json; print(" ".join(sorted({json.load(open(p))["donor"] for p in glob.glob("vehicles/*/vehicle.json")} - {"Mammoth"})))'); do
     "$py" -I tools/export_donor.py "$cars" "$donor" "extracted/$(echo "$donor" | tr '[:upper:]' '[:lower:]')"
+    # The donor's wheel and tyre, for renders (tools/nexus_images.py); the plugin uses the car's own in game.
+    "$py" -I tools/export_named_mesh.py "$cars" "extracted/$(echo "$donor" | tr '[:upper:]' '[:lower:]')" 1 0 0 0 \
+        "${donor}_tyre_LOD0" "${donor}_wheel_LOD0"
 done

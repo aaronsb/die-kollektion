@@ -1,0 +1,9 @@
+Open source. Code (the plugin, tools and build scripts) is GPL-3.0-or-later; art (models, meshes, icons, vehicle definitions, pack content) and documentation are CC BY-SA 4.0. You may use, change and share all of it, commercially too, as long as what you distribute carries its complete source under the same licence (GPL for code) or the same terms (CC BY-SA for art), with attribution. Details: COPYING.md in the repository.
+
+Packs are data, not derivative works of the plugin: authors of their own packs license them as they choose. Packs made from our art are adaptations of it and fall under CC BY-SA 4.0.
+
+No game assets are included. Meshes, textures and icons from Over the Hill are extracted on your own machine from your own install and are never distributed. Over the Hill and its assets belong to Funselektor; this project is not affiliated with or endorsed by Funselektor or any vehicle manufacturer.
+
+Credits: BepInEx (LGPL-2.1) is the mod loader and is downloaded from its official build server at install time, not redistributed here.
+
+Everything in this mod was made with AI.

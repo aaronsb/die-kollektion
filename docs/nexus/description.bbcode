@@ -1,0 +1,58 @@
+[size=5][b]Die Kollektion Werkstatt[/b][/size]
+
+A vehicle mod system for [i]Over the Hill[/i], with [b]Die Kollektion[/b], a set of trucks and stock-car patches built with it, as its first packs. It adds new vehicles to the merchant and changes stock ones: each new truck runs on a stock vehicle reshaped at runtime (wheelbase, track, suspension, steering, tyres) and carries its own meshes.
+
+It started as "better trucks in the game" and grew into the system those trucks needed. Everything is built on your own machine from your own copy of the game, so this download contains no game files.
+
+[b]Home: [url=https://github.com/aaronsb/die-kollektion]github.com/aaronsb/die-kollektion[/url][/b] (source, issues, every vehicle's contact sheet). Latest release: [url=https://github.com/aaronsb/die-kollektion/releases/latest]github.com/aaronsb/die-kollektion/releases/latest[/url]. This page mirrors each release.
+
+[size=4][b]The vehicles[/b][/size]
+[list]
+[*][b]Das Glyptodon[/b]: a square-cab two-door truck on a long wheelbase, with a ribbed steel drop-side bed, portal axles and coil springs.
+[*][b]Das Megaloceros[/b]: the same square cab as a crew cab, on an even longer wheelbase, with storage boxes and a spare wheel.
+[*][b]Das Mastodon[/b]: a round-cab two-door on a stretched Mammoth chassis, with portal axles, coil springs and a ribbed steel bed.
+[*][b]Das Megatherium[/b]: a round-cab crew cab on the same long chassis.
+[*][b]The Mammoth, patched[/b]: the stock Mammoth gets portal axles, coil springs, a side-exit exhaust and more steering lock.
+[*][b]The Ding, patched[/b]: a golf bag strapped to the roof of one of the starter cars. It's the canary that proves a stock car can be modded.
+[/list]
+Each vehicle's folder on GitHub opens as its contact sheet: four isometric renders, a rig view of its colliders and attach points, and the results of the mesh checks. The README's catalogue lists what each truck is modelled on.
+
+[size=4][b]What you need[/b][/size]
+[list]
+[*][i]Over the Hill[/i] on Steam. Werkstatt runs on the [b]native Linux build today[/b]. Windows support is planned (a cross-platform command-line tool and a Windows plugin build are in the design) but not ready yet.
+[*]A Linux machine with make, Python 3 (with venv), rsvg-convert and potrace. That's all for this release: the plugin comes ready-made.
+[*]About 1 GB of free space for Werkstatt's tools and the vehicles it builds.
+[/list]
+[b]Building from source instead[/b] (a git clone, or a game version newer than this release) also needs the .NET SDK, which compiles the plugin. Blender 5 is only needed for contact sheets and editing models; building and installing the trucks works without it. BepInEx 6 IL2CPP (build be.789) is installed for you: see Install.
+
+[size=4][b]Install[/b][/size]
+[list=1]
+[*]Install [i]Over the Hill[/i] in Steam, start it once, get past the intro, and quit.
+[*]Download this file and unzip it anywhere, or [code]git clone https://github.com/aaronsb/die-kollektion[/code].
+[*]Open a terminal in the unzipped folder and run [code]make start[/code]
+[*]Do the one step it prints, then run [code]make start[/code] again. Repeat until it says everything is ready. Along the way it has you install a few programs (it prints the command for Arch, Debian/Ubuntu or Fedora), run [code]make setup[/code], run [code]make bepinex[/code] (downloads the pinned BepInEx build from the official build server after asking, checks it against a recorded checksum and installs it), set the Steam launch option it shows you, start the game once and quit, and finally run [code]make all[/code], which copies the parts it needs from your game, builds the trucks, checks them and installs the mod.
+[*]Start the game. The trucks are at the merchant. Optional, with the game closed: [code]make save-add[/code] puts all four in your garage.
+[/list]
+[b]Fastest: ask your agent.[/b] Open the folder with an AI coding agent that reads AGENTS.md (Claude Code, for example) and say "set me up". It runs [code]make start[/code] step by step and tells you when you need to click something in Steam.
+
+[size=4][b]Uninstall[/b][/size]
+[code]make undeploy[/code] removes exactly the files the install put in the game folder. To remove BepInEx too, clear the Steam launch option and delete BepInEx/, dotnet/, libdoorstop.so, run_bepinex.sh, .doorstop_version and changelog.txt from the game folder.
+[b]Your save:[/b] back up ~/My Games/over the hill/Saves/ before you start. A save that holds one of these trucks keeps listing it after the mod is removed; how the game treats that isn't tested yet.
+
+[size=4][b]After a game update[/b][/size]
+Run [code]make all[/code] again with the game closed. If the game has updated since this release, Werkstatt compiles the plugin for your version instead of using the ready-made one (that needs the .NET SDK) or waits for the next release. The plugin also reserves its own memory for its hooks as soon as it loads, and runs the game without the mod rather than crash if it can't.
+
+[size=4][b]Known limits[/b][/size]
+[list]
+[*]Native Linux only today; Windows is planned.
+[*]Multiplayer with these trucks is untested.
+[*]The trucks are built on your machine from your own game files, which takes about a minute.
+[/list]
+
+[size=4][b]Made with AI[/b][/size]
+Everything here (code, models, textures and docs) was made with AI, and Werkstatt is agent-friendly on purpose: an agent is what lets someone who just loves a truck get it into the game without first learning decompiling, mesh pipelines and plugin crash rules. AGENTS.md tells an agent how to help, whether you want it to just make things work or to coach you while you stay in creative control.
+
+[size=4][b]Licences[/b][/size]
+Code is GPL-3.0-or-later; art (models, meshes, icons, vehicle definitions) is CC BY-SA 4.0. No game assets are included: everything taken from the game is extracted on your machine from your own install. Not affiliated with Funselektor or with any vehicle manufacturer.
+
+[b]Contributing:[/b] changes arrive as pull requests on GitHub with before-and-after contact sheets; see CONTRIBUTING.md. Found something off while driving? File a Drive report on GitHub.

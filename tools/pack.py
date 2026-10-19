@@ -76,8 +76,13 @@ def cmd_check(args):
 
 
 def tracked(path):
-    out = subprocess.run(["git", "ls-files", "-z", "--", path], cwd=ROOT, capture_output=True, text=True).stdout
-    return [f for f in out.split("\0") if f]
+    r = subprocess.run(["git", "ls-files", "-z", "--", path], cwd=ROOT, capture_output=True, text=True)
+    if r.returncode == 0:
+        return [f for f in r.stdout.split("\0") if f]
+    # A release zip has no git; it lists the files it ships (tools/release.py).
+    listed = os.path.join(ROOT, "RELEASE-FILES.txt")
+    prefix = path.rstrip("/") + "/"
+    return [f for f in open(listed).read().splitlines() if f.startswith(prefix)] if os.path.isfile(listed) else []
 
 
 def sha(path):
