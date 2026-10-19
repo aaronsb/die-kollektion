@@ -4,7 +4,7 @@ Usage (as a library): glyptodon_family.write(TRUCK) with a dict of the truck's o
 tools/make_glyptodon.py and tools/make_megaloceros.py.
 
 Mammoth donor, with the Glyptodon cab and front (lenses, indicators and side flashers included) from
-meshes/glyptodon/<cab>_LOD*.obj, exported from its Blender master meshes/glyptodon/<cab>_master.blend
+vehicles/<name>/meshes/<cab>_LOD*.obj, exported from its Blender master vehicles/<name>/<cab>_master.blend
 (tools/build_cab_part.sh), the Mastodon's stakeless ribbed bed widened to the Glyptodon's, portal axles,
 coils and the soft suspension. Everything under the bed is the Glyptodon's own, built from boxes and
 tubes placed at the reference model's frame, tank, battery, air-tank and exhaust positions: the Mammoth's step box, round
@@ -30,7 +30,7 @@ the reference photos; on the crew cab, whose rear cab covers that spot, it stand
 at the front of the bed against the cab's rear wall. Slanted sheet-steel guards hang from the bed
 ahead of and behind each rear tyre.
 """
-import json, math
+import json, math, os
 
 import spare_part
 
@@ -142,7 +142,7 @@ UNDER_BED_SPARE = {"pose": "under", "tilt": 16.0, "outerX": 1.11, "y": 0.86, "z"
 
 
 def write(truck):
-    """Writes vehicles/<codename>.json for one Glyptodon-family truck and its spare's preview OBJ."""
+    """Writes vehicles/<name>/vehicle.json for one Glyptodon-family truck and its spare's preview OBJ."""
     WHEELBASE = truck["wheelbase"]
     CAB, CAB_EXTRA = truck.get("cab", "cab_glyptodon"), truck.get("cabExtra", 0.0)
     d_wb = WHEELBASE - 2.90              # rear shift beyond the Mastodon's, whose numbers these started from
@@ -321,7 +321,7 @@ def write(truck):
             {"op": "removeRegion", "box": [{"y": [1.05, None], "z": [-0.86, None]}, {"z": [0.62, None]}]},
             {"op": "removeRegion", "box": {"y": [None, 1.2], "z": [round(BED_E + 0.1, 3), 0.62]}},
             {"op": "removePieces", "select": {"y": [1.1, 1.25], "z": [-3.5, 0.0]}},   # its fender tops and bed-end step
-            {"op": "insertPart", "file": f"glyptodon/{CAB}_LOD{lod}.obj"},
+            {"op": "insertPart", "file": f"meshes/{CAB}_LOD{lod}.obj"},
             # The reference model's front flare was drawn round a 12.5R20; trim its inner rear lip where the 14.5R20
             # would come within 0.045 m at full bump (the arch itself clears it).
             {"op": "removeNearAxle", "centre": [HUB_Y, FRONT_AXLE], "radius": 0.70,
@@ -380,7 +380,7 @@ def write(truck):
              for side, x in (("Left", -LAMP_X), ("Right", LAMP_X)) for kind in ("PositionBrakelight", "BrakingBrakelight")}
     lamps.update({f"Lights/{side}Reverselight": {"position": [x, LAMP_Y, round(LAMP_Z, 3)]}
                   for side, x in (("Left", -0.80), ("Right", 0.80))})
-    preview = truck.get("sparePreview", "glyptodon/spare_preview.obj")
+    preview = truck.get("sparePreview", "generated/spare_preview.obj")
     d = {
         "codename": truck["codename"],
         "displayName": truck["displayName"],
@@ -389,6 +389,10 @@ def write(truck):
         "listing": truck["listing"],
         "itemId": truck["itemId"],
         "donor": "Mammoth",
+        # "based": built from the player's extracted Mammoth plus the differences below; the truck's script
+        # says which kind it is (Die Kollektion's tools read this; the plugin reads "donor").
+        "kind": truck["kind"],
+        "base": {"car": "Mammoth"},
         "donorAxleZ": {"front": FRONT_AXLE, "rear": FRONT_AXLE - DONOR_WHEELBASE},
         "wheelbase": WHEELBASE,
         "track": TRACK,
@@ -418,8 +422,10 @@ def write(truck):
         "spare": {"source": SPARE_SOURCE, "position": [-centre[0], centre[1], centre[2]],
                   "rotation": rotation, "preview": preview},
     }
-    spare_part.write(f"meshes/{preview}", SPARE_AXLE_SCALE, SPARE_RADIAL_SCALE, centre, tilt, yaw)
-    out = f"vehicles/{truck['codename'].lower()}.json"
+    vehicle_dir = f"vehicles/{truck['codename'].lower()}"
+    os.makedirs(os.path.join(vehicle_dir, "generated"), exist_ok=True)
+    spare_part.write(os.path.join(vehicle_dir, preview), SPARE_AXLE_SCALE, SPARE_RADIAL_SCALE, centre, tilt, yaw)
+    out = os.path.join(vehicle_dir, "vehicle.json")
     json.dump(d, open(out, "w"), indent=2)
     print(f"{out}: wheelbase {WHEELBASE}, bed {BED_F}..{BED_E}, {2 * BED_HALF:.2f} m wide, tyre r {TYRE['radius']}")
     return d

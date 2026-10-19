@@ -1,12 +1,12 @@
 #!/bin/sh
 # Eval loop step: build a vehicle definition's meshes, render four views, and tile them into
 # one contact sheet at renders/<codename>.png.
-# Usage: tools/preview_vehicle.sh vehicles/<name>.json
+# Usage: tools/preview_vehicle.sh vehicles/<name>/vehicle.json
 set -e
 root="$(cd "$(dirname "$0")/.." && pwd)"
 definition="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 codename=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['codename'].lower())" "$definition")
-mesh_dir="$root/plugins/VehicleMods/vehicles/$codename"
+mesh_dir="$(dirname "$definition")/build"
 out="$root/renders/$codename"
 mkdir -p "$root/renders"
 

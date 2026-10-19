@@ -15,6 +15,10 @@
     }
   },
   "donor": "Mammoth",
+  "kind": "patch",
+  "base": {
+    "car": "Mammoth"
+  },
   "donorAxleZ": {
     "front": 1.22,
     "rear": -1.31

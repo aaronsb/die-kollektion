@@ -1,6 +1,6 @@
 """Replace a Glyptodon-family cab master's roof with generated geometry, headless in Blender.
 
-Usage: blender -b meshes/glyptodon/<cab>_master.blend --python tools/cab_roof.py -- [--save]
+Usage: blender -b vehicles/<vehicle>/<cab>_master.blend --python tools/cab_roof.py -- [--save]
 Then tools/build_cab_part.sh <master> --derive as usual (the new parts bring their own far LODs, so
 --derive leaves them alone).
 

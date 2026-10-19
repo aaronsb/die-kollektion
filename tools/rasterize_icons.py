@@ -1,15 +1,16 @@
-"""Rasterize icons/src/*.svg to the 256x256 PNGs the plugin loads, and draw a comparison sheet.
+"""Rasterize each vehicle's icon.svg to the 256x256 icon.png the plugin loads, and draw a comparison sheet.
 
 Usage: python3 -I tools/rasterize_icons.py [--out DIR] [--compare REV]
-  --out DIR      write PNGs there instead of icons/ (for previews)
-  --compare REV  also put REV's icons/*.png (e.g. HEAD) in renders/icons_compare.png
+  --out DIR      write <Codename>.png there instead of vehicles/<name>/icon.png (for previews)
+  --compare REV  also put REV's icons (e.g. HEAD) in renders/icons_compare.png
 
-Needs rsvg-convert. The sheet shows the stock Mammoth icon (data/icons/Mammoth.png) and each truck at
+Needs rsvg-convert. The sheet shows the stock Mammoth icon (extracted/icons/Mammoth.png) and each truck at
 native size and 2x on the menu's dark background.
 """
 import argparse
 import glob
 import io
+import json
 import os
 import subprocess
 
@@ -50,27 +51,30 @@ def sheet(rows, out):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default="icons")
+    ap.add_argument("--out")
     ap.add_argument("--compare")
     args = ap.parse_args()
-    os.makedirs(args.out, exist_ok=True)
-    names = []
-    for svg in sorted(glob.glob("icons/src/*.svg")):
-        name = os.path.splitext(os.path.basename(svg))[0]
-        png = os.path.join(args.out, name + ".png")
+    if args.out:
+        os.makedirs(args.out, exist_ok=True)
+    pngs = {}
+    for svg in sorted(glob.glob("vehicles/*/icon.svg")):
+        folder = os.path.dirname(svg)
+        name = json.load(open(os.path.join(folder, "vehicle.json")))["codename"]
+        png = os.path.join(args.out, name + ".png") if args.out else os.path.join(folder, "icon.png")
         rasterize(svg, png)
-        names.append(name)
+        pngs[name] = png
         print(png)
-    order = [n for n in ("Megatherium", "Mastodon", "Glyptodon", "Megaloceros") if n in names]
-    stock = ("stock Mammoth", on_canvas(Image.open("data/icons/Mammoth.png").convert("RGBA")))
-    rows = [("SVG", [stock] + [(n, Image.open(os.path.join(args.out, n + ".png")).convert("RGBA")) for n in order])]
+    order = [n for n in ("Megatherium", "Mastodon", "Glyptodon", "Megaloceros") if n in pngs]
+    stock = ("stock Mammoth", on_canvas(Image.open("extracted/icons/Mammoth.png").convert("RGBA")))
+    rows = [("SVG", [stock] + [(n, Image.open(pngs[n]).convert("RGBA")) for n in order])]
     if args.compare:
         prev = []
         for n in order:
-            blob = subprocess.run(["git", "show", f"{args.compare}:icons/{n}.png"], capture_output=True).stdout
+            blob = subprocess.run(["git", "show", f"{args.compare}:vehicles/{n.lower()}/icon.png"], capture_output=True).stdout
             if blob:
                 prev.append((n, Image.open(io.BytesIO(blob)).convert("RGBA")))
         rows.append((f"pipeline ({args.compare})", [stock] + prev))
+    os.makedirs("renders", exist_ok=True)
     sheet(rows, "renders/icons_compare.png")
     print("renders/icons_compare.png")
 

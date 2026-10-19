@@ -1,6 +1,6 @@
-"""Write vehicles/glyptodon.json, Das Glyptodon (two-door), from a few dimensions.
+"""Write vehicles/glyptodon/vehicle.json, Das Glyptodon (two-door), from a few dimensions.
 
-Usage: python3 tools/make_glyptodon.py && tools/preview_vehicle.sh vehicles/glyptodon.json
+Usage: python3 tools/make_glyptodon.py && tools/preview_vehicle.sh vehicles/glyptodon/vehicle.json
 
 The two-door cab on the 3.25 m wheelbase, with the spare lying under the bed front on the
 left. Everything else is the family's, in tools/glyptodon_family.py.
@@ -8,6 +8,7 @@ left. Everything else is the family's, in tools/glyptodon_family.py.
 import glyptodon_family
 
 glyptodon_family.write({
+    "kind": "based",
     "codename": "Glyptodon",
     "displayName": "Das Glyptodon",
     "description": "Das Glyptodon traded the round nose for a square jaw and never looked back. Long frame, long bed, a cab with corners you could set a ruler on, and a gearbox arrangement it will explain to you at length whether you asked or not. Armoured by temperament, if not by law.",

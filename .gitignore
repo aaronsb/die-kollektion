@@ -3,22 +3,20 @@
 __pycache__/
 *.blend1
 
-# Game data, extracted locally from the player's own install; never committed
-meshes/mammoth/
-meshes/merchant/
-meshes/glyptodon/spare_raw/
-data/
+# Game data, extracted locally from the player's own install (tools/export_game_data.sh); never committed
+extracted/
 
-# Generated from game data (see README "Building from source")
-meshes/glyptodon/spare_preview*.obj
-meshes/glyptodon/megaloceros_boxes_LOD*.obj
-icons/Mastodon.png
-icons/Megatherium.png
-icons/src/Mastodon.svg
-icons/src/Megatherium.svg
+# Per vehicle: build output (tools/build_vehicle.py) and parts generated from extracted game data
+vehicles/*/build/
+vehicles/*/generated/
+# Icons traced from the game's own Mammoth icon (tools/trace_icons.py), built locally
+vehicles/mastodon/icon.png
+vehicles/mastodon/icon.svg
+vehicles/megatherium/icon.png
+vehicles/megatherium/icon.svg
 
-# Build output
+# Build output and local captures
 plugins/*/bin/
 plugins/*/obj/
-plugins/VehicleMods/vehicles/
 renders/
+logs/

@@ -4,7 +4,7 @@ Usage: blender -b --factory-startup --python tools/render_vehicle.py -- <definit
 Writes <out prefix>_{side,top,rear,three_quarter}.png. Wheels are drawn as discs at the
 definition's axle positions and track, and a "spare" from its preview OBJ; the body cut is drawn as
 red lines in the side and top views. The body is textured through its UVs with
-data/textures/<Donor>_composite.png when tools/composite_atlas.py has made one (the livery as the
+extracted/textures/<Donor>_composite.png when tools/composite_atlas.py has made one (the livery as the
 game's car shader shows it, glass dark), so lamps and lenses read as in game; otherwise flat grey.
 OBJ axes (x lateral, y up, z forward) import to Blender as (x, -z, y).
 """
@@ -19,7 +19,7 @@ scene = bpy.context.scene
 
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-atlas = os.path.join(ROOT, "data/textures", f"{definition['donor']}_composite.png")
+atlas = os.path.join(ROOT, "extracted/textures", f"{definition['donor']}_composite.png")
 
 
 def material(name, rgba, image=None):
@@ -51,10 +51,10 @@ for node_path, entry in definition["meshes"].items():
         obj.data.materials.append(body)
 
 # A spare wheel the plugin clones from the donor's wheel visual: drawn from its preview OBJ
-# (meshes/<preview>, at the in-game pose) in the tyre colour.
+# (<vehicle folder>/<preview>, at the in-game pose) in the tyre colour.
 preview = definition.get("spare", {}).get("preview")
 if preview:
-    bpy.ops.wm.obj_import(filepath=os.path.join(ROOT, "meshes", preview))
+    bpy.ops.wm.obj_import(filepath=os.path.join(os.path.dirname(os.path.abspath(definition_path)), preview))
     for obj in bpy.context.selected_objects:
         obj.data.materials.clear()
         obj.data.materials.append(tire)

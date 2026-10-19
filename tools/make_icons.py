@@ -14,7 +14,7 @@ behind the front arch (frame, tank, steps, battery boxes, exhaust, guards, flaps
 lamps). A plain frame rail stands in for them. The only gaps are drawn on purpose: the ring round each
 tyre and the hub ring, the split between cab and bed, the line under the bed, the bed slats and a
 door shut line behind each side window. The result is fitted to the stock framing and written to
-icons/<Codename>.png.
+vehicles/<name>/icon.png.
 
 Glass faces are those whose UV lands on green in the Mammoth masks texture; bed faces are those on
 the repainted-bed atlas point above the tyres and behind the cab's rear wall (the Glyptodon cab is painted
@@ -37,7 +37,7 @@ DETAIL_OUT = 0.12                  # parts above the window line this far outboa
                                    # (mirrors, handles) are left out; the Glyptodon cab's skin there sits 0.07 out
 OPENING = 9                        # px at 4x: protrusions thinner than this are dropped
 CREASE, MIN_STROKE = 135.0, 4.0    # --lines variant: crease angle (degrees), shortest line (px at 1x)
-MASKS = Image.open(os.path.join(ROOT, "data/textures/Mammoth_masks.png")).convert("RGB")
+MASKS = Image.open(os.path.join(ROOT, "extracted/textures/Mammoth_masks.png")).convert("RGB")
 
 
 def read_obj(path):
@@ -119,8 +119,8 @@ def classify(path, front_axle, radius):
 
 
 def make(codename, lines=False):
-    definition = json.load(open(os.path.join(ROOT, "vehicles", f"{codename.lower()}.json")))
-    body_src = os.path.join(ROOT, "plugins/VehicleMods/vehicles", codename.lower(), "body_LOD0.obj")
+    definition = json.load(open(os.path.join(ROOT, "vehicles", codename.lower(), "vehicle.json")))
+    body_src = os.path.join(ROOT, "vehicles", codename.lower(), "build", "body_LOD0.obj")
     wheel = dict(definition["wheel"], **definition.get("tyre", {}))
     front = definition["donorAxleZ"]["front"]
     axles = (front, front - definition["wheelbase"])
@@ -185,21 +185,23 @@ def make(codename, lines=False):
     mask.paste(drawing, (MARGIN, (SIZE - drawing.height) // 2))
     icon = Image.new("RGBA", (SIZE, SIZE), (255, 255, 255, 0))
     icon.putalpha(mask)
-    out_dir = os.path.join(ROOT, "renders/icons_lines" if lines else "icons")
-    os.makedirs(out_dir, exist_ok=True)
-    out = os.path.join(out_dir, f"{codename}.png")
+    if lines:
+        os.makedirs(os.path.join(ROOT, "renders/icons_lines"), exist_ok=True)
+        out = os.path.join(ROOT, "renders/icons_lines", f"{codename}.png")
+    else:
+        out = os.path.join(ROOT, "vehicles", codename.lower(), "icon.png")
     icon.save(out)
     print(f"{out}: {len(parts['glass'])} glass, {len(parts['bed'])} bed, {len(parts['body'])} body faces, {dropped} left out, "
           f"{len(windows)} side windows, {ppm / SS:.1f} px/m, bbox {mask.getbbox()}")
 
 
-def compare(names, stock="data/icons/Mammoth.png", out="renders/icons_compare.png"):
-    """Stock Mammoth icon beside the new ones at native size and 2x: solids (icons/) on top, and
+def compare(names, stock="extracted/icons/Mammoth.png", out="renders/icons_compare.png"):
+    """Stock Mammoth icon beside the new ones at native size and 2x: solids (vehicles/<name>/icon.png) on top, and
     the Freestyle-lines variant (renders/icons_lines/) below where it exists."""
     bg, pad, label_h = (52, 54, 72, 255), 16, 20
     stock_icon = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
     stock_icon.alpha_composite(Image.open(os.path.join(ROOT, stock)).convert("RGBA"), (1, 56))   # exported cropped to its texture rect
-    variants = [("solids", "icons")]
+    variants = [("solids", None)]
     if all(os.path.exists(os.path.join(ROOT, "renders/icons_lines", f"{n}.png")) for n in names):
         variants.append(("lines", "renders/icons_lines"))
     block = label_h + SIZE + pad + 2 * SIZE + pad
@@ -207,7 +209,8 @@ def compare(names, stock="data/icons/Mammoth.png", out="renders/icons_compare.pn
     draw = ImageDraw.Draw(sheet)
     for row, (variant, folder) in enumerate(variants):
         top = pad + row * block
-        icons = [("stock Mammoth", stock_icon)] + [(f"{n} ({variant})", Image.open(os.path.join(ROOT, folder, f"{n}.png")).convert("RGBA")) for n in names]
+        paths = {n: os.path.join(ROOT, "vehicles", n.lower(), "icon.png") if folder is None else os.path.join(ROOT, folder, f"{n}.png") for n in names}
+        icons = [("stock Mammoth", stock_icon)] + [(f"{n} ({variant})", Image.open(paths[n]).convert("RGBA")) for n in names]
         for i, (label, icon) in enumerate(icons):
             x = pad + i * (2 * SIZE + pad)
             draw.text((x, top), label, fill=(230, 230, 230, 255))

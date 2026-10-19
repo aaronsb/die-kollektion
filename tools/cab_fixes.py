@@ -1,6 +1,6 @@
 """Detail fixes on a Glyptodon-family cab master after tools/cab_doors.py, headless in Blender.
 
-Usage: blender -b meshes/glyptodon/<cab>_master.blend --python tools/cab_fixes.py -- [--save]
+Usage: blender -b vehicles/<vehicle>/<cab>_master.blend --python tools/cab_fixes.py -- [--save]
 Then tools/build_cab_part.sh <master> --derive as usual. Run it again and it changes nothing more.
 
 - RearWallBacking goes from every LOD: a black sheet standing 8 cm inside the rear wall that the author

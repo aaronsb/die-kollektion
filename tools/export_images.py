@@ -2,9 +2,9 @@
 
 Usage: .venv/bin/python -I tools/export_images.py <bundle> <out dir> <name> [<name> ...]
 
-The icon and render tools read these from data/ (never committed):
-  cars bundle:              Mammoth_masks, Mammoth_skin00, Mammoth_AO  -> data/textures/
-  scriptableobjects bundle: Mammoth_Icon                               -> data/icons/Mammoth.png
+The icon and render tools read these from extracted/ (never committed):
+  cars bundle:              Mammoth_masks, Mammoth_skin00, Mammoth_AO  -> extracted/textures/
+  scriptableobjects bundle: Mammoth_Icon                               -> extracted/icons/Mammoth.png
 A name matches a Texture2D or Sprite's m_Name exactly; a Sprite named <Car>_Icon is written as <Car>.png.
 """
 import os, sys

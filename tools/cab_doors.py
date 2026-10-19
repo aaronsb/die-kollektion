@@ -1,6 +1,6 @@
 """Give a Glyptodon-family cab master generated doors, headless in Blender.
 
-Usage: blender -b meshes/glyptodon/<cab>_master.blend --python tools/cab_doors.py -- [--save]
+Usage: blender -b vehicles/<vehicle>/<cab>_master.blend --python tools/cab_doors.py -- [--save]
 then tools/build_cab_part.sh <master> --derive as usual (the parts bring their own far LODs).
 
 The door is the family's door (a door reference photo): front-hinged, one window opening with a

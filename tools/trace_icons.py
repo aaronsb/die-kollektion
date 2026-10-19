@@ -1,7 +1,7 @@
 """Write the Megatherium and Mastodon icons as traced SVG edits of the stock Mammoth icon.
 
 Usage: python3 tools/trace_icons.py      (system python: needs numpy; then tools/rasterize_icons.py)
-Input: data/icons/Mammoth.png, the stock Mammoth_Icon sprite (exported from the scriptableobjects
+Input: extracted/icons/Mammoth.png, the stock Mammoth_Icon sprite (exported from the scriptableobjects
 bundle; 254x144, white on transparent). Needs potrace.
 
 Both trucks are the Mammoth's body, so their icons are the stock icon with only the differences
@@ -13,7 +13,7 @@ edited in, at 8x resolution before tracing:
 - Mastodon: the Megatherium with the rear door bay of the cab replaced by bed: the bed runs up to
   the cab's B-pillar, which becomes the single cab's rear wall, and the roof starts there with the
   stock roof's rounded rear end.
-The result is traced with potrace into icons/src/<Codename>.svg, framed like the other icons:
+The result is traced with potrace into vehicles/<name>/icon.svg (gitignored: it is the game's icon, edited), framed like the other icons:
 256x256, 2 px end margins, centred vertically.
 """
 import os
@@ -35,7 +35,7 @@ CANVAS, MARGIN = 256, 2
 
 
 def load():
-    im = Image.open("data/icons/Mammoth.png").convert("RGBA").split()[3]
+    im = Image.open("extracted/icons/Mammoth.png").convert("RGBA").split()[3]
     big = im.resize((im.width * UP, im.height * UP), Image.LANCZOS)
     return np.array(big) >= 128
 
@@ -109,12 +109,12 @@ def trace(mask, name):
            f'<title>Das {name} (traced from the stock Mammoth icon)</title>\n'
            f'<g fill="white" transform="translate({ox:.4f},{oy:.4f}) scale({k:.6f})">\n'
            f'<g transform="{g}">\n{body}\n</g>\n</g>\n</svg>\n')
-    with open(f"icons/src/{name}.svg", "w") as f:
+    path = f"vehicles/{name.lower()}/icon.svg"
+    with open(path, "w") as f:
         f.write(out)
-    print(f"icons/src/{name}.svg")
+    print(path)
 
 
 if __name__ == "__main__":
-    os.makedirs("icons/src", exist_ok=True)
     trace(megatherium(load())[0], "Megatherium")
     trace(mastodon(load())[0], "Mastodon")

@@ -1,8 +1,8 @@
-"""Write vehicles/megaloceros.json, Das Megaloceros (Glyptodon-styled crew cab), from a few dimensions.
+"""Write vehicles/megaloceros/vehicle.json, Das Megaloceros (Glyptodon-styled crew cab), from a few dimensions.
 
-Usage: python3 tools/make_megaloceros.py && tools/preview_vehicle.sh vehicles/megaloceros.json
+Usage: python3 tools/make_megaloceros.py && tools/preview_vehicle.sh vehicles/megaloceros/vehicle.json
 
-The Glyptodon's front, nose and running gear with a crew cab (meshes/glyptodon/cab_megaloceros_master.blend,
+The Glyptodon's front, nose and running gear with a crew cab (vehicles/megaloceros/cab_megaloceros_master.blend,
 first spliced from the two-door cab the way crew cabs are built from two-doors: 1.127 m longer, a copy of the front
 door behind it) on 3.70 m, the wheelbase of the long crew-cab reference
 drawing. The bed starts behind the crew cab's rear wall and ends
@@ -12,12 +12,12 @@ step; the frame's rise, crossmembers, air tanks, silencer and tailpipe keep thei
 rear axle. The spare stands upright in its carrier at the front of the bed against the cab's rear
 wall, on the right, tread outboard.
 
-Storage boxes: the mechanic's truck's rounded black box (meshes/merchant/
+Storage boxes: the mechanic's truck's rounded black box (extracted/merchant/
 Merchant_LOD*.obj, one each side, sharing the Mammoth's UV layout) hangs from the bed in the open bays,
 shortened to fit, double-sided (the merchant's are open inboard) and on the unpainted black:
 STORAGE_BOXES lists them; empty it to leave them off.
 """
-import math
+import math, os
 
 import meshlib
 import glyptodon_family
@@ -49,13 +49,14 @@ STORAGE_BOXES = [("left", -1.18, -1.58), ("right", -1.18, -1.70), ("right", -3.2
 BOX_SOURCE = {"left": {"x": [0.6, 1.0], "y": [0.55, 1.2], "z": [-1.4, -0.55]},
               "right": {"x": [-1.0, -0.6], "y": [0.55, 1.2], "z": [-1.4, -0.55]}}
 BOX_OUTER_X = round(glyptodon_family.BED_HALF - 0.075, 3)
-BOX_PARTS = "glyptodon/megaloceros_boxes_LOD{lod}.obj"
+BOX_PARTS = "generated/megaloceros_boxes_LOD{lod}.obj"   # in vehicles/megaloceros/
 
 
 def write_boxes():
     """Writes the storage boxes, placed, one OBJ per LOD (each LOD of the merchant has one box a side)."""
+    os.makedirs("vehicles/megaloceros/generated", exist_ok=True)
     for lod in range(4):
-        src = meshlib.Obj.read(f"meshes/merchant/Merchant_LOD{lod}.obj")
+        src = meshlib.Obj.read(f"extracted/merchant/Merchant_LOD{lod}.obj")
         out = meshlib.Obj()
         out.header = [f"# Das Megaloceros storage boxes: the merchant's box (Merchant_LOD{lod}), placed by tools/make_megaloceros.py"]
         out.vt.append(list(glyptodon_family.BLACK))
@@ -86,11 +87,12 @@ def write_boxes():
                 # Both windings: the merchant's boxes are open on their inboard side, and its right
                 # one is wound inside out, so each face goes in twice, back to back.
                 out.faces += [face, face[::-1]]
-        out.write(f"meshes/{BOX_PARTS.format(lod=lod)}")
+        out.write(f"vehicles/megaloceros/{BOX_PARTS.format(lod=lod)}")
 
 
 write_boxes()
 glyptodon_family.write({
+    "kind": "based",
     "codename": "Megaloceros",
     "displayName": "Das Megaloceros",
     "description": "Das Megaloceros took one look at the square-jawed two-door and asked where everyone else was supposed to sit. A second row of doors, a roof that keeps going, and still a bed behind it long enough for the gear nobody admits to packing. Built for crews who measure a trip in days and a road in theory.",
@@ -115,6 +117,6 @@ glyptodon_family.write({
     "airTanks": [dict(t, points=[[-0.575, p[1], round(p[2] + r, 3)] for p in t["points"]]) for t in glyptodon_family.GLYPTODON_AIR_TANKS],
     "spare": {"pose": "upright", "x": round(-(glyptodon_family.BED_HALF - 0.04 - SPARE_R - 0.01), 3),
               "y": round(BED_FLOOR + 0.005 + SPARE_R, 3), "z": round(HEADBOARD - CARRIER - SPARE_HALF_W, 3)},
-    "sparePreview": "glyptodon/spare_preview_megaloceros.obj",
+    "sparePreview": "generated/spare_preview.obj",
     "extraParts": [BOX_PARTS] if STORAGE_BOXES else [],
 })

@@ -1,6 +1,6 @@
 # Glyptodon-family cab masters: editing and content creation
 
-The two cabs are Blender masters: `cab_glyptodon_master.blend` (two-door, Das Glyptodon) and `cab_megaloceros_master.blend` (crew cab, Das Megaloceros). They are independent files; a change meant for both is made in both.
+The two cabs are Blender masters: `vehicles/glyptodon/cab_glyptodon_master.blend` (two-door, Das Glyptodon) and `vehicles/megaloceros/cab_megaloceros_master.blend` (crew cab, Das Megaloceros). This guide covers both. They are independent files; a change meant for both is made in both. Each exports its game LODs into its vehicle's `meshes/` folder.
 
 ## Who owns which part
 
@@ -22,7 +22,7 @@ Run each as `blender -b <master> --python tools/<script>.py -- --save`. Each wri
 ## Editing by hand
 
 1. Edit the `LOD0` objects only. Keep names as `<Part>.LOD<n>`, materials as the classes above, and the `two_sided` face attribute and custom props (`ratio`, `src_hash`, `far_hash`) intact.
-2. Save, then `tools/build_cab_part.sh meshes/glyptodon/<cab>_master.blend --derive`: it rebuilds the far LODs of changed parts and writes `<cab>_LOD0-3.obj`.
+2. Save, then `tools/build_cab_part.sh vehicles/<vehicle>/<cab>_master.blend --derive`: it rebuilds the far LODs of changed parts and writes `meshes/<cab>_LOD0-3.obj` beside the master.
 3. Rebuild the truck (`make_*.py` + `build_vehicle.py`) and run the gates (root `CLAUDE.md`).
 
 ## Gotchas

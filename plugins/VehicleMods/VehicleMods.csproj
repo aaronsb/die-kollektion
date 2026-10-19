@@ -32,23 +32,57 @@
     <Reference Include="$(BepInExDir)/interop/Unity.Localization.dll" Private="false" />
   </ItemGroup>
 
-  <!-- Deploys to BepInEx/plugins/VehicleMods/: the DLL, vehicle definitions from ../../vehicles,
-       the meshes tools/build_vehicle.py wrote to ./vehicles/<codename>/, and the vehicle-select
-       icons tools/make_icons.py wrote to ../../icons.
+  <!-- The files a deploy copies, from each vehicle folder ../../vehicles/<name>/: its vehicle.json as
+       vehicles/<name>.json, the meshes tools/build_vehicle.py wrote to build/ as vehicles/<name>/*.obj,
+       and its icon.png as icons/<Codename>.png (the codename read from vehicle.json). -->
+  <UsingTask TaskName="VehicleDeployFiles" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <VehiclesDir ParameterType="System.String" Required="true" />
+      <DeployDir ParameterType="System.String" Required="true" />
+      <Files ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text.RegularExpressions" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var files = new System.Collections.Generic.List<ITaskItem>();
+        void Add(string source, string destination)
+        {
+            var item = new TaskItem(source);
+            item.SetMetadata("Destination", destination);
+            files.Add(item);
+        }
+        foreach (var folder in Directory.GetDirectories(VehiclesDir))
+        {
+            var manifest = Path.Combine(folder, "vehicle.json");
+            if (!File.Exists(manifest)) continue;
+            var name = Path.GetFileName(folder);
+            Add(manifest, Path.Combine(DeployDir, "vehicles", name + ".json"));
+            var build = Path.Combine(folder, "build");
+            if (Directory.Exists(build))
+                foreach (var obj in Directory.GetFiles(build, "*.obj"))
+                    Add(obj, Path.Combine(DeployDir, "vehicles", name, Path.GetFileName(obj)));
+            var icon = Path.Combine(folder, "icon.png");
+            var codename = Regex.Match(File.ReadAllText(manifest), "\"codename\"\\s*:\\s*\"([^\"]+)\"").Groups[1].Value;
+            if (File.Exists(icon) && codename.Length > 0)
+                Add(icon, Path.Combine(DeployDir, "icons", codename + ".png"));
+        }
+        Files = files.ToArray();
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <!-- Deploys the DLL and the vehicle files above to BepInEx/plugins/VehicleMods/ (or -p:DeployDir=<dir>).
        Pass -p:Deploy=false to compile without deploying. -->
   <Target Name="Deploy" AfterTargets="Build" Condition="'$(Deploy)' != 'false'">
     <PropertyGroup>
-      <DeployDir>$(BepInExDir)/plugins/VehicleMods</DeployDir>
+      <DeployDir Condition="'$(DeployDir)' == ''">$(BepInExDir)/plugins/VehicleMods</DeployDir>
     </PropertyGroup>
-    <ItemGroup>
-      <Definitions Include="$(MSBuildProjectDirectory)/../../vehicles/*.json" />
-      <BuiltMeshes Include="$(MSBuildProjectDirectory)/vehicles/**/*.obj" />
-      <Icons Include="$(MSBuildProjectDirectory)/../../icons/*.png" />
-    </ItemGroup>
+    <VehicleDeployFiles VehiclesDir="$(MSBuildProjectDirectory)/../../vehicles" DeployDir="$(DeployDir)">
+      <Output TaskParameter="Files" ItemName="VehicleFiles" />
+    </VehicleDeployFiles>
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DeployDir)" />
-    <Copy SourceFiles="@(Definitions)" DestinationFolder="$(DeployDir)/vehicles" />
-    <Copy SourceFiles="@(BuiltMeshes)" DestinationFolder="$(DeployDir)/vehicles/%(RecursiveDir)" />
-    <Copy SourceFiles="@(Icons)" DestinationFolder="$(DeployDir)/icons" />
+    <Copy SourceFiles="@(VehicleFiles)" DestinationFiles="@(VehicleFiles->'%(Destination)')" />
   </Target>
 
 </Project>

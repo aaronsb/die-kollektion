@@ -5,7 +5,8 @@ SURVIVE="${1:-90}"
 GAME="${GAME_DIR:-$HOME/.local/share/Steam/steamapps/common/over the hill}"   # set GAME_DIR for another Steam library
 PLAYER_LOG="$HOME/.config/unity3d/Funselektor/over the hill/Player.log"
 BEPINEX_LOG="$GAME/BepInEx/LogOutput.log"
-MAPS="$(dirname "$0")/../data/last_game_maps.txt"
+MAPS="$(dirname "$0")/../logs/last_game_maps.txt"
+mkdir -p "$(dirname "$MAPS")"
 
 is_running() { pgrep -f "^$GAME/over the hill.x86_64" >/dev/null; }
 

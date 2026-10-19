@@ -1,10 +1,14 @@
 """Build a derived vehicle's meshes from its definition.
 
-Usage: python3 tools/build_vehicle.py vehicles/<name>.json
+Usage: python3 tools/build_vehicle.py vehicles/<name>/vehicle.json
 
-Reads the donor meshes exported by export_car_mesh.py from meshes/<donor>/ and writes the
-results to plugins/VehicleMods/vehicles/<codename>/ for the plugin build to deploy. A mesh edited
-by hand in Blender can be dropped in meshes/<donor>/ under the same name.
+Reads the donor meshes extracted from the player's install (tools/export_game_data.sh) from
+extracted/<donor>/ and writes the results to the vehicle's own build/ folder, which the plugin build
+deploys. A mesh edited by hand in Blender can be dropped in extracted/<donor>/ under the same name.
+
+Part files named in the definition ("insertPart" files) are relative to the vehicle's folder
+(its own meshes/ and generated/), except those starting with extracted/, which are game parts
+relative to the repository root.
 
 A definition with "patch": true modifies the donor itself (no clone), so it has no body cut and
 its wheelbase equals the donor's.
@@ -14,7 +18,7 @@ Each "meshes" entry maps a node path to either a file name or {"file", "stretch"
   wheelbase). The body cut steps with height: [[y0, z0], [y1, z1], ...] means a vertex at height
   y uses the z of the highest y_i <= y.
 - ops: further edits in order, e.g. {"op": "coilSprings", "sides": 8, "segmentsPerTurn": 10}.
-  removeRegion drops the faces in a box, removePieces the pieces matching a selection; insertPart adds the faces of meshes/<file> inside a box,
+  removeRegion drops the faces in a box, removePieces the pieces matching a selection; insertPart adds the faces of <file> inside a box,
   keeping whole pieces that match an "include" selection (if given) and no "exclude" selection.
   Boxes are {"x": [lo, hi], ...} with omitted axes and null bounds open, or a list of such boxes
   (their union). A face counts by its centroid, a piece under unitSize (0.5 m) as a whole.
@@ -140,8 +144,13 @@ def add_tubes(obj, op):
     return f"added {tubes} tubes ({rings} rings)"
 
 
+def part_path(file):
+    """A part file named in the definition: a game part under extracted/, else the vehicle's own."""
+    return os.path.join(ROOT, file) if file.startswith("extracted/") else os.path.join(VEHICLE_DIR, file)
+
+
 def insert_part(obj, op):
-    part = meshlib.Obj.read(os.path.join(ROOT, "meshes", op["file"]))
+    part = meshlib.Obj.read(part_path(op["file"]))
     added = meshlib.insert_part(obj, part, op.get("box"), op.get("include"), op.get("exclude", []),
                                 op.get("unitSize", 0.5))
     return f"inserted {added} faces from {op['file']}"
@@ -158,21 +167,23 @@ def missing_game_meshes(definition, src_dir):
     """The donor and part OBJs this definition reads that aren't on disk. They come from the player's own
     game install (tools/export_car_mesh.py, tools/export_named_mesh.py) and are never in the repository."""
     paths = [os.path.join(src_dir, node_path.replace("/", "__") + ".obj") for node_path in definition["meshes"]]
-    paths += [os.path.join(ROOT, "meshes", op["file"]) for entry in definition["meshes"].values() if isinstance(entry, dict)
+    paths += [part_path(op["file"]) for entry in definition["meshes"].values() if isinstance(entry, dict)
               for op in entry.get("ops", []) if op["op"] == "insertPart"]
     return sorted({p for p in paths if not os.path.exists(p)})
 
 
 def main():
+    global VEHICLE_DIR
+    VEHICLE_DIR = os.path.dirname(os.path.abspath(sys.argv[1]))
     definition = json.load(open(sys.argv[1]))
     donor_wheelbase = definition["donorAxleZ"]["front"] - definition["donorAxleZ"]["rear"]
     shift = -(definition["wheelbase"] - donor_wheelbase)
-    src_dir = os.path.join(ROOT, "meshes", definition["donor"].lower())
+    src_dir = os.path.join(ROOT, "extracted", definition["donor"].lower())
     missing = missing_game_meshes(definition, src_dir)
     if missing:
         sys.exit("missing game meshes; export them from your own install first (README, \"Building from source\"):\n  "
                  + "\n  ".join(os.path.relpath(p, ROOT) for p in missing))
-    out_dir = os.path.join(ROOT, "plugins", "VehicleMods", "vehicles", definition["codename"].lower())
+    out_dir = os.path.join(VEHICLE_DIR, "build")
     os.makedirs(out_dir, exist_ok=True)
     print(f"{definition['codename']}: wheelbase {donor_wheelbase:.2f} -> {definition['wheelbase']:.2f} m, rear shift {shift:+.3f} m")
     for node_path, entry in definition["meshes"].items():

@@ -5,7 +5,7 @@ Usage: blender -b --factory-startup --python tools/render_closeup.py -- [--textu
 
 Target and camera are in OBJ space (metres, +x the truck's left, y up, z forward). Vertex colours
 show through, and meshes without them render grey; with --texture every mesh is drawn with that
-image through its UVs instead (e.g. data/textures/Mammoth_skin00.png, to see atlas graphics).
+image through its UVs instead (e.g. extracted/textures/Mammoth_skin00.png, to see atlas graphics).
 """
 import sys
 import bpy

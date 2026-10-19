@@ -1,22 +1,26 @@
 {
-  "codename": "Mastodon",
-  "displayName": "Das Mastodon",
-  "description": "Das Mastodon is what happens when the long frame stays and the back seat goes. One bench, two doors, a full-length bed, and a cab just roomy enough for a driver, a thermos and an opinion. It has never once been asked to carry passengers, and it intends to keep it that way.",
+  "codename": "Megatherium",
+  "displayName": "Das Megatherium",
+  "description": "Das Megatherium started life as a Das Mammoth whose owner kept asking for a longer load bed. The frame grew until the rear axle sat under a proper platform, the steering stops were filed back to make up for it, and the result turned tighter than the truck it came from. Nobody has ever hurried it anywhere.",
   "listing": {
     "family": "Mammoth",
-    "variant": "two-door, long wheelbase",
+    "variant": "crew cab, long wheelbase",
     "real": {
       "make": "Mercedes-Benz",
-      "model": "Unimog U 1100 L",
+      "model": "Unimog U 1100",
       "series": "416",
-      "variant": "two-door cab",
+      "variant": "crew cab",
       "years": "",
-      "description": "A two-door truck of the 416 series with the rounded cab.",
-      "basis": "The game's Mammoth on a 2.90 m wheelbase with the mechanic truck's single cab and front, portal axles, coil springs and a ribbed steel bed."
+      "description": "A crew-cab truck of the 416 series with the rounded cab.",
+      "basis": "The game's Mammoth crew cab on a 2.90 m wheelbase with portal axles, coil springs, a side-exit exhaust and a ribbed steel bed."
     }
   },
-  "itemId": 3000000002,
+  "itemId": 3000000001,
   "donor": "Mammoth",
+  "kind": "based",
+  "base": {
+    "car": "Mammoth"
+  },
   "donorAxleZ": {
     "front": 1.22,
     "rear": -1.31
@@ -75,130 +79,6 @@
           ]
         },
         {
-          "op": "removeRegion",
-          "box": [
-            {
-              "y": [
-                1.05,
-                null
-              ],
-              "z": [
-                -0.86,
-                null
-              ]
-            },
-            {
-              "z": [
-                0.62,
-                null
-              ]
-            }
-          ]
-        },
-        {
-          "op": "insertPart",
-          "file": "merchant/Merchant_LOD0.obj",
-          "box": [
-            {
-              "y": [
-                1.05,
-                null
-              ],
-              "z": [
-                0.05,
-                null
-              ]
-            },
-            {
-              "z": [
-                0.62,
-                null
-              ]
-            }
-          ],
-          "exclude": [
-            {
-              "y": [
-                1.2,
-                3.5
-              ],
-              "minSize": {
-                "y": 1.5
-              }
-            },
-            {
-              "y": [
-                2.55,
-                3.5
-              ]
-            },
-            {
-              "y": [
-                2.4,
-                2.5
-              ],
-              "z": [
-                1.0,
-                1.2
-              ]
-            }
-          ]
-        },
-        {
-          "op": "paint",
-          "box": {
-            "y": [
-              1.0,
-              2.45
-            ],
-            "z": [
-              0.12,
-              0.26
-            ]
-          },
-          "uvRect": [
-            [
-              0.4,
-              0.62
-            ],
-            [
-              0.45,
-              0.73
-            ]
-          ],
-          "uv": [
-            0.635,
-            0.59
-          ]
-        },
-        {
-          "op": "paint",
-          "box": {
-            "x": [
-              -0.765,
-              0.765
-            ],
-            "y": [
-              1.78,
-              2.17
-            ],
-            "z": [
-              0.16,
-              0.2
-            ]
-          },
-          "uv": [
-            0.537,
-            0.772
-          ],
-          "whole": true,
-          "facing": [
-            0,
-            0,
-            -1
-          ]
-        },
-        {
           "op": "removePieces",
           "select": [
             {
@@ -236,42 +116,6 @@
               }
             }
           ]
-        },
-        {
-          "op": "stretchPieces",
-          "select": {
-            "y": [
-              1.2,
-              1.8
-            ],
-            "z": [
-              -3.0,
-              0.2
-            ],
-            "minSize": {
-              "x": 1.5
-            }
-          },
-          "cutZ": -1.5,
-          "shift": 0.95
-        },
-        {
-          "op": "stretchPieces",
-          "select": {
-            "y": [
-              1.2,
-              1.8
-            ],
-            "z": [
-              -3.0,
-              0.2
-            ],
-            "minSize": {
-              "x": 1.5
-            }
-          },
-          "cutZ": -2.0,
-          "shift": -0.31
         },
         {
           "op": "widenPieces",
@@ -324,8 +168,8 @@
                 1.6
               ],
               "z": [
-                -2.8160000000000003,
-                0.07100000000000001
+                -2.5060000000000002,
+                -0.879
               ]
             },
             {
@@ -338,8 +182,8 @@
                 1.6
               ],
               "z": [
-                -2.8160000000000003,
-                0.07100000000000001
+                -2.5060000000000002,
+                -0.879
               ]
             },
             {
@@ -352,8 +196,8 @@
                 1.6
               ],
               "z": [
-                0.04,
-                0.07
+                -0.91,
+                -0.88
               ]
             },
             {
@@ -366,8 +210,8 @@
                 1.6
               ],
               "z": [
-                -2.815,
-                -2.785
+                -2.505,
+                -2.475
               ]
             }
           ],
@@ -375,42 +219,6 @@
             0.635,
             0.59
           ]
-        },
-        {
-          "op": "stretchPieces",
-          "select": [
-            {
-              "x": [
-                0.6,
-                1.05
-              ],
-              "y": [
-                0.55,
-                0.72
-              ],
-              "z": [
-                -0.7,
-                0.7
-              ]
-            },
-            {
-              "x": [
-                -1.05,
-                -0.6
-              ],
-              "y": [
-                0.55,
-                0.72
-              ],
-              "z": [
-                -0.7,
-                0.7
-              ]
-            }
-          ],
-          "cutZ": -0.2,
-          "shift": 0.52,
-          "move": "behind"
         },
         {
           "op": "removePieces",
@@ -475,130 +283,6 @@
           ]
         },
         {
-          "op": "removeRegion",
-          "box": [
-            {
-              "y": [
-                1.05,
-                null
-              ],
-              "z": [
-                -0.86,
-                null
-              ]
-            },
-            {
-              "z": [
-                0.62,
-                null
-              ]
-            }
-          ]
-        },
-        {
-          "op": "insertPart",
-          "file": "merchant/Merchant_LOD1.obj",
-          "box": [
-            {
-              "y": [
-                1.05,
-                null
-              ],
-              "z": [
-                0.05,
-                null
-              ]
-            },
-            {
-              "z": [
-                0.62,
-                null
-              ]
-            }
-          ],
-          "exclude": [
-            {
-              "y": [
-                1.2,
-                3.5
-              ],
-              "minSize": {
-                "y": 1.5
-              }
-            },
-            {
-              "y": [
-                2.55,
-                3.5
-              ]
-            },
-            {
-              "y": [
-                2.4,
-                2.5
-              ],
-              "z": [
-                1.0,
-                1.2
-              ]
-            }
-          ]
-        },
-        {
-          "op": "paint",
-          "box": {
-            "y": [
-              1.0,
-              2.45
-            ],
-            "z": [
-              0.12,
-              0.26
-            ]
-          },
-          "uvRect": [
-            [
-              0.4,
-              0.62
-            ],
-            [
-              0.45,
-              0.73
-            ]
-          ],
-          "uv": [
-            0.635,
-            0.59
-          ]
-        },
-        {
-          "op": "paint",
-          "box": {
-            "x": [
-              -0.765,
-              0.765
-            ],
-            "y": [
-              1.78,
-              2.17
-            ],
-            "z": [
-              0.16,
-              0.2
-            ]
-          },
-          "uv": [
-            0.537,
-            0.772
-          ],
-          "whole": true,
-          "facing": [
-            0,
-            0,
-            -1
-          ]
-        },
-        {
           "op": "removePieces",
           "select": [
             {
@@ -636,42 +320,6 @@
               }
             }
           ]
-        },
-        {
-          "op": "stretchPieces",
-          "select": {
-            "y": [
-              1.2,
-              1.8
-            ],
-            "z": [
-              -3.0,
-              0.2
-            ],
-            "minSize": {
-              "x": 1.5
-            }
-          },
-          "cutZ": -1.5,
-          "shift": 0.95
-        },
-        {
-          "op": "stretchPieces",
-          "select": {
-            "y": [
-              1.2,
-              1.8
-            ],
-            "z": [
-              -3.0,
-              0.2
-            ],
-            "minSize": {
-              "x": 1.5
-            }
-          },
-          "cutZ": -2.0,
-          "shift": -0.31
         },
         {
           "op": "widenPieces",
@@ -724,8 +372,8 @@
                 1.6
               ],
               "z": [
-                -2.8160000000000003,
-                0.07100000000000001
+                -2.5060000000000002,
+                -0.879
               ]
             },
             {
@@ -738,8 +386,8 @@
                 1.6
               ],
               "z": [
-                -2.8160000000000003,
-                0.07100000000000001
+                -2.5060000000000002,
+                -0.879
               ]
             },
             {
@@ -752,8 +400,8 @@
                 1.6
               ],
               "z": [
-                0.04,
-                0.07
+                -0.91,
+                -0.88
               ]
             },
             {
@@ -766,8 +414,8 @@
                 1.6
               ],
               "z": [
-                -2.815,
-                -2.785
+                -2.505,
+                -2.475
               ]
             }
           ],
@@ -775,42 +423,6 @@
             0.635,
             0.59
           ]
-        },
-        {
-          "op": "stretchPieces",
-          "select": [
-            {
-              "x": [
-                0.6,
-                1.05
-              ],
-              "y": [
-                0.55,
-                0.72
-              ],
-              "z": [
-                -0.7,
-                0.7
-              ]
-            },
-            {
-              "x": [
-                -1.05,
-                -0.6
-              ],
-              "y": [
-                0.55,
-                0.72
-              ],
-              "z": [
-                -0.7,
-                0.7
-              ]
-            }
-          ],
-          "cutZ": -0.2,
-          "shift": 0.52,
-          "move": "behind"
         },
         {
           "op": "removePieces",
@@ -875,130 +487,6 @@
           ]
         },
         {
-          "op": "removeRegion",
-          "box": [
-            {
-              "y": [
-                1.05,
-                null
-              ],
-              "z": [
-                -0.86,
-                null
-              ]
-            },
-            {
-              "z": [
-                0.62,
-                null
-              ]
-            }
-          ]
-        },
-        {
-          "op": "insertPart",
-          "file": "merchant/Merchant_LOD2.obj",
-          "box": [
-            {
-              "y": [
-                1.05,
-                null
-              ],
-              "z": [
-                0.05,
-                null
-              ]
-            },
-            {
-              "z": [
-                0.62,
-                null
-              ]
-            }
-          ],
-          "exclude": [
-            {
-              "y": [
-                1.2,
-                3.5
-              ],
-              "minSize": {
-                "y": 1.5
-              }
-            },
-            {
-              "y": [
-                2.55,
-                3.5
-              ]
-            },
-            {
-              "y": [
-                2.4,
-                2.5
-              ],
-              "z": [
-                1.0,
-                1.2
-              ]
-            }
-          ]
-        },
-        {
-          "op": "paint",
-          "box": {
-            "y": [
-              1.0,
-              2.45
-            ],
-            "z": [
-              0.12,
-              0.26
-            ]
-          },
-          "uvRect": [
-            [
-              0.4,
-              0.62
-            ],
-            [
-              0.45,
-              0.73
-            ]
-          ],
-          "uv": [
-            0.635,
-            0.59
-          ]
-        },
-        {
-          "op": "paint",
-          "box": {
-            "x": [
-              -0.775,
-              0.775
-            ],
-            "y": [
-              1.78,
-              2.172
-            ],
-            "z": [
-              0.1542,
-              0.2
-            ]
-          },
-          "uv": [
-            0.537,
-            0.772
-          ],
-          "whole": true,
-          "facing": [
-            0,
-            0,
-            -1
-          ]
-        },
-        {
           "op": "removePieces",
           "select": [
             {
@@ -1036,42 +524,6 @@
               }
             }
           ]
-        },
-        {
-          "op": "stretchPieces",
-          "select": {
-            "y": [
-              1.2,
-              1.8
-            ],
-            "z": [
-              -3.0,
-              0.2
-            ],
-            "minSize": {
-              "x": 1.5
-            }
-          },
-          "cutZ": -1.5,
-          "shift": 0.95
-        },
-        {
-          "op": "stretchPieces",
-          "select": {
-            "y": [
-              1.2,
-              1.8
-            ],
-            "z": [
-              -3.0,
-              0.2
-            ],
-            "minSize": {
-              "x": 1.5
-            }
-          },
-          "cutZ": -2.0,
-          "shift": -0.31
         },
         {
           "op": "widenPieces",
@@ -1124,8 +576,8 @@
                 1.6
               ],
               "z": [
-                -2.8160000000000003,
-                0.07100000000000001
+                -2.5060000000000002,
+                -0.879
               ]
             },
             {
@@ -1138,8 +590,8 @@
                 1.6
               ],
               "z": [
-                -2.8160000000000003,
-                0.07100000000000001
+                -2.5060000000000002,
+                -0.879
               ]
             },
             {
@@ -1152,8 +604,8 @@
                 1.6
               ],
               "z": [
-                0.04,
-                0.07
+                -0.91,
+                -0.88
               ]
             },
             {
@@ -1166,8 +618,8 @@
                 1.6
               ],
               "z": [
-                -2.815,
-                -2.785
+                -2.505,
+                -2.475
               ]
             }
           ],
@@ -1175,42 +627,6 @@
             0.635,
             0.59
           ]
-        },
-        {
-          "op": "stretchPieces",
-          "select": [
-            {
-              "x": [
-                0.6,
-                1.05
-              ],
-              "y": [
-                0.55,
-                0.72
-              ],
-              "z": [
-                -0.7,
-                0.7
-              ]
-            },
-            {
-              "x": [
-                -1.05,
-                -0.6
-              ],
-              "y": [
-                0.55,
-                0.72
-              ],
-              "z": [
-                -0.7,
-                0.7
-              ]
-            }
-          ],
-          "cutZ": -0.2,
-          "shift": 0.52,
-          "move": "behind"
         },
         {
           "op": "removePieces",
@@ -1275,103 +691,6 @@
           ]
         },
         {
-          "op": "removeRegion",
-          "box": [
-            {
-              "y": [
-                1.05,
-                null
-              ],
-              "z": [
-                -0.86,
-                null
-              ]
-            },
-            {
-              "z": [
-                0.62,
-                null
-              ]
-            }
-          ]
-        },
-        {
-          "op": "insertPart",
-          "file": "merchant/Merchant_LOD3.obj",
-          "box": [
-            {
-              "y": [
-                1.05,
-                null
-              ],
-              "z": [
-                0.05,
-                null
-              ]
-            },
-            {
-              "z": [
-                0.62,
-                null
-              ]
-            }
-          ],
-          "exclude": [
-            {
-              "y": [
-                1.2,
-                3.5
-              ],
-              "minSize": {
-                "y": 1.5
-              }
-            },
-            {
-              "y": [
-                2.55,
-                3.5
-              ]
-            },
-            {
-              "y": [
-                2.4,
-                2.5
-              ],
-              "z": [
-                1.0,
-                1.2
-              ]
-            }
-          ]
-        },
-        {
-          "op": "paint",
-          "box": {
-            "y": [
-              1.0,
-              2.45
-            ],
-            "z": [
-              0.12,
-              0.26
-            ]
-          },
-          "uvRect": [
-            [
-              0.4,
-              0.62
-            ],
-            [
-              0.45,
-              0.73
-            ]
-          ],
-          "uv": [
-            0.635,
-            0.59
-          ]
-        },
-        {
           "op": "removePieces",
           "select": [
             {
@@ -1409,42 +728,6 @@
               }
             }
           ]
-        },
-        {
-          "op": "stretchPieces",
-          "select": {
-            "y": [
-              1.2,
-              1.8
-            ],
-            "z": [
-              -3.0,
-              0.2
-            ],
-            "minSize": {
-              "x": 1.5
-            }
-          },
-          "cutZ": -1.5,
-          "shift": 0.95
-        },
-        {
-          "op": "stretchPieces",
-          "select": {
-            "y": [
-              1.2,
-              1.8
-            ],
-            "z": [
-              -3.0,
-              0.2
-            ],
-            "minSize": {
-              "x": 1.5
-            }
-          },
-          "cutZ": -2.0,
-          "shift": -0.31
         },
         {
           "op": "widenPieces",
@@ -1497,8 +780,8 @@
                 1.6
               ],
               "z": [
-                -2.8160000000000003,
-                0.07100000000000001
+                -2.5060000000000002,
+                -0.879
               ]
             },
             {
@@ -1511,8 +794,8 @@
                 1.6
               ],
               "z": [
-                -2.8160000000000003,
-                0.07100000000000001
+                -2.5060000000000002,
+                -0.879
               ]
             },
             {
@@ -1525,8 +808,8 @@
                 1.6
               ],
               "z": [
-                0.04,
-                0.07
+                -0.91,
+                -0.88
               ]
             },
             {
@@ -1539,8 +822,8 @@
                 1.6
               ],
               "z": [
-                -2.815,
-                -2.785
+                -2.505,
+                -2.475
               ]
             }
           ],
@@ -1548,42 +831,6 @@
             0.635,
             0.59
           ]
-        },
-        {
-          "op": "stretchPieces",
-          "select": [
-            {
-              "x": [
-                0.6,
-                1.05
-              ],
-              "y": [
-                0.55,
-                0.72
-              ],
-              "z": [
-                -0.7,
-                0.7
-              ]
-            },
-            {
-              "x": [
-                -1.05,
-                -0.6
-              ],
-              "y": [
-                0.55,
-                0.72
-              ],
-              "z": [
-                -0.7,
-                0.7
-              ]
-            }
-          ],
-          "cutZ": -0.2,
-          "shift": 0.52,
-          "move": "behind"
         },
         {
           "op": "removePieces",
@@ -1620,27 +867,10 @@
         }
       ]
     },
-    "Collider/Top": {
-      "file": "collider_top.obj",
-      "ops": [
-        {
-          "op": "stretchPieces",
-          "select": {},
-          "cutZ": 0.0,
-          "shift": 1.0,
-          "move": "behind"
-        }
-      ]
-    },
+    "Collider/Top": "collider_top.obj",
     "Collider/Base": {
       "file": "collider_base.obj",
       "ops": [
-        {
-          "op": "stretchPieces",
-          "select": {},
-          "cutZ": -2.0,
-          "shift": -0.31
-        },
         {
           "op": "widenPieces",
           "select": {},

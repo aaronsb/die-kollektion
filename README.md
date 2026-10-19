@@ -38,14 +38,16 @@ You need the game installed, Python 3 with the packages in `requirements.txt`, B
 
 ```sh
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-tools/export_game_data.sh "<game folder>"    # donor meshes, textures and icons from your own install
+tools/export_game_data.sh "<game folder>"    # donor meshes, textures and icons from your own install, into extracted/
 python3 tools/make_glyptodon.py && python3 tools/make_megaloceros.py
-for v in vehicles/*.json; do python3 tools/build_vehicle.py "$v"; done
-python3 tools/trace_icons.py && python3 -I tools/rasterize_icons.py
+for v in vehicles/*/vehicle.json; do python3 tools/build_vehicle.py "$v"; done
+python3 tools/trace_icons.py && .venv/bin/python -I tools/rasterize_icons.py
 cd plugins/VehicleMods && dotnet build -c Release -p:GameDir="<game folder>"
 ```
 
-The last step deploys into `<game folder>/BepInEx/plugins/VehicleMods/`; add `-p:Deploy=false` to only compile. Nothing taken from the game is committed here: the export step writes it into gitignored folders on your machine.
+The last step deploys into `<game folder>/BepInEx/plugins/VehicleMods/`; add `-p:Deploy=false` to only compile. Nothing taken from the game is committed here: the export step writes it into `extracted/`, and each vehicle's `build/` and `generated/` folders hold what is made from it; all three are gitignored.
+
+Each vehicle is one self-contained folder, `vehicles/<name>/`: its manifest `vehicle.json` (whose `kind` says whether it is novel, based on a shipped vehicle, or a patch to one), its own meshes and Blender masters, and its icon.
 
 ## Documentation
 

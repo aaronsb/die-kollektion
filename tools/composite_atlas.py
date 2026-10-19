@@ -1,6 +1,6 @@
 """Bakes a car's atlas the way the game's car shader appears to shade it, for offline renders.
 
-Usage: python3 tools/composite_atlas.py <Donor> [--tint r,g,b]    e.g. Mammoth -> data/textures/Mammoth_composite.png
+Usage: python3 tools/composite_atlas.py <Donor> [--tint r,g,b]    e.g. Mammoth -> extracted/textures/Mammoth_composite.png
 
 The car material (Shader Graphs/CarMainShader) takes the livery texture (<Donor>_skin00 for the stock
 livery) as albedo and a mask texture whose channels sort the atlas, read from where the stock cars
@@ -24,7 +24,7 @@ GLASS = np.array([38, 40, 44])
 
 
 def composite(donor, tint=None):
-    textures = os.path.join(ROOT, "data/textures")
+    textures = os.path.join(ROOT, "extracted/textures")
     skin = np.array(Image.open(os.path.join(textures, f"{donor}_skin00.png")).convert("RGB")).astype(float)
     mask = Image.open(os.path.join(textures, f"{donor}_masks.png")).convert("RGB").resize(skin.shape[1::-1], Image.NEAREST)
     mask = np.array(mask).astype(int)

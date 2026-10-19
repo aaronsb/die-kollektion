@@ -4,7 +4,7 @@ Usage (as a library): spare_part.write(out_path, axle_scale, radial_scale, centr
 
 In game the plugin clones the donor's wheel visual (Axles/WheelMeshes/FL/Mammoth_Wheel/Mammoth_wheel)
 onto the car root with the definition's "spare" pose; this OBJ is the same wheel at the same pose,
-for the offline renders and clearance checks only. The raw meshes (meshes/glyptodon/spare_raw/
+for the offline renders and clearance checks only. The raw meshes (extracted/mammoth/
 Mammoth_{tyre,wheel}_LOD0.obj) are the game's Mesh assets exported by tools/export_named_mesh.py at
 scale 1; the prefab draws them at x100 (tyre radius 0.53, width 0.372), axle along x, outer face
 toward -x in Unity (+x in the OBJ). They are scaled like the road wheels (axle_scale, radial_scale),
@@ -19,7 +19,7 @@ import math, os
 import meshlib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RAW = os.path.join(ROOT, "meshes/glyptodon/spare_raw")
+RAW = os.path.join(ROOT, "extracted/mammoth")
 PREFAB_SCALE = 100.0
 COLOURS = {"tyre": [0.12, 0.12, 0.12], "wheel": [0.45, 0.45, 0.45]}
 

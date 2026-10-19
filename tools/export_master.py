@@ -1,7 +1,7 @@
 """Write a cab master's game LOD OBJs, headless in Blender; with --derive, first rebuild its far LODs from LOD0.
 
-Usage: blender -b meshes/glyptodon/cab_glyptodon_master.blend --python tools/export_master.py -- [--derive]
-(tools/build_cab_part.sh runs this.) A master <dir>/<name>_master.blend writes <dir>/<name>_LOD<n>.obj.
+Usage: blender -b vehicles/glyptodon/cab_glyptodon_master.blend --python tools/export_master.py -- [--derive]
+(tools/build_cab_part.sh runs this.) A master <dir>/<name>_master.blend writes <dir>/meshes/<name>_LOD<n>.obj.
 
 A master holds collections LOD0..LOD3, one object per part in each, named <Part>.LOD<n> (Shell.LOD0,
 RearDoor_L.LOD2...). Every face takes its material's name as its class: the flat-colour classes
@@ -205,7 +205,8 @@ def main():
     if "--derive" in args:
         print(f"derived {derive()} far LOD parts")
         bpy.ops.wm.save_mainfile()
-    prefix = master[: -len("_master.blend")]
+    prefix = os.path.join(os.path.dirname(master), "meshes", os.path.basename(master)[: -len("_master.blend")])
+    os.makedirs(os.path.dirname(prefix), exist_ok=True)
     for n in range(4):
         if lod_objects(n):
             write_lod(n, f"{prefix}_LOD{n}.obj")

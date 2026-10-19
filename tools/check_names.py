@@ -54,7 +54,7 @@ def listing_lines(source):
 
 def main():
     files = tracked()
-    definitions = {f: json.load(open(os.path.join(ROOT, f))) for f in files if f.startswith("vehicles/") and f.endswith(".json")}
+    definitions = {f: json.load(open(os.path.join(ROOT, f))) for f in files if f.startswith("vehicles/") and f.endswith("/vehicle.json")}
     deny = list(DENY)
     for d in definitions.values():
         real = d.get("listing", {}).get("real", {})

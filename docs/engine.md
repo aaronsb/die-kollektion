@@ -73,10 +73,10 @@ Player.log ends with `Received signal SIGSEGV` but no native stack. Use the core
 
 ## Mesh pipeline
 
-1. `tools/export_car_mesh.py <cars bundle> Car_<Donor> meshes/<donor> <node paths...>` extracts donor meshes (MeshFilter, MeshCollider or SkinnedMeshRenderer) to OBJ in car-root metres, x negated (right-handed, opens in Blender). Skinned meshes add `bw` lines (bone indices and weights) and `bp` lines (bind poses). `tools/export_named_mesh.py` exports Mesh assets by name; `tools/export_images.py` exports textures and icons. All of these read the player's own install, and their output is never committed.
-2. `tools/build_vehicle.py vehicles/<name>.json` stretches each mesh behind the body cut unless `"stretch": false`, then runs its `ops` (`tools/meshlib.py`): `portalAxle`, `coilSprings`, `relocatePiece`, `removeRegion`, `insertPart`, `removePieces`, `stretchPieces`, `movePieces`, `widenPieces`, `paint` and `addBoxes`. Output goes to `plugins/VehicleMods/vehicles/<codename>/`.
-3. `tools/preview_vehicle.sh vehicles/<name>.json` builds and renders side, top, rear and three-quarter views in headless Blender into `renders/<codename>.png`.
-4. `dotnet build -c Release` in `plugins/VehicleMods` deploys the DLL, definitions, meshes and icons to `BepInEx/plugins/VehicleMods/`.
+1. `tools/export_car_mesh.py <cars bundle> Car_<Donor> extracted/<donor> <node paths...>` extracts donor meshes (MeshFilter, MeshCollider or SkinnedMeshRenderer) to OBJ in car-root metres, x negated (right-handed, opens in Blender). Skinned meshes add `bw` lines (bone indices and weights) and `bp` lines (bind poses). `tools/export_named_mesh.py` exports Mesh assets by name; `tools/export_images.py` exports textures and icons. All of these read the player's own install; `tools/export_game_data.sh` runs them into `extracted/`, which is never committed.
+2. `tools/build_vehicle.py vehicles/<name>/vehicle.json` stretches each mesh behind the body cut unless `"stretch": false`, then runs its `ops` (`tools/meshlib.py`): `portalAxle`, `coilSprings`, `relocatePiece`, `removeRegion`, `insertPart`, `removePieces`, `stretchPieces`, `movePieces`, `widenPieces`, `paint` and `addBoxes`. Part files in the definition are relative to the vehicle's folder, except game parts under `extracted/`. Output goes to the vehicle's `build/` folder.
+3. `tools/preview_vehicle.sh vehicles/<name>/vehicle.json` builds and renders side, top, rear and three-quarter views in headless Blender into `renders/<codename>.png`.
+4. `dotnet build -c Release` in `plugins/VehicleMods` deploys the DLL and, from each vehicle folder, its definition (as `vehicles/<name>.json`), built meshes (`vehicles/<name>/`) and icon (`icons/<Codename>.png`) to `BepInEx/plugins/VehicleMods/`.
 
 ## Gotchas
 

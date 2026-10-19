@@ -52,14 +52,14 @@ Non-goals:
 
 Data flow today:
 
-1. **Game data → donor meshes.** `export_car_mesh.py <bundle> Car_<Donor>` writes `meshes/<donor>/*.obj` from the player's own install. `hierarchy.py` and `cars_summary.py` give node paths, axle Z and car facts, kept by hand in `docs/engine.md`.
-2. **Cab masters → cab OBJs.** `meshes/glyptodon/cab_{glyptodon,megaloceros}_master.blend` started from the reference model, imported and decimated, then edited by hand; `cab_roof.py`, `cab_doors.py` and `cab_fixes.py` rewrite them in place. `build_cab_part.sh <master> [--derive]` runs `export_master.py`, which derives far LODs and writes `meshes/glyptodon/<cab>_LOD0-3.obj`.
-3. **Family generator → definition.** `make_glyptodon.py` / `make_megaloceros.py` call `glyptodon_family.write(TRUCK)`, which writes `vehicles/<name>.json` (about 190 KB): the runtime fields the plugin reads plus the build-only `ops` per mesh.
-4. **Definition → vehicle meshes.** `build_vehicle.py vehicles/<name>.json` stretches donor meshes behind `bodyCut`, runs the `ops` (`meshlib.py`, 787 lines) and writes `plugins/VehicleMods/vehicles/<codename>/*.obj` (gitignored).
-5. **Icons.** `make_icons.py` (or the trace and draw scripts, then `rasterize_icons.py`) writes `icons/<Codename>.png`.
+1. **Game data → donor meshes.** `export_car_mesh.py <bundle> Car_<Donor>` writes `extracted/<donor>/*.obj` from the player's own install (`export_game_data.sh` runs it and the other exporters). `hierarchy.py` and `cars_summary.py` give node paths, axle Z and car facts, kept by hand in `docs/engine.md`.
+2. **Cab masters → cab OBJs.** `vehicles/{glyptodon,megaloceros}/cab_<name>_master.blend` started from the reference model, imported and decimated, then edited by hand; `cab_roof.py`, `cab_doors.py` and `cab_fixes.py` rewrite them in place. `build_cab_part.sh <master> [--derive]` runs `export_master.py`, which derives far LODs and writes `meshes/<cab>_LOD0-3.obj` beside the master.
+3. **Family generator → definition.** `make_glyptodon.py` / `make_megaloceros.py` call `glyptodon_family.write(TRUCK)`, which writes `vehicles/<name>/vehicle.json` (about 190 KB): the runtime fields the plugin reads plus the build-only `ops` per mesh.
+4. **Definition → vehicle meshes.** `build_vehicle.py vehicles/<name>/vehicle.json` stretches donor meshes behind `bodyCut`, runs the `ops` (`meshlib.py`, 787 lines) and writes the vehicle's `build/*.obj` (gitignored).
+5. **Icons.** `make_icons.py` (or the trace and draw scripts, then `rasterize_icons.py`) writes the vehicle's `icon.png`.
 6. **Gates, run by hand:** `check_holes.py` on each body LOD, `check_slivers.py`, regression hashes of the built OBJs, updated by hand, `preview_vehicle.sh` renders.
-7. **Deploy.** `dotnet build -c Release` copies the DLL, every `vehicles/*.json`, every built OBJ and every icon into `BepInEx/plugins/VehicleMods/`, with no check that the game is closed.
-8. **Runtime.** The entry hook runs `Catalog.Register` → `DerivedVehicles.Register`: for each JSON, clone the donor `CarInfo`, set ItemId and collider bounds, localise the name and description into all 16 locales (key 9e18 + itemId*2), set the icon, `Catalog.Add` (refuses an ItemId owned by another item). At spawn, the prefab-address redirect and the `VehicleBase.Spawned` prefix reshape and re-mesh. A `"patch": true` definition modifies the stock donor itself (`vehicles/mammoth.json`).
+7. **Deploy.** `dotnet build -c Release` copies the DLL and, from every vehicle folder, its manifest, built OBJs and icon into `BepInEx/plugins/VehicleMods/`, with no check that the game is closed.
+8. **Runtime.** The entry hook runs `Catalog.Register` → `DerivedVehicles.Register`: for each JSON, clone the donor `CarInfo`, set ItemId and collider bounds, localise the name and description into all 16 locales (key 9e18 + itemId*2), set the icon, `Catalog.Add` (refuses an ItemId owned by another item). At spawn, the prefab-address redirect and the `VehicleBase.Spawned` prefix reshape and re-mesh. A `"patch": true` definition modifies the stock donor itself (`vehicles/mammoth/vehicle.json`).
 9. **Save.** `add_vehicle_to_save.py <save> <ItemId>…` appends `VehicleItem` entries with a hard-coded `ToolsetIDs [2317836723]`, backs up to `Player1.json.pre-mod-<time>`, has no remove or restore, and doesn't check that the game is closed.
 
 Save structure, from reading ours:
@@ -68,7 +68,7 @@ Save structure, from reading ours:
 - `Items` entries are `{"Type": "<Class>, Assembly-CSharp", "Data": {...}}`: `VehicleItem` (ItemId, Count, MetersTravelled, ToolsetIDs), `VehicleSpecificItem` (ItemId, VehicleStates[{VehicleItemId, Count}]), `InventoryItem` (ItemId, Count).
 - `VirtualItems` holds `PointOfInterestData`, `AreaItem` and `ObjectiveData`.
 
-What this design fixes: sources mixed with outputs (`vehicles/*.json` is generated, the build input and the runtime file at once); a manual build order; advisory gates; an all-or-nothing deploy with no uninstall; a plugin that trusts its files; add-only save editing; donor facts kept in prose; shipped meshes that contain game geometry; Linux-only tools.
+What this design fixes: sources mixed with outputs (each `vehicle.json` is generated, the build input and the runtime file at once); a manual build order; advisory gates; an all-or-nothing deploy with no uninstall; a plugin that trusts its files; add-only save editing; donor facts kept in prose; shipped meshes that contain game geometry; Linux-only tools.
 
 ## Architecture
 

@@ -18,7 +18,7 @@ def cell(text):
 
 def table():
     rows = []
-    for path in glob.glob(os.path.join(ROOT, "vehicles", "*.json")):
+    for path in glob.glob(os.path.join(ROOT, "vehicles", "*", "vehicle.json")):
         d = json.load(open(path))
         rows.append(d)
     rows.sort(key=lambda d: ORDER.index(d["codename"]) if d["codename"] in ORDER else len(ORDER))

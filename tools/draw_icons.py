@@ -9,9 +9,9 @@ Each truck is a handful of geometric shapes placed from its real dimensions (met
 space: z forward, y up; front axle at z 1.22, hub at y 0.45), then mapped onto a 256x256 canvas with
 the front to the right, 2 px end margins and the drawing centred vertically. White shapes sit on
 transparency; dark gaps are cut with an SVG mask, 4 px for structure and 2 px for bed ribs, as on
-the stock Mammoth icon (data/icons/Mammoth.png): a roof band over open windows framed by pillars,
+the stock Mammoth icon (extracted/icons/Mammoth.png): a roof band over open windows framed by pillars,
 a beltline gap, door shut lines and handle slots, horizontal bands below, wheels as a tyre ring, a
-gap and a hub disc. The SVGs in icons/src/ are the sources; edit them by hand or here.
+gap and a hub disc. The SVGs (vehicles/<name>/icon.svg) are the sources; edit them by hand or here.
 """
 import math
 import os
@@ -178,8 +178,8 @@ TRUCKS = {
 
 if __name__ == "__main__":
     names = sys.argv[1:] or list(TRUCKS)
-    os.makedirs("icons/src", exist_ok=True)
     for name in names:
-        with open(f"icons/src/{name}.svg", "w") as f:
+        path = f"vehicles/{name.lower()}/icon.svg"
+        with open(path, "w") as f:
             f.write(TRUCKS[name]().svg(f"Das {name}"))
-        print(f"icons/src/{name}.svg")
+        print(path)

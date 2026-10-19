@@ -1,6 +1,6 @@
 # VehicleMods plugin
 
-The BepInEx 6 IL2CPP plugin ("Die Kollektion") that puts the trucks in the game. It reads `vehicles/*.json` (schema: `VehicleDefinition.cs`) and the OBJ meshes beside them at load.
+The BepInEx 6 IL2CPP plugin ("Die Kollektion") that puts the trucks in the game. At load it reads the deployed `vehicles/*.json` (schema: `VehicleDefinition.cs`) and the OBJ meshes beside them; the deploy step copies them there from each source folder `vehicles/<name>/` (`vehicle.json`, `build/*.obj`, `icon.png`).
 
 ## Load sequence
 
@@ -31,4 +31,4 @@ Player.log ends with `Received signal SIGSEGV` but no native stack. Use the core
 
 ## Build
 
-`dotnet build -c Release` builds and deploys the DLL, `vehicles/*` and icons into `<game>/BepInEx/plugins/VehicleMods/`; `-p:Deploy=false` only compiles. The game folder defaults to Steam's default library; pass `-p:GameDir=<path>` (or set `GameDir` in the environment) for any other. The game must be closed. `plugins/VehicleMods/vehicles/` is build output (gitignored).
+`dotnet build -c Release` builds and deploys the DLL and each vehicle folder's definition, built meshes and icon into `<game>/BepInEx/plugins/VehicleMods/` (or `-p:DeployDir=<dir>`); `-p:Deploy=false` only compiles. The game folder defaults to Steam's default library; pass `-p:GameDir=<path>` (or set `GameDir` in the environment) for any other. The game must be closed. Each vehicle's `build/` folder is build output (gitignored).
