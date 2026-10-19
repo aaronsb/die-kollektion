@@ -512,7 +512,17 @@ def cmd_bepinex(_args):
                 print("Not downloaded.")
                 return 1
             os.makedirs(os.path.dirname(archive), exist_ok=True)
-            urllib.request.urlretrieve(entry["url"], archive + ".part")
+            # The build server answers Python's default user agent with 403 Forbidden.
+            request = urllib.request.Request(
+                entry["url"], headers={"User-Agent": "Werkstatt/1 (+https://github.com/aaronsb/die-kollektion)"})
+            try:
+                with urllib.request.urlopen(request, timeout=60) as response, open(archive + ".part", "wb") as out:
+                    shutil.copyfileobj(response, out)
+            except OSError as error:
+                print(f"Download failed: {error}\n"
+                      f"Download it yourself from the link above (a browser works), then run\n"
+                      f"    make bepinex BEPINEX_ARCHIVE=/path/to/{entry['file']}")
+                return 1
             os.replace(archive + ".part", archive)
         digest = sha256(archive)
         if digest != entry["sha256"]:
