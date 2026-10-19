@@ -1,3 +1,8 @@
+0.6.0 (2026-10-19): halogen headlights, a main-menu status line, update-safe launches.
+- Halogen headlights on the four trucks: a warmer, slightly dimmer beam (3200 K, 0.8 of the game's intensity), set per truck in its manifest; stock cars keep theirs.
+- The main menu's build label ends with a Die Kollektion status line when the mod is working (amber when something is short; no line means the game runs stock).
+- Update-safe launches: set the Steam launch option to "./run_werkstatt.sh" %command% (run make deploy first). After a game update the game starts once without the plugin, which is then rebuilt for the new version after you quit; make update does it by hand.
+
 0.5.0 (2026-10-19): first public release.
 - Werkstatt make flow: make start walks a new user from a fresh game install to a deployed mod, one step at a time; make bepinex installs the pinned, checksum-verified BepInEx; make all builds and deploys; make undeploy removes exactly what was installed.
 - Contact sheets on GitHub for every vehicle: isometric renders, rig view with colliders and attach points, mesh checks.
