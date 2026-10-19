@@ -6,7 +6,7 @@ Copyright © 2026 Aaron Bockelie.
 |---|---|---|
 | Code: the plugin, tools, build scripts and future Die Kollektion Werkstatt add-on and CLI | `plugins/`, `tools/`, and any other source file | GNU GPL 3.0 or later ([`LICENSE`](LICENSE)) |
 | Art: cab models and their meshes, generated parts, icons, vehicle definitions and pack content | `vehicles/` | Creative Commons Attribution-ShareAlike 4.0 International ([`LICENSES/CC-BY-SA-4.0.txt`](LICENSES/CC-BY-SA-4.0.txt)) |
-| Documentation | `docs/`, `README.md`, `CLAUDE.md` files | CC BY-SA 4.0 |
+| Documentation | `docs/`, `README.md`, `AGENTS.md`, `CLAUDE.md` files | CC BY-SA 4.0 |
 
 You may use, change and share all of it, commercially too, as long as what you distribute carries its complete source under the same licence (GPL for code) or the same terms (CC BY-SA for art), with attribution.
 
