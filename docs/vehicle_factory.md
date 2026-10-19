@@ -1,14 +1,15 @@
 # Vehicle factory: packs, pipelines, lifecycle, tools
 
-**Design draft (October 2026).** Nothing here is final or built yet unless it says so. Die Kollektion is the mod players install; Die Kollektion Werkstatt is the authoring toolkit (the Blender add-on, the vehicle templates and the CLI's authoring commands). **[research]** marks a question offline research answers (findings are summarised at the end); **[decide]** marks an open choice; **[test]** marks one only an in-game run settles.
+**Design draft (October 2026).** Nothing here is final or built yet unless it says so. **Die Kollektion Werkstatt** is the vehicle mod system: the plugin and the Python and Blender toolchain today, the CLI, packs, vehicle templates and Blender add-on designed here. **Die Kollektion** is an example set of vehicle packs built with it. **[research]** marks a question offline research answers (findings are summarised at the end); **[decide]** marks an open choice; **[test]** marks one only an in-game run settles.
 
 ## Direction (author, 2026-10-19)
 
+- **What the project is:** it began as "better trucks in the game" and became a vehicle mod system, Werkstatt, with Die Kollektion's trucks as an example set of vehicle packs for it. The repo name stays `die-kollektion`. Each vehicle pack is inspectable on GitHub: its folder's `README.md` is its contact sheet, and the root README's catalogue links every pack folder.
 - **A factory, not a fixed set.** Die Kollektion's own trucks are the first content, built with the same pipeline anyone else uses.
 - **Two pipelines:**
   - **Patch:** change an existing vehicle (its meshes, upgrade objects, suspension, steering). The factory exposes the vehicle's slots, states and geometry for authoring in Blender and as an editor.
   - **New vehicle:** a new item on a stock donor, in a vehicle category of its own. A pack can create a category: ours is "Die Kollektion", and anyone can make another.
-- Each item is a definition (JSON with comments) and a directory. Items ship in **packs**: one compressed file each.
+- Each item is a definition (strict JSON, following the game's official livery manifest pattern; see Manifests) and a directory. Items ship in **packs**: one compressed file each.
 - **Lifecycle:** packs install and uninstall, and removing them brings the game back to stock, or at least to a stable state that survives Steam's "verify integrity of game files".
 - **Cross-platform tools:** the CLI and the plugin run on Linux and Windows, cross-compiled from Linux.
 
@@ -83,7 +84,7 @@ Internal tools       our Python (Glyptodon-family generator, cab scripts, gates,
 ```
 
 - **Core** holds everything both sides must agree on:
-  - the pack format and definition schema (JSON with comments: the plugin already parses with `JsonDocument` and needs only `JsonDocumentOptions { CommentHandling = Skip, AllowTrailingCommas = true }`);
+  - the pack format and definition schema (strict JSON with `notes` fields for comments, see Manifests; the plugin already parses with `JsonDocument`. Historical note: an earlier draft allowed comments via `JsonDocumentOptions { CommentHandling = Skip, AllowTrailingCommas = true }`);
   - OBJ reading and writing (today's `ObjMesh.cs`, with bone weights);
   - the mesh operations, ported from `meshlib.py`: stretch, stretchPieces, removeRegion, removePieces, movePieces, relocatePiece, insertPart, paint, addBoxes, portalAxle, coilSprings, widenPieces;
   - the donor reader: donor meshes and prefab facts read from the player's Addressables bundles with a managed bundle reader (AssetsTools.NET or similar, pure managed, no IL2CPP), so it is safe from the plugin's background thread;
@@ -174,11 +175,11 @@ An **item** is one thing a pack adds or changes. Every item has a directory and 
 - **Upgrade options:** a part with `slot` and `option` becomes an option in that upgrade slot instead of always-on geometry; `hides` lists parts it switches off when fitted (the camper hides the roof hatch).
 - **Kind per part:** provenance is tracked per part. A vehicle is `novel` when every always-on part is its own; an optional part from an extracted source (the camper) makes only that option `based`. Its geometry is built on the player's machine like any based part, and a player without the source sees the option missing with a log line, not a broken vehicle.
 
-**The main manifest composes the pack (author, 2026-10-19).** Vehicle folders stay portable: a vehicle manifest says what the vehicle is, never where it goes. The pack's main manifest (`kollektion.json` at the pack root) defines everything loaded into the game: the pack's id, version and author; its groups (the merchant categories: id, names, sort position, base category to clone); which vehicle and patch folders it includes and which group each vehicle sits in; and the load order for patches on the same car. Moving a vehicle folder into another pack means adding one line to that pack's main manifest. A vehicle no main manifest places in a group falls back to its base or template donor's category.
+**The main manifest composes the pack (author, 2026-10-19).** Vehicle folders stay portable: a vehicle manifest says what the vehicle is, never where it goes. The pack's main manifest (`manifest.json` at the pack root; see Manifests) defines everything loaded into the game: the pack's id, version and author; its groups (the merchant categories: id, names, sort position, base category to clone); which vehicle and patch folders it includes and which group each vehicle sits in; and the load order for patches on the same car. Moving a vehicle folder into another pack means adding one line to that pack's main manifest. A vehicle no main manifest places in a group falls back to its base or template donor's category.
 
 **Tweaking a stock vehicle is the main path (author):** most people only want to change an existing car, so that path is the shortest. `kollektion new patch <Car>` writes an item with the `base` pointer and an empty difference, listing every chassis and suspension value with the base's current number as a comment. Changing a number and running `kollektion build && kollektion install` is the whole job, with no Blender. Geometry and upgrade changes add Blender on top of the same item.
 
-**Names: fictional in the game, real in the catalogue (author, 2026-10-19).** Nothing real reaches Over the Hill: in-game names, descriptions, category names, icons, liveries and textures stay fictional, and so do file, part and tool names. Die Kollektion itself always presents the real data: `listing.real` (make, model, series, variant, years, `basis` saying how faithful the item is, and `description`, a factual description of the real vehicle; no personal stories) feeds the README catalogue, `kollektion list`/`info`, `kollektion.json` and the Nexus page text. `kollektion check` fails an item whose in-game strings contain any word of its `listing.real` make or model, or of a fixed list of manufacturer and model names. Showing the real name in the game is the player's choice, never the pack's: `kollektion names real|fictional [item…]` writes a local override file (`<mygames>/DieKollektion/names.json`) that the plugin applies over the pack's in-game names, built from `listing.real`. Packs never ship it, and the check doesn't apply to it.
+**Names: fictional in the game, real in the catalogue (author, 2026-10-19).** Nothing real reaches Over the Hill: in-game names, descriptions, category names, icons, liveries and textures stay fictional, and so do file, part and tool names. Die Kollektion itself always presents the real data: `listing.real` (make, model, series, variant, years, `basis` saying how faithful the item is, and `description`, a factual description of the real vehicle; no personal stories) feeds the README catalogue, `kollektion list`/`info`, `manifest.json` and the Nexus page text. `kollektion check` fails an item whose in-game strings contain any word of its `listing.real` make or model, or of a fixed list of manufacturer and model names. Showing the real name in the game is the player's choice, never the pack's: `kollektion names real|fictional [item…]` writes a local override file (`<mygames>/DieKollektion/names.json`) that the plugin applies over the pack's in-game names, built from `listing.real`. Packs never ship it, and the check doesn't apply to it.
 
 **Patch item** (existing vehicle): the same blocks, with `"kind": "patch"` and `"target": "Mammoth"` in place of codename, itemId, names, category and donor. Mesh, transform and chassis changes never get an ItemId or touch the save, so removing them returns the car to stock. Upgrade changes, cheapest first:
 1. Full rotation and scale on transforms (today: position and yaw only).
@@ -252,27 +253,50 @@ A newcomer learns the factory from two worked examples that ship with Werkstatt,
 
 ## Contact sheets (author, 2026-10-19)
 
-`kollektion contact <vehicle>` renders a contact sheet: a Markdown file plus images that show the build at a glance, for human review, for AI evaluation loops (an agent reads the sheet to judge a build and decide the next change), and for the pack page. It ships in the pack beside the vehicle (`contact/CONTACT.md`, `contact/*.png`).
-- **Views:** a simple isometric layout on a fixed grid, the same angles for every vehicle: one isometric render per corner (front-left, front-right, rear-left, rear-right) at LOD0, and the same four corners again as a rig view: the body ghosted, with the colliders, wheel colliders, attach points (hubs, centre of mass, winch and water points, lights, exhaust, upgrade-slot anchors) and part boundaries drawn and labelled. Upgrade options, liveries and LOD strips are left out until there's a reason.
-- **Analysis:** the mesh checks drawn and listed: open edges and gaps (`check_holes`: area per gap, location, a highlighted render), slivers, faces culled from behind, triangle counts per LOD, and the attach-point check (each point plotted, failures marked).
-- **Facts:** kind and provenance per part, dimensions (length, width, height, wheelbase, track, ground clearance), chassis and suspension values, and the `listing` block.
-- **Reproducible:** fixed cameras, lighting and resolution per template type, so two builds' sheets compare image by image; `kollektion contact --diff <a> <b>` puts two sheets side by side for a change review.
-- **Data first, Markdown second:** the command writes `contact/contact.json` (every fact, gate result, point, collider and gap with coordinates) and renders `CONTACT.md` from it. Every CLI command gets a `--json` output the same way.
+A contact sheet shows a build at a glance, for human review, for AI evaluation loops (an agent reads the sheet to judge a build and decide the next change), and for the pack's page. **Built:** `tools/contact_sheet.py` is the prototype of `kollektion contact`. It writes `vehicles/<name>/contact/contact.json` and renders the vehicle folder's `README.md` from it, so GitHub shows the sheet when the folder is opened, with `iso.png`, `rig.png` and `gaps.png` beside the JSON. In a pack it travels with the vehicle.
+- **Views:** a simple isometric layout on a fixed grid, the same angles for every vehicle: one isometric render per corner (front-left, front-right, rear-left, rear-right) at LOD0, and the same four corners again as a rig view: the body ghosted, with the colliders, wheel colliders, attach points (hubs, centre of mass, winch and water points, lights, exhaust, spare, upgrade-slot pivots) and part boundaries drawn and labelled. Upgrade options, liveries and LOD strips are left out until there's a reason.
+- **Analysis:** the mesh checks drawn and listed: open edges and gaps (`check_holes` on every body LOD: area per gap, location, a highlighted render), slivers, faces culled from behind, triangle counts per LOD, and the attach-point check (each point plotted, failures marked). The stock donor breaks naive rules (its centre of mass sits below its colliders, part of its body lies outside them), so collider coverage and slot pivots are judged against the stock donor, and the centre of mass must lie between the wheels.
+- **Facts:** kind and base, dimensions (length, width, height, wheelbase, track, ground clearance), chassis and suspension values, and the listing's family and variant. The real-vehicle data stays in the catalogue.
+- **Reproducible:** fixed target, scale, angles and resolution, so two builds' sheets compare image by image; `--diff <a/contact.json> <b/contact.json>` writes a side-by-side comparison for a change review.
+- **Data first, Markdown second:** every fact, gate result, point, collider and gap goes into `contact.json` with coordinates, and the Markdown is rendered from it. Every CLI command gets a `--json` output the same way.
 - **Towards an editor (an idea, not a plan):** an editor could read the same JSON and show the same views live. Its form is undecided: a standalone app (Electron was mentioned) or a panel inside the Blender add-on. Its role is clear either way: **Blender edits geometry; the editor edits everything else and verifies.** It edits the manifest's metadata and attach points (move a point, set a value, assign a group) and acts as the linter for the game: when a file in the vehicle folder is saved (from Blender, a text editor or the editor itself) it reruns the build steps and gates through the CLI's JSON output and shows what changed: gaps, failed points, triangle counts, a contact-sheet diff. The contact sheet is its static snapshot, so building it now fixes the data model an editor would use.
-- Renders use Blender headless, as `preview_vehicle.sh` does today. Renders of a based vehicle show geometry built from the player's own install; a shipped sheet is a picture of the result, like a screenshot, and contains no mesh data.
+- **Contact sheets ship even when they show game geometry** (a based vehicle, a patch, a stock car extracted into a pack): a sheet is pictures and numbers, like a screenshot, with no mesh data. "Nothing extracted ships" covers meshes and textures, not contact sheets.
+
+## The official livery format
+
+Funselektor's [Official Livery Modding Guide](https://mod.io/g/over-the-hill/r/official-livery-modding-guide) (mod.io game ID 13441) defines the game's only official mod format:
+- A livery mod is a zip (mod.io) or a plain folder (local) holding exactly one `manifest.json` and PNGs: `{"liveries": [{"car": "GrandWoodman", "name": "Sunset Racer", "texture": "sunset_racer.png", "icon": "sunset_racer_preview.png"}]}`. `car` and `texture` are required; files are found by filename, recursively. Strict JSON: no comments, no trailing commas; a malformed manifest fails the whole mod, a bad entry is skipped.
+- Textures: PNG (or JPG), sRGB, RGBA, power-of-two square, 2048×2048 like the shipped skins; icons 512×512. Painted on the car's UV template; the guide links the templates.
+- `car` is the internal name without spaces, case-insensitive (BlastWagon, Boar, Bull, Burro, Tinny, GrandWoodman, Lynx, Woodman, Ding, Marshal, Polyana, Protector, Wombat, Roamer, RustOx, Mammoth, Timberbox, Brick, TrailBurner, Trailrat, Cumbre); the mod.io vehicle tag is the same name with spaces and drives the in-game filter. Untagged mods still work when subscribed directly.
+- Local liveries: one subfolder per pack in `~/My Games/over the hill/LocalLiveries/` (Linux native) or `Documents\My Games\over the hill\LocalLiveries\` (Windows). Hidden until "Show local mods"; "Refresh local mods" reloads edited PNGs without a restart. Local liveries are never shared in multiplayer; mod.io liveries are downloaded temporarily by teammates.
+
+What it means for Werkstatt:
+- **Our liveries use the official format.** A vehicle's liveries live in `vehicles/<name>/liveries/` as a valid official livery pack (`manifest.json` + PNGs rendered from the SVG sources), with `car` set to the vehicle's codename. Our clones' `CarInfo.name` is the codename, so the game's own loader may list them for our trucks with no plugin help **[test]**; the plugin's `SetLiveryTexture` prefix is then only needed for vehicles with their own UV layout. Players can drop the folder into `LocalLiveries`, and the edit-and-refresh loop works for our trucks too.
+- **Based vehicles that keep the donor's UVs** (Mastodon, Megatherium on the Mammoth body) can wear any Mammoth livery, including mod.io ones; the official templates are their UV templates.
+- **mod.io stays livery-only for us.** A livery for one of our trucks could be published on mod.io, but without a vehicle tag (Funselektor owns the tag list) it only works when subscribed directly, and only for players who have the truck.
+- **Multiplayer:** a teammate without Werkstatt has no Megaloceros; what their game does when ours drives past is untested **[test]**.
+
+## Manifests follow the official pattern, extended (author, 2026-10-19)
+
+Werkstatt's manifests are a superset of the official livery `manifest.json`, so a modder who has made a livery already knows the shape.
+- **Strict JSON** everywhere, as the game requires: no `//` comments, no trailing commas. **Comments are data instead:** any object may carry a `"notes"` field, a string or an array of strings (one per line) for longer text, which every loader ignores and `kollektion check` never flags. Templates use it to explain each field, authors to say why a value is what it is, and an editor would show it beside the field. The tweak path's stock values go in a `"stock"` block of real fields.
+- **The pack's `manifest.json`** (lowercase, exactly one, at the pack root) holds typed arrays in the official style: `"liveries"` (the official entries, unchanged), plus `"vehicles"`, `"patches"`, `"groups"` and a `"pack"` object (id, version, author, schema). A pack holding only `"liveries"` is a valid official livery mod. Whether the game's own loader accepts our extra keys, so that a Werkstatt pack's liveries also load from `LocalLiveries`, is **[test]**.
+- **Official conventions carried over:** `car` is a car's internal name without spaces, case-insensitive (so `"base": {"car": "Mammoth"}`); file fields hold a filename or a relative path; an entry missing a required field is skipped with a log line while the rest load; a malformed manifest fails the whole pack; a duplicate entry is ignored. The plugin and `kollektion check` both report each of these the way the game's loader does.
+- **Vehicle folders keep `vehicle.json`**, not `manifest.json`: the game's loader takes the first `manifest.json` it finds when searching recursively, so only the pack root and each vehicle's `liveries/` folder (an official livery pack) carry that name.
 
 ## Packs
 
 A pack is a zip with the extension `.kpack`:
 
 ```
-kollektion.json          # the main manifest: id ("<author>/<pack>"), version, schema, title, author, requires (plugin version range),
+manifest.json            # the pack manifest: id ("<author>/<pack>"), version, schema, title, author, requires (plugin version range),
                          # builtAgainst (game build), groups, items[] (directory, kind, group, codename/base, itemId), patch order, file hashes
 items/<item>/vehicle.json
 items/<item>/meshes/*.obj
 items/<item>/ops/*.json
 items/<item>/icon.png
-items/<item>/contact/CONTACT.md, contact.json, *.png  # contact sheet (see Contact sheets)
+items/<item>/README.md, contact/contact.json, contact/*.png  # contact sheet (see Contact sheets)
+items/<item>/liveries/manifest.json, *.png  # an official livery pack (see The official livery format)
 items/<item>/textures/*.svg, *.png  # optional own texture maps: SVG source, rendered PNG (see Textures)
 ```
 
@@ -292,7 +316,7 @@ items/<item>/textures/*.svg, *.png  # optional own texture maps: SVG source, ren
 <mygames>/DieKollektion/backups/         # save backups, last 10 per profile
 ```
 
-`<mygames>` is the game's documents folder: `~/My Games/over the hill` on Linux, probably `Documents\My Games\over the hill` on Windows (inferred). Our files sit outside `Saves/`, so Steam Cloud, which syncs the whole `Saves` folder, never carries them, and outside the game folder, so verify and uninstall leave them alone. (`tools/add_vehicle_to_save.py`'s backups, `Player1.json.pre-mod-*`, sit in `Saves/` and are cloud-synced; they move.)
+`<mygames>` is the game's documents folder: `~/My Games/over the hill` on Linux, `Documents\My Games\over the hill` on Windows (confirmed by the official livery guide). Our files sit outside `Saves/`, so Steam Cloud, which syncs the whole `Saves` folder, never carries them, and outside the game folder, so verify and uninstall leave them alone. (`tools/add_vehicle_to_save.py`'s backups, `Player1.json.pre-mod-*`, sit in `Saves/` and are cloud-synced; they move.)
 
 Stable states, from most to least modded:
 1. **Pack removed:** its items are gone and the save is valid.
@@ -324,7 +348,7 @@ Either way the save code shares Core's rules: refuse while the game runs, refuse
 
 ## Runtime contract (plugin)
 
-- At Load (no IL2CPP): list `packs/*.kpack`, read each `kollektion.json`, check `schema` and `requires` against the plugin, check `builtAgainst` against the running game build (a mismatch is one warning), and build stale cache entries on the background thread.
+- At Load (no IL2CPP): list `packs/*.kpack`, read each `manifest.json`, check `schema` and `requires` against the plugin, check `builtAgainst` against the running game build (a mismatch is one warning), and build stale cache entries on the background thread.
 - At the entry hook: register categories, then items, each in its own try/catch so one bad item never stops the others or the game. Log lines start with `<pack>/<item>` so `grep` finds them.
 - Validation before any IL2CPP work for an item: files present, OBJs parse, ItemId free, codename unique, donor or target in the catalog, category resolvable. Node paths are checked on the first spawn of the donor prefab; a missing node disables that item's reshape with a log line.
 - Patch items apply to the stock car's spawns; vehicle items work as derived vehicles do today.
@@ -382,7 +406,7 @@ The template file in the repo holds only empties, collections, materials and pro
 
 - The CLI cross-compiles; the plugin is AnyCPU net6.0 and loads under BepInEx 6 IL2CPP win-x64.
 - `DobbyNearPages` is a logged no-op off Linux. Whether Windows needs its own guard against Dobby's near pages colliding with coreclr is unknown; Windows' allocator and layout differ.
-- Paths: the documents folder on Windows (inferred: `Documents\\My Games\\over the hill`) **[test]**; the Steam library from `libraryfolders.vdf` on both.
+- Paths: the documents folder on Windows is `Documents\\My Games\\over the hill` (official livery guide); the Steam library from `libraryfolders.vdf` on both.
 - A Windows run (machine or VM) is required before a release says it supports Windows. The Vehicle Flipper (be.788, Windows x64) shows BepInEx 6 IL2CPP runs there.
 
 ## Compatibility
