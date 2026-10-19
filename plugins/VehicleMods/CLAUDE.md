@@ -4,7 +4,7 @@ The BepInEx 6 IL2CPP plugin ("Die Kollektion") that puts the trucks in the game.
 
 ## Load sequence
 
-1. `Plugin.Load` touches no IL2CPP type. It starts a background thread that sleeps 2 s, then waits for `[AddressablesPreLoader] Addressables finished loading` in Player.log.
+1. Die Kollektion's loader (`plugins/Loader`, the only DLL in `BepInEx/plugins/`) starts the plugin from `BepInEx/VehicleMods/` inside BepInEx's chainloader, once its recorded interop hash matches BepInEx's (after a game update it installs a rebuilt DLL first). `Plugin.Load` touches no IL2CPP type. It starts a background thread that sleeps 2 s, then waits for `[AddressablesPreLoader] Addressables finished loading` in Player.log.
 2. `DobbyNearPages` moves Dobby's hook slots onto pages of our own, then the thread patches only `GameStateManager.Transition` (`MainThreadEntry`).
 3. That hook's first call (main thread, before the main menu) applies every other `[HarmonyPatch]` class independently and registers the cars.
 4. `MenuSentinel` appends a status line to the main menu's build label (`ContextUIMainMenu.BuildVersionLabel`) from a `StateMainMenu.Update` postfix: version, vehicles and patches registered out of those defined, trucks that kept the donor's name or icon, failed game hooks; amber (when the label takes rich text) with a pointer to `BepInEx/LogOutput.log` when anything is short or no vehicles were found. It writes the game's own label text and creates nothing. It checks every frame until the line is in, then every 30 frames, because the game may rewrite the label after the menu opens. No line means stock (confirmed in game 2026-10-19: the line shows at the bottom of the menu); on a working install without it the `Main menu:` log line reports whether the label was enabled and active.
@@ -34,4 +34,4 @@ Player.log ends with `Received signal SIGSEGV` but no native stack. Use the core
 
 ## Build
 
-`dotnet build -c Release` builds and deploys the DLL and each vehicle folder's definition, built meshes and icon into `<game>/BepInEx/plugins/VehicleMods/` (or `-p:DeployDir=<dir>`); `-p:Deploy=false` only compiles. The game folder defaults to Steam's default library; pass `-p:GameDir=<path>` (or set `GameDir` in the environment) for any other. The game must be closed. Each vehicle's `build/` folder is build output (gitignored).
+`dotnet build -c Release` builds and deploys the DLL and each vehicle folder's definition, built meshes and icon into `<game>/BepInEx/VehicleMods/` (or `-p:DeployDir=<dir>`); `-p:Deploy=false` only compiles. It doesn't install the loader that starts the plugin from there; `make deploy` does. The game folder defaults to Steam's default library; pass `-p:GameDir=<path>` (or set `GameDir` in the environment) for any other. The game must be closed. Each vehicle's `build/` folder is build output (gitignored).
