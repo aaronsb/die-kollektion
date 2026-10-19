@@ -1575,6 +1575,8 @@ def cmd_status(args):
 
 
 def cmd_save_add(args):
+    # The parts list (slow on its first run: it reads the game's bundles) comes before the check for a running game.
+    cars = parts_catalogue()
     if game_running():
         print("The game is running. Quit it first: the game overwrites the save when it quits.")
         return 1
@@ -1592,7 +1594,18 @@ def cmd_save_add(args):
         return 1
     print(f"Adding the trucks to {save} (backed up first if anything changes).", flush=True)
     ids = [a for a in args if a.isdigit()] or [str(i) for i in ITEM_IDS.values()]
-    r = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "add_vehicle_to_save.py"), save] + ids)
+    cmd = [sys.executable, os.path.join(ROOT, "tools", "add_vehicle_to_save.py"), save] + ids
+    if cars:
+        # Each truck also gets a state on every cosmetic its donor owns: cosmetics unlocked before it was registered
+        # miss it (the game writes one state per car in the catalogue when a reward unlocks a cosmetic).
+        cmd += ["--parts", os.path.join(ROOT, "extracted", "parts.json")]
+        for m in map(manifest, vehicles()):
+            if m.get("itemId") and m.get("donor") in cars:
+                cmd += ["--truck", f"{m['itemId']}:{m['donor']}:{m.get('codename', m['itemId'])}"]
+    else:
+        print("Couldn't read the game's parts list (extracted/parts.json), so the trucks get their cars but not their "
+              "donor's cosmetics. Run `make setup` and `make extract`, then `make save-add` again.")
+    r = subprocess.run(cmd)
     return r.returncode
 
 

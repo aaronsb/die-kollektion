@@ -31,10 +31,10 @@ def owned(entry):
     return entry.get("Count", 0) >= 1
 
 
-def set_owned(entry, id_key):
-    """Count 1, written where the game writes it: after the id, before InUse."""
+def set_owned(entry, id_key, count=1):
+    """Count `count`, written where the game writes it: after the id, before InUse."""
     rest = {k: v for k, v in entry.items() if k not in (id_key, "Count")}
-    head = {id_key: entry[id_key], "Count": 1}
+    head = {id_key: entry[id_key], "Count": count}
     entry.clear()
     entry.update(head)
     entry.update(rest)
@@ -114,6 +114,38 @@ def unlock(save, cars, derived, own_cars=True):
                 report["states"] += 1
     report["dlc"] = len(dlc)
     return report
+
+
+def inherit_cosmetics(save, cars, trucks):
+    """Give each derived vehicle a state on every cosmetic its donor owns, in place; returns {vehicle ItemId: count added}.
+    A reward that unlocks a cosmetic writes a state for every car in the catalogue at that moment, so cosmetics
+    unlocked before a derived vehicle was registered miss it. `trucks`: {vehicle ItemId: donor CarInfo name}. Only
+    VehicleCosmetic parts on the donor's list: performance upgrades are bought one car at a time. No other car's
+    states change; a state the vehicle already owns is left as it is."""
+    items = save["Profile"]["Inventory"]["Items"]
+    specific = {i["Data"]["ItemId"]: i["Data"] for i in items if i["Type"] == SPECIFIC_ITEM}
+    added = {}
+    for vehicle, donor in trucks.items():
+        car = cars.get(donor)
+        added[vehicle] = 0
+        if not car:
+            continue
+        for part in car["parts"]:
+            data = specific.get(part["itemId"]) if part["kind"] == "VehicleCosmetic" else None
+            if data is None:
+                continue
+            source = next((s for s in data["VehicleStates"] if s["VehicleItemId"] == car["itemId"] and owned(s)), None)
+            if source is None:
+                continue
+            state = next((s for s in data["VehicleStates"] if s["VehicleItemId"] == vehicle), None)
+            if state is None:
+                data["VehicleStates"].append({"VehicleItemId": vehicle, "Count": source["Count"]})
+            elif not owned(state):
+                set_owned(state, "VehicleItemId", source["Count"])
+            else:
+                continue
+            added[vehicle] += 1
+    return added
 
 
 def dumps(save):
