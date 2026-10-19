@@ -1,0 +1,3280 @@
+{
+ "generator": "Die Kollektion Werkstatt, tools/contact_sheet.py (prototype of `kollektion contact`)",
+ "view": {
+  "elevation": 35.264,
+  "ortho_scale": 7.4,
+  "target": [
+   0.0,
+   1.0,
+   -0.6
+  ],
+  "tile": [
+   560,
+   420
+  ],
+  "corners": [
+   "front_left",
+   "front_right",
+   "rear_left",
+   "rear_right"
+  ]
+ },
+ "facts": {
+  "codename": "Megaloceros",
+  "displayName": "Das Megaloceros",
+  "kind": "based",
+  "base": {
+   "car": "Mammoth"
+  },
+  "donor": "Mammoth",
+  "itemId": 3000000004,
+  "listing": {
+   "family": "Glyptodon",
+   "variant": "crew cab"
+  },
+  "dimensions_m": {
+   "length": 6.077,
+   "width": 2.707,
+   "height": 2.588,
+   "wheelbase": 3.7,
+   "track": 1.86,
+   "ground_clearance_prefab_pose": 0.429
+  },
+  "chassis": {
+   "wheelbase": 3.7,
+   "track": 1.86,
+   "maxSteerAngle": 37.8,
+   "wheel": {
+    "radius": 0.52,
+    "width": 0.4,
+    "y": 0.45
+   },
+   "tyre": {
+    "radius": 0.545,
+    "width": 0.352
+   },
+   "suspension": {
+    "travel": 0.4,
+    "anchor": 0.725,
+    "springRate": 18300,
+    "damperRate": 4500,
+    "preloadDistance": 0.1,
+    "bumpTravelOffset": 0.03
+   },
+   "bodyCut": [
+    [
+     0.0,
+     -0.62
+    ],
+    [
+     1.05,
+     -0.865
+    ],
+    [
+     1.21,
+     -1.45
+    ]
+   ]
+  },
+  "layout": {
+   "donorWheelbase": 2.531,
+   "shift": -1.169,
+   "transformCut": -0.62
+  },
+  "meshes": {
+   "body_LOD0": {
+    "node": "Parts/Mammoth/Mammoth_body_LOD0",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/megaloceros/build/body_LOD0.obj"
+   },
+   "body_LOD1": {
+    "node": "Parts/Mammoth/Mammoth_body_LOD1",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/megaloceros/build/body_LOD1.obj"
+   },
+   "body_LOD2": {
+    "node": "Parts/Mammoth/Mammoth_body_LOD2",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/megaloceros/build/body_LOD2.obj"
+   },
+   "body_LOD3": {
+    "node": "Parts/Mammoth/Mammoth_body_LOD3",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/megaloceros/build/body_LOD3.obj"
+   },
+   "axle_front_LOD0": {
+    "node": "Axles/SuspensionRigidFront/SuspensionRigidMesh_LOD0",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/megaloceros/build/suspension_front_LOD0.obj"
+   },
+   "axle_rear_LOD0": {
+    "node": "Axles/SuspensionRigidRear/SuspensionRigidMesh_LOD0",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     -1.169
+    ],
+    "file": "vehicles/megaloceros/build/suspension_rear_LOD0.obj"
+   },
+   "collider_top": {
+    "node": "Collider/Top",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/megaloceros/build/collider_top.obj"
+   },
+   "collider_base": {
+    "node": "Collider/Base",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/megaloceros/build/collider_base.obj"
+   }
+  },
+  "pieces_lod0": 1526
+ },
+ "points": [
+  {
+   "id": "HFL",
+   "name": "Axles/WheelColliders/WheelFL",
+   "category": "hub",
+   "unity": [
+    -0.93,
+    0.448,
+    1.221
+   ],
+   "obj": [
+    0.93,
+    0.448,
+    1.221
+   ]
+  },
+  {
+   "id": "HFR",
+   "name": "Axles/WheelColliders/WheelFR",
+   "category": "hub",
+   "unity": [
+    0.93,
+    0.448,
+    1.221
+   ],
+   "obj": [
+    -0.93,
+    0.448,
+    1.221
+   ]
+  },
+  {
+   "id": "HRL",
+   "name": "Axles/WheelColliders/WheelRL",
+   "category": "hub",
+   "unity": [
+    -0.93,
+    0.448,
+    -2.479
+   ],
+   "obj": [
+    0.93,
+    0.448,
+    -2.479
+   ]
+  },
+  {
+   "id": "HRR",
+   "name": "Axles/WheelColliders/WheelRR",
+   "category": "hub",
+   "unity": [
+    0.93,
+    0.448,
+    -2.479
+   ],
+   "obj": [
+    -0.93,
+    0.448,
+    -2.479
+   ]
+  },
+  {
+   "id": "COM",
+   "name": "CoM",
+   "category": "com",
+   "unity": [
+    0.0,
+    0.65,
+    -0.6385
+   ],
+   "obj": [
+    -0.0,
+    0.65,
+    -0.6385
+   ]
+  },
+  {
+   "id": "WF",
+   "name": "Winch/WinchAttachPoints/Front",
+   "category": "winch",
+   "unity": [
+    0.0,
+    0.85,
+    2.3
+   ],
+   "obj": [
+    -0.0,
+    0.85,
+    2.3
+   ],
+   "surface_distance": 0.02
+  },
+  {
+   "id": "WB",
+   "name": "Winch/WinchAttachPoints/Rear",
+   "category": "winch",
+   "unity": [
+    0.0,
+    0.88,
+    -3.785
+   ],
+   "obj": [
+    -0.0,
+    0.88,
+    -3.785
+   ],
+   "surface_distance": 0.011
+  },
+  {
+   "id": "WL",
+   "name": "Winch/WinchAttachPoints/Left",
+   "category": "winch",
+   "unity": [
+    -1.003,
+    0.634,
+    0.0
+   ],
+   "obj": [
+    1.003,
+    0.634,
+    0.0
+   ],
+   "surface_distance": 0.133
+  },
+  {
+   "id": "WR",
+   "name": "Winch/WinchAttachPoints/Right",
+   "category": "winch",
+   "unity": [
+    1.003,
+    0.634,
+    0.0
+   ],
+   "obj": [
+    -1.003,
+    0.634,
+    0.0
+   ],
+   "surface_distance": 0.133
+  },
+  {
+   "id": "D1",
+   "name": "WaterDetector/BackCarSubmerged",
+   "category": "water",
+   "unity": [
+    0.0,
+    2.289,
+    -0.609
+   ],
+   "obj": [
+    -0.0,
+    2.289,
+    -0.609
+   ]
+  },
+  {
+   "id": "D2",
+   "name": "WaterDetector/EngineAirIntakeWaterDetector_1",
+   "category": "water",
+   "unity": [
+    0.0,
+    1.0746,
+    1.459
+   ],
+   "obj": [
+    -0.0,
+    1.0746,
+    1.459
+   ]
+  },
+  {
+   "id": "D3",
+   "name": "WaterDetector/EngineAirIntakeWaterDetector_2",
+   "category": "water",
+   "unity": [
+    0.0,
+    1.784,
+    1.4
+   ],
+   "obj": [
+    -0.0,
+    1.784,
+    1.4
+   ]
+  },
+  {
+   "id": "D4",
+   "name": "WaterDetector/EngineAirIntakeWaterDetector_3",
+   "category": "water",
+   "unity": [
+    0.0,
+    2.297,
+    1.193
+   ],
+   "obj": [
+    -0.0,
+    2.297,
+    1.193
+   ]
+  },
+  {
+   "id": "D5",
+   "name": "WaterDetector/FrontCarSubmerged",
+   "category": "water",
+   "unity": [
+    0.0,
+    2.259,
+    0.97
+   ],
+   "obj": [
+    -0.0,
+    2.259,
+    0.97
+   ]
+  },
+  {
+   "id": "D6",
+   "name": "WaterDetector/IsTouchingWaterDetector",
+   "category": "water",
+   "unity": [
+    0.0,
+    0.029,
+    0.15
+   ],
+   "obj": [
+    -0.0,
+    0.029,
+    0.15
+   ]
+  },
+  {
+   "id": "D7",
+   "name": "WaterDetector/TiresFullySubmergedWaterDetector",
+   "category": "water",
+   "unity": [
+    0.0,
+    0.1644,
+    0.15
+   ],
+   "obj": [
+    -0.0,
+    0.1644,
+    0.15
+   ]
+  },
+  {
+   "id": "L1",
+   "name": "Lights/LeftBrakingBrakelight",
+   "category": "light",
+   "unity": [
+    -0.885,
+    1.04,
+    -3.795
+   ],
+   "obj": [
+    0.885,
+    1.04,
+    -3.795
+   ],
+   "surface_distance": 0.035
+  },
+  {
+   "id": "L2",
+   "name": "Lights/LeftHeadlight",
+   "category": "light",
+   "unity": [
+    -0.7,
+    0.83,
+    2.3
+   ],
+   "obj": [
+    0.7,
+    0.83,
+    2.3
+   ],
+   "surface_distance": 0.043
+  },
+  {
+   "id": "L3",
+   "name": "Lights/LeftPositionBrakelight",
+   "category": "light",
+   "unity": [
+    -0.885,
+    1.04,
+    -3.795
+   ],
+   "obj": [
+    0.885,
+    1.04,
+    -3.795
+   ],
+   "surface_distance": 0.035
+  },
+  {
+   "id": "L4",
+   "name": "Lights/LeftReverselight",
+   "category": "light",
+   "unity": [
+    -0.8,
+    1.04,
+    -3.795
+   ],
+   "obj": [
+    0.8,
+    1.04,
+    -3.795
+   ],
+   "surface_distance": 0.048
+  },
+  {
+   "id": "L5",
+   "name": "Lights/LeftSpotlightFlare",
+   "category": "light",
+   "unity": [
+    -0.7,
+    0.83,
+    2.3
+   ],
+   "obj": [
+    0.7,
+    0.83,
+    2.3
+   ],
+   "surface_distance": 0.043
+  },
+  {
+   "id": "L6",
+   "name": "Lights/RightBrakingBrakelight",
+   "category": "light",
+   "unity": [
+    0.885,
+    1.04,
+    -3.795
+   ],
+   "obj": [
+    -0.885,
+    1.04,
+    -3.795
+   ],
+   "surface_distance": 0.035
+  },
+  {
+   "id": "L7",
+   "name": "Lights/RightHeadlight",
+   "category": "light",
+   "unity": [
+    0.7,
+    0.83,
+    2.3
+   ],
+   "obj": [
+    -0.7,
+    0.83,
+    2.3
+   ],
+   "surface_distance": 0.042
+  },
+  {
+   "id": "L8",
+   "name": "Lights/RightPositionBrakelight",
+   "category": "light",
+   "unity": [
+    0.885,
+    1.04,
+    -3.795
+   ],
+   "obj": [
+    -0.885,
+    1.04,
+    -3.795
+   ],
+   "surface_distance": 0.035
+  },
+  {
+   "id": "L9",
+   "name": "Lights/RightReverselight",
+   "category": "light",
+   "unity": [
+    0.8,
+    1.04,
+    -3.795
+   ],
+   "obj": [
+    -0.8,
+    1.04,
+    -3.795
+   ],
+   "surface_distance": 0.048
+  },
+  {
+   "id": "L10",
+   "name": "Lights/RightSpotlightFlare",
+   "category": "light",
+   "unity": [
+    0.7,
+    0.83,
+    2.3
+   ],
+   "obj": [
+    -0.7,
+    0.83,
+    2.3
+   ],
+   "surface_distance": 0.042
+  },
+  {
+   "id": "EX",
+   "name": "Effects/VehicleParticles/ExhaustParticlesManager",
+   "category": "exhaust",
+   "unity": [
+    -1.17,
+    0.69,
+    -1.77
+   ],
+   "obj": [
+    1.17,
+    0.69,
+    -1.77
+   ],
+   "surface_distance": 0.01
+  },
+  {
+   "id": "SP",
+   "name": "spare (Mammoth_wheel)",
+   "category": "spare",
+   "unity": [
+    0.52,
+    1.785,
+    -1.431
+   ],
+   "obj": [
+    -0.52,
+    1.785,
+    -1.431
+   ],
+   "surface_distance": 0.182
+  },
+  {
+   "id": "AN",
+   "name": "upgrade slot Antenna (17 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.729,
+    2.9675,
+    1.3873
+   ],
+   "obj": [
+    -0.729,
+    2.9675,
+    1.3873
+   ],
+   "surface_distance": 0.532
+  },
+  {
+   "id": "BD",
+   "name": "upgrade slot Bed (7 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    1.284,
+    -3.068
+   ],
+   "obj": [
+    -0.0,
+    1.284,
+    -3.068
+   ],
+   "surface_distance": 0.125
+  },
+  {
+   "id": "FN",
+   "name": "upgrade slot Fender (28 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    0.678,
+    -1.2735
+   ],
+   "obj": [
+    -0.0,
+    0.678,
+    -1.2735
+   ],
+   "surface_distance": 0.046
+  },
+  {
+   "id": "FS",
+   "name": "upgrade slot Front (13 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    0.866,
+    1.922
+   ],
+   "obj": [
+    -0.0,
+    0.866,
+    1.922
+   ],
+   "surface_distance": 0.074
+  },
+  {
+   "id": "FB",
+   "name": "upgrade slot Front_Bumper (21 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    0.8297,
+    2.1739
+   ],
+   "obj": [
+    -0.0,
+    0.8297,
+    2.1739
+   ],
+   "surface_distance": 0.024
+  },
+  {
+   "id": "RS",
+   "name": "upgrade slot Rear (20 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    1.4275,
+    -3.309
+   ],
+   "obj": [
+    -0.0,
+    1.4275,
+    -3.309
+   ],
+   "surface_distance": 0.187
+  },
+  {
+   "id": "RB",
+   "name": "upgrade slot Rear_Bumper (20 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    1.1269,
+    -3.297
+   ],
+   "obj": [
+    -0.0,
+    1.1269,
+    -3.297
+   ],
+   "surface_distance": 0.064
+  },
+  {
+   "id": "RC",
+   "name": "upgrade slot Rollcage (1 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    -0.071,
+    0.086
+   ],
+   "obj": [
+    -0.0,
+    -0.071,
+    0.086
+   ],
+   "surface_distance": 0.501
+  },
+  {
+   "id": "RF",
+   "name": "upgrade slot Roof (19 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0009,
+    2.199,
+    0.108
+   ],
+   "obj": [
+    -0.0009,
+    2.199,
+    0.108
+   ],
+   "surface_distance": 0.195
+  },
+  {
+   "id": "RL",
+   "name": "upgrade slot Roof_Bar (17 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    2.264,
+    1.0118
+   ],
+   "obj": [
+    -0.0,
+    2.264,
+    1.0118
+   ],
+   "surface_distance": 0.024
+  },
+  {
+   "id": "SD",
+   "name": "upgrade slot Side (26 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    -0.006,
+    1.439,
+    -2.48
+   ],
+   "obj": [
+    0.006,
+    1.439,
+    -2.48
+   ],
+   "surface_distance": 0.216
+  },
+  {
+   "id": "ST",
+   "name": "upgrade slot Side_Step (4 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    0.575,
+    -0.014
+   ],
+   "obj": [
+    -0.0,
+    0.575,
+    -0.014
+   ],
+   "surface_distance": 0.128
+  },
+  {
+   "id": "SN",
+   "name": "upgrade slot Snorkel (2 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    -0.729,
+    1.589,
+    1.4761
+   ],
+   "obj": [
+    0.729,
+    1.589,
+    1.4761
+   ],
+   "surface_distance": 0.052
+  },
+  {
+   "id": "WN",
+   "name": "upgrade slot Winch (1 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    0.829,
+    1.932
+   ],
+   "obj": [
+    -0.0,
+    0.829,
+    1.932
+   ],
+   "surface_distance": 0.109
+  }
+ ],
+ "colliders": {
+  "collider_hulls": 2,
+  "stock_reference": true
+ },
+ "analysis": {
+  "thresholds": {
+   "pixel": 0.005,
+   "close": 0.02,
+   "min_area": 2.0,
+   "fail_culled": 25.0,
+   "fail_gap": 20.0,
+   "sliver_length_m": 1.5,
+   "sliver_area_m2": 0.01
+  },
+  "holes": [
+   {
+    "file": "vehicles/megaloceros/build/body_LOD0.obj",
+    "triangles": 13336,
+    "open_edges": 497,
+    "open_loops": 45,
+    "nonmanifold_edges": 4786,
+    "culled": [
+     {
+      "area_cm2": 5.8,
+      "lo": [
+       -1.125,
+       1.143,
+       -3.755
+      ],
+      "hi": [
+       1.125,
+       1.196,
+       -3.755
+      ],
+      "region": "body centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 4.2,
+      "lo": [
+       -1.125,
+       1.143,
+       -3.755
+      ],
+      "hi": [
+       -1.125,
+       1.196,
+       -1.157
+      ],
+      "region": "body right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 4.2,
+      "lo": [
+       1.125,
+       1.143,
+       -3.755
+      ],
+      "hi": [
+       1.125,
+       1.196,
+       -1.157
+      ],
+      "region": "body left",
+      "triangles": 1
+     }
+    ],
+    "gaps": [
+     {
+      "area_cm2": 13.8,
+      "at": [
+       0.998,
+       1.346,
+       1.629
+      ],
+      "region": "body left",
+      "views": 2
+     },
+     {
+      "area_cm2": 4.0,
+      "at": [
+       0.758,
+       0.762,
+       -0.787
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.8,
+      "at": [
+       0.994,
+       0.981,
+       -0.695
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.8,
+      "at": [
+       -0.65,
+       0.749,
+       -1.849
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.8,
+      "at": [
+       -0.905,
+       2.235,
+       1.232
+      ],
+      "region": "greenhouse right",
+      "views": 2
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       0.832,
+       0.91,
+       2.093
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       1.124,
+       0.858,
+       -1.911
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       -0.833,
+       0.91,
+       2.093
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       -0.978,
+       2.316,
+       1.061
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       0.997,
+       1.346,
+       1.721
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       0.308,
+       1.457,
+       2.073
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.2,
+      "at": [
+       1.047,
+       0.894,
+       -1.893
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.2,
+      "at": [
+       0.94,
+       0.418,
+       0.45
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.2,
+      "at": [
+       -0.876,
+       0.698,
+       -3.167
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.313,
+       1.38,
+       2.106
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       1.121,
+       0.689,
+       0.558
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       0.758,
+       1.116,
+       -3.73
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       -0.758,
+       1.114,
+       -3.726
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       -0.983,
+       0.504,
+       0.389
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       -1.101,
+       2.276,
+       1.049
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       -0.99,
+       0.618,
+       0.482
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       1.101,
+       2.276,
+       1.049
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.371,
+       1.437,
+       2.086
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.638,
+       1.382,
+       2.098
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.972,
+       0.945,
+       0.423
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.253,
+       1.426,
+       2.057
+      ],
+      "region": "body centre",
+      "views": 1
+     }
+    ],
+    "fail": false,
+    "failing_findings": 0
+   },
+   {
+    "file": "vehicles/megaloceros/build/body_LOD1.obj",
+    "triangles": 11359,
+    "open_edges": 495,
+    "open_loops": 42,
+    "nonmanifold_edges": 3625,
+    "culled": [
+     {
+      "area_cm2": 2.5,
+      "lo": [
+       -1.014,
+       0.988,
+       -1.128
+      ],
+      "hi": [
+       -0.677,
+       1.303,
+       -1.128
+      ],
+      "region": "lower right",
+      "triangles": 3
+     },
+     {
+      "area_cm2": 2.2,
+      "lo": [
+       0.677,
+       0.988,
+       -1.128
+      ],
+      "hi": [
+       1.014,
+       1.303,
+       -1.128
+      ],
+      "region": "lower left",
+      "triangles": 3
+     }
+    ],
+    "gaps": [
+     {
+      "area_cm2": 14.5,
+      "at": [
+       0.999,
+       1.35,
+       1.624
+      ],
+      "region": "body left",
+      "views": 2
+     },
+     {
+      "area_cm2": 5.0,
+      "at": [
+       -1.007,
+       0.966,
+       1.725
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.0,
+      "at": [
+       0.758,
+       0.762,
+       -0.787
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.0,
+      "at": [
+       -1.109,
+       0.69,
+       0.556
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.0,
+      "at": [
+       -0.979,
+       0.514,
+       0.382
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.8,
+      "at": [
+       0.994,
+       0.981,
+       -0.695
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.8,
+      "at": [
+       -0.65,
+       0.749,
+       -1.849
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.8,
+      "at": [
+       1.041,
+       0.885,
+       -1.886
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       0.834,
+       0.911,
+       2.094
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       1.124,
+       0.858,
+       -1.911
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       -0.834,
+       0.911,
+       2.094
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       0.308,
+       1.457,
+       2.073
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       0.975,
+       0.656,
+       0.493
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       0.999,
+       0.93,
+       1.759
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       -0.877,
+       0.698,
+       -3.167
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.313,
+       1.38,
+       2.106
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       0.976,
+       0.948,
+       0.424
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       1.037,
+       1.004,
+       1.688
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       0.758,
+       1.116,
+       -3.73
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       -0.758,
+       1.114,
+       -3.726
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       -0.909,
+       2.202,
+       1.239
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       1.265,
+       1.89,
+       1.014
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       -0.911,
+       2.241,
+       1.223
+      ],
+      "region": "greenhouse right",
+      "views": 2
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       -1.164,
+       2.265,
+       1.044
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.373,
+       1.434,
+       2.083
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.638,
+       1.382,
+       2.098
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.357,
+       0.721,
+       0.731
+      ],
+      "region": "lower left",
+      "views": 2
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.967,
+       2.338,
+       1.124
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -0.944,
+       0.887,
+       2.127
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -1.001,
+       1.349,
+       1.727
+      ],
+      "region": "body right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.944,
+       0.887,
+       2.128
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.253,
+       1.426,
+       2.057
+      ],
+      "region": "body centre",
+      "views": 1
+     }
+    ],
+    "fail": false,
+    "failing_findings": 0
+   },
+   {
+    "file": "vehicles/megaloceros/build/body_LOD2.obj",
+    "triangles": 8259,
+    "open_edges": 371,
+    "open_loops": 49,
+    "nonmanifold_edges": 2821,
+    "culled": [
+     {
+      "area_cm2": 8.5,
+      "lo": [
+       -1.017,
+       0.988,
+       -1.128
+      ],
+      "hi": [
+       -0.677,
+       1.306,
+       -1.006
+      ],
+      "region": "lower right",
+      "triangles": 4
+     },
+     {
+      "area_cm2": 6.8,
+      "lo": [
+       0.677,
+       0.988,
+       -1.128
+      ],
+      "hi": [
+       1.015,
+       1.305,
+       -1.002
+      ],
+      "region": "lower left",
+      "triangles": 5
+     },
+     {
+      "area_cm2": 5.8,
+      "lo": [
+       -1.125,
+       1.196,
+       -3.755
+      ],
+      "hi": [
+       1.125,
+       1.202,
+       -3.732
+      ],
+      "region": "body centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 5.5,
+      "lo": [
+       -0.983,
+       1.7,
+       -0.044
+      ],
+      "hi": [
+       -0.887,
+       2.338,
+       0.074
+      ],
+      "region": "greenhouse right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 5.5,
+      "lo": [
+       -0.983,
+       1.7,
+       1.146
+      ],
+      "hi": [
+       -0.887,
+       2.338,
+       1.264
+      ],
+      "region": "greenhouse right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 5.2,
+      "lo": [
+       -1.125,
+       1.196,
+       -3.755
+      ],
+      "hi": [
+       1.098,
+       1.202,
+       -3.73
+      ],
+      "region": "body centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 4.8,
+      "lo": [
+       0.887,
+       1.7,
+       -0.044
+      ],
+      "hi": [
+       0.983,
+       2.338,
+       0.074
+      ],
+      "region": "greenhouse left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 4.8,
+      "lo": [
+       0.887,
+       1.7,
+       1.146
+      ],
+      "hi": [
+       0.983,
+       2.338,
+       1.264
+      ],
+      "region": "greenhouse left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 4.2,
+      "lo": [
+       1.1,
+       1.196,
+       -3.755
+      ],
+      "hi": [
+       1.125,
+       1.202,
+       -1.157
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "lo": [
+       -0.983,
+       1.7,
+       -1.002
+      ],
+      "hi": [
+       -0.887,
+       2.338,
+       -1.002
+      ],
+      "region": "greenhouse right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 3.2,
+      "lo": [
+       0.984,
+       1.305,
+       -1.128
+      ],
+      "hi": [
+       1.015,
+       1.635,
+       -1.006
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "lo": [
+       0.877,
+       1.305,
+       -1.132
+      ],
+      "hi": [
+       1.015,
+       2.371,
+       -1.006
+      ],
+      "region": "greenhouse left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "lo": [
+       0.887,
+       1.7,
+       0.188
+      ],
+      "hi": [
+       0.983,
+       2.338,
+       0.188
+      ],
+      "region": "greenhouse left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "lo": [
+       0.887,
+       1.7,
+       -1.002
+      ],
+      "hi": [
+       0.983,
+       2.338,
+       -1.002
+      ],
+      "region": "greenhouse left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "lo": [
+       -1.004,
+       1.555,
+       0.188
+      ],
+      "hi": [
+       -0.891,
+       1.7,
+       0.188
+      ],
+      "region": "greenhouse right",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 2.5,
+      "lo": [
+       0.891,
+       1.3,
+       0.074
+      ],
+      "hi": [
+       1.005,
+       1.7,
+       0.188
+      ],
+      "region": "body left",
+      "triangles": 7
+     },
+     {
+      "area_cm2": 2.5,
+      "lo": [
+       0.891,
+       1.555,
+       1.264
+      ],
+      "hi": [
+       0.99,
+       1.7,
+       1.273
+      ],
+      "region": "greenhouse left",
+      "triangles": 3
+     },
+     {
+      "area_cm2": 2.2,
+      "lo": [
+       -1.004,
+       1.555,
+       -1.002
+      ],
+      "hi": [
+       -0.891,
+       1.7,
+       -1.002
+      ],
+      "region": "greenhouse right",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 2.2,
+      "lo": [
+       0.904,
+       0.988,
+       0.083
+      ],
+      "hi": [
+       1.011,
+       1.3,
+       0.188
+      ],
+      "region": "lower left",
+      "triangles": 3
+     },
+     {
+      "area_cm2": 2.0,
+      "lo": [
+       0.904,
+       0.988,
+       -1.002
+      ],
+      "hi": [
+       0.991,
+       0.988,
+       0.083
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "lo": [
+       0.904,
+       0.988,
+       -1.002
+      ],
+      "hi": [
+       0.991,
+       0.988,
+       0.083
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "lo": [
+       0.904,
+       0.988,
+       0.188
+      ],
+      "hi": [
+       0.991,
+       0.988,
+       0.74
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "lo": [
+       0.904,
+       1.167,
+       1.091
+      ],
+      "hi": [
+       1.007,
+       1.18,
+       1.226
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 1.2,
+      "lo": [
+       0.891,
+       1.555,
+       -1.002
+      ],
+      "hi": [
+       0.983,
+       1.7,
+       -1.002
+      ],
+      "region": "greenhouse left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 1.2,
+      "lo": [
+       0.904,
+       0.988,
+       -1.002
+      ],
+      "hi": [
+       1.011,
+       1.3,
+       -1.002
+      ],
+      "region": "lower left",
+      "triangles": 1
+     }
+    ],
+    "gaps": [
+     {
+      "area_cm2": 14.5,
+      "at": [
+       0.998,
+       1.347,
+       1.628
+      ],
+      "region": "body left",
+      "views": 2
+     },
+     {
+      "area_cm2": 5.0,
+      "at": [
+       0.768,
+       0.831,
+       0.778
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 5.0,
+      "at": [
+       -1.007,
+       0.966,
+       1.726
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.2,
+      "at": [
+       0.973,
+       0.717,
+       -1.764
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.0,
+      "at": [
+       0.758,
+       0.762,
+       -0.787
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.0,
+      "at": [
+       0.993,
+       0.981,
+       -0.695
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.0,
+      "at": [
+       -1.109,
+       0.69,
+       0.556
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.0,
+      "at": [
+       -0.979,
+       0.514,
+       0.382
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.0,
+      "at": [
+       0.634,
+       1.366,
+       2.089
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.8,
+      "at": [
+       -0.942,
+       1.575,
+       1.796
+      ],
+      "region": "body right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.8,
+      "at": [
+       -0.65,
+       0.749,
+       -1.849
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       1.124,
+       0.858,
+       -1.911
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       0.999,
+       0.93,
+       1.759
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       0.092,
+       0.961,
+       2.304
+      ],
+      "region": "lower centre",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       -0.877,
+       0.698,
+       -3.167
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.835,
+       0.912,
+       2.099
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.751,
+       1.111,
+       -3.717
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       -0.838,
+       0.911,
+       2.098
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.382,
+       1.416,
+       2.083
+      ],
+      "region": "body left",
+      "views": 3
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.255,
+       1.364,
+       2.098
+      ],
+      "region": "body centre",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.31,
+       1.456,
+       2.072
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       -0.902,
+       2.246,
+       1.227
+      ],
+      "region": "greenhouse right",
+      "views": 3
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       0.976,
+       0.948,
+       0.424
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       1.037,
+       1.004,
+       1.688
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       -0.753,
+       1.11,
+       -3.717
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       -0.908,
+       2.203,
+       1.24
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       1.265,
+       1.891,
+       1.014
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       1.117,
+       0.753,
+       0.584
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.898,
+       1.551,
+       1.862
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       -1.164,
+       2.265,
+       1.044
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.309,
+       1.382,
+       2.108
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.718,
+       0.74,
+       0.576
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.357,
+       0.721,
+       0.731
+      ],
+      "region": "lower left",
+      "views": 2
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       1.083,
+       2.275,
+       1.057
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -0.942,
+       0.887,
+       2.129
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.556,
+       1.504,
+       2.042
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.943,
+       0.887,
+       2.127
+      ],
+      "region": "lower left",
+      "views": 1
+     }
+    ],
+    "fail": false,
+    "failing_findings": 0
+   },
+   {
+    "file": "vehicles/megaloceros/build/body_LOD3.obj",
+    "triangles": 7551,
+    "open_edges": 307,
+    "open_loops": 35,
+    "nonmanifold_edges": 2689,
+    "culled": [
+     {
+      "area_cm2": 8.5,
+      "lo": [
+       -1.017,
+       0.988,
+       -1.128
+      ],
+      "hi": [
+       -0.677,
+       1.306,
+       -1.006
+      ],
+      "region": "lower right",
+      "triangles": 4
+     },
+     {
+      "area_cm2": 6.2,
+      "lo": [
+       0.677,
+       0.988,
+       -1.128
+      ],
+      "hi": [
+       1.015,
+       1.305,
+       -1.002
+      ],
+      "region": "lower left",
+      "triangles": 5
+     },
+     {
+      "area_cm2": 5.5,
+      "lo": [
+       -0.983,
+       1.7,
+       -0.044
+      ],
+      "hi": [
+       -0.887,
+       2.338,
+       0.074
+      ],
+      "region": "greenhouse right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 5.5,
+      "lo": [
+       -0.983,
+       1.7,
+       1.146
+      ],
+      "hi": [
+       -0.887,
+       2.338,
+       1.264
+      ],
+      "region": "greenhouse right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 5.2,
+      "lo": [
+       0.887,
+       1.7,
+       1.146
+      ],
+      "hi": [
+       0.983,
+       2.338,
+       1.264
+      ],
+      "region": "greenhouse left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 4.8,
+      "lo": [
+       0.887,
+       1.7,
+       -0.044
+      ],
+      "hi": [
+       0.983,
+       2.338,
+       0.074
+      ],
+      "region": "greenhouse left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "lo": [
+       -0.983,
+       1.7,
+       -1.002
+      ],
+      "hi": [
+       -0.887,
+       2.338,
+       -1.002
+      ],
+      "region": "greenhouse right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 3.2,
+      "lo": [
+       0.984,
+       1.305,
+       -1.128
+      ],
+      "hi": [
+       1.015,
+       1.635,
+       -1.006
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "lo": [
+       0.877,
+       1.305,
+       -1.132
+      ],
+      "hi": [
+       1.015,
+       2.371,
+       -1.006
+      ],
+      "region": "greenhouse left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "lo": [
+       0.887,
+       1.7,
+       0.188
+      ],
+      "hi": [
+       0.983,
+       2.338,
+       0.188
+      ],
+      "region": "greenhouse left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "lo": [
+       0.887,
+       1.7,
+       -1.002
+      ],
+      "hi": [
+       0.983,
+       2.338,
+       -1.002
+      ],
+      "region": "greenhouse left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "lo": [
+       -1.004,
+       1.555,
+       0.188
+      ],
+      "hi": [
+       -0.891,
+       1.7,
+       0.188
+      ],
+      "region": "greenhouse right",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 2.5,
+      "lo": [
+       0.891,
+       1.3,
+       0.074
+      ],
+      "hi": [
+       1.005,
+       1.7,
+       0.188
+      ],
+      "region": "body left",
+      "triangles": 7
+     },
+     {
+      "area_cm2": 2.5,
+      "lo": [
+       0.891,
+       1.555,
+       1.264
+      ],
+      "hi": [
+       0.99,
+       1.7,
+       1.273
+      ],
+      "region": "greenhouse left",
+      "triangles": 3
+     },
+     {
+      "area_cm2": 2.2,
+      "lo": [
+       -1.004,
+       1.555,
+       -1.002
+      ],
+      "hi": [
+       -0.891,
+       1.7,
+       -1.002
+      ],
+      "region": "greenhouse right",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 2.2,
+      "lo": [
+       0.904,
+       0.988,
+       0.083
+      ],
+      "hi": [
+       1.011,
+       1.3,
+       0.188
+      ],
+      "region": "lower left",
+      "triangles": 3
+     },
+     {
+      "area_cm2": 2.0,
+      "lo": [
+       0.904,
+       0.988,
+       -1.002
+      ],
+      "hi": [
+       0.991,
+       0.988,
+       0.083
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "lo": [
+       0.904,
+       0.988,
+       0.188
+      ],
+      "hi": [
+       0.991,
+       0.988,
+       0.74
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 1.2,
+      "lo": [
+       0.891,
+       1.555,
+       -1.002
+      ],
+      "hi": [
+       0.983,
+       1.7,
+       -1.002
+      ],
+      "region": "greenhouse left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 1.2,
+      "lo": [
+       0.904,
+       0.988,
+       -1.002
+      ],
+      "hi": [
+       1.011,
+       1.3,
+       -1.002
+      ],
+      "region": "lower left",
+      "triangles": 1
+     }
+    ],
+    "gaps": [
+     {
+      "area_cm2": 16.5,
+      "at": [
+       1.0,
+       1.354,
+       1.629
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 16.2,
+      "at": [
+       0.856,
+       1.124,
+       -3.739
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 15.2,
+      "at": [
+       -0.856,
+       1.124,
+       -3.739
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 10.5,
+      "at": [
+       0.998,
+       1.347,
+       1.669
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 6.5,
+      "at": [
+       0.413,
+       0.664,
+       0.777
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 6.0,
+      "at": [
+       1.01,
+       0.957,
+       1.733
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.8,
+      "at": [
+       1.12,
+       0.858,
+       -1.909
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.5,
+      "at": [
+       0.943,
+       1.572,
+       1.804
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.5,
+      "at": [
+       -1.014,
+       0.973,
+       1.718
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.5,
+      "at": [
+       -0.941,
+       0.425,
+       0.446
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.0,
+      "at": [
+       -1.109,
+       0.69,
+       0.556
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.0,
+      "at": [
+       -0.906,
+       2.224,
+       1.233
+      ],
+      "region": "greenhouse right",
+      "views": 2
+     },
+     {
+      "area_cm2": 4.0,
+      "at": [
+       0.634,
+       1.366,
+       2.089
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.8,
+      "at": [
+       -0.942,
+       1.575,
+       1.796
+      ],
+      "region": "body right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.8,
+      "at": [
+       0.757,
+       0.762,
+       -0.789
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.8,
+      "at": [
+       -0.65,
+       0.749,
+       -1.849
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.8,
+      "at": [
+       0.095,
+       0.96,
+       2.304
+      ],
+      "region": "lower centre",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       1.021,
+       1.124,
+       -3.741
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.2,
+      "at": [
+       0.975,
+       0.715,
+       -1.764
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       1.091,
+       1.692,
+       -3.663
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       0.899,
+       1.548,
+       1.87
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       -1.04,
+       1.689,
+       -3.723
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       0.995,
+       0.983,
+       -0.697
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       1.037,
+       1.694,
+       -3.722
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.386,
+       1.435,
+       2.088
+      ],
+      "region": "body left",
+      "views": 3
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.255,
+       1.364,
+       2.098
+      ],
+      "region": "body centre",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.31,
+       1.456,
+       2.072
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       1.114,
+       0.742,
+       0.578
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       1.255,
+       1.818,
+       0.997
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.358,
+       0.721,
+       0.729
+      ],
+      "region": "lower left",
+      "views": 2
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       -1.091,
+       1.672,
+       -3.709
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.975,
+       0.945,
+       0.423
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.309,
+       1.382,
+       2.108
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       1.093,
+       1.672,
+       -3.612
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -0.954,
+       1.685,
+       -3.726
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.961,
+       1.685,
+       -3.724
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.967,
+       2.338,
+       1.124
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -0.986,
+       1.022,
+       2.117
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.986,
+       1.021,
+       2.117
+      ],
+      "region": "lower left",
+      "views": 1
+     }
+    ],
+    "fail": false,
+    "failing_findings": 0
+   }
+  ],
+  "slivers": [
+   {
+    "file": "vehicles/megaloceros/build/body_LOD0.obj",
+    "slivers": 22
+   },
+   {
+    "file": "vehicles/megaloceros/build/body_LOD1.obj",
+    "slivers": 20
+   },
+   {
+    "file": "vehicles/megaloceros/build/body_LOD2.obj",
+    "slivers": 12
+   },
+   {
+    "file": "vehicles/megaloceros/build/body_LOD3.obj",
+    "slivers": 12
+   },
+   {
+    "file": "vehicles/megaloceros/build/collider_base.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/megaloceros/build/collider_top.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/megaloceros/build/suspension_front_LOD0.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/megaloceros/build/suspension_front_LOD1.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/megaloceros/build/suspension_front_LOD2.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/megaloceros/build/suspension_front_LOD3.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/megaloceros/build/suspension_rear_LOD0.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/megaloceros/build/suspension_rear_LOD1.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/megaloceros/build/suspension_rear_LOD2.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/megaloceros/build/suspension_rear_LOD3.obj",
+    "slivers": 0
+   }
+  ],
+  "triangles": {
+   "body_LOD0": 13336,
+   "body_LOD1": 11359,
+   "body_LOD2": 8259,
+   "body_LOD3": 7551,
+   "axle_front_LOD0": 4076,
+   "axle_rear_LOD0": 4076,
+   "collider_top": 20,
+   "collider_base": 24
+  },
+  "attach_points": [
+   {
+    "id": "HFL",
+    "check": "wheel mesh on its collider; tyre clear of the body above the hub (prefab pose)",
+    "value": "mesh offset 0.0 cm, clearance +7.2 cm",
+    "pass": true
+   },
+   {
+    "id": "HFR",
+    "check": "wheel mesh on its collider; tyre clear of the body above the hub (prefab pose)",
+    "value": "mesh offset 0.0 cm, clearance +7.2 cm",
+    "pass": true
+   },
+   {
+    "id": "HRL",
+    "check": "wheel mesh on its collider; tyre clear of the body above the hub (prefab pose)",
+    "value": "mesh offset 0.0 cm, clearance +12.8 cm",
+    "pass": true
+   },
+   {
+    "id": "HRR",
+    "check": "wheel mesh on its collider; tyre clear of the body above the hub (prefab pose)",
+    "value": "mesh offset 0.0 cm, clearance +12.8 cm",
+    "pass": true
+   },
+   {
+    "id": "COM",
+    "check": "centre of mass between the wheels (inside track and wheelbase, above the ground)",
+    "value": "x -0.00, y 0.65, z -0.64 m; -0.08 m from the collider bottom",
+    "pass": true
+   },
+   {
+    "id": "COL",
+    "check": "colliders (convex hulls) cover the LOD0 body no worse than the stock donor's: share of vertices over 10 cm outside within 5 points, worst within 10 cm",
+    "value": "10.4% over 10 cm outside, worst 47 cm (stock 9.4%, worst 34 cm)",
+    "pass": false
+   },
+   {
+    "id": "WF",
+    "check": "winch point within 15 cm of a body or axle surface",
+    "value": "2.0 cm",
+    "pass": true
+   },
+   {
+    "id": "WB",
+    "check": "winch point within 15 cm of a body or axle surface",
+    "value": "1.1 cm",
+    "pass": true
+   },
+   {
+    "id": "WL",
+    "check": "winch point within 15 cm of a body or axle surface",
+    "value": "13.3 cm",
+    "pass": true
+   },
+   {
+    "id": "WR",
+    "check": "winch point within 15 cm of a body or axle surface",
+    "value": "13.3 cm",
+    "pass": true
+   },
+   {
+    "id": "L1",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "3.5 cm",
+    "pass": true
+   },
+   {
+    "id": "L2",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "4.3 cm",
+    "pass": true
+   },
+   {
+    "id": "L3",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "3.5 cm",
+    "pass": true
+   },
+   {
+    "id": "L4",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "4.8 cm",
+    "pass": true
+   },
+   {
+    "id": "L5",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "4.3 cm",
+    "pass": true
+   },
+   {
+    "id": "L6",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "3.5 cm",
+    "pass": true
+   },
+   {
+    "id": "L7",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "4.2 cm",
+    "pass": true
+   },
+   {
+    "id": "L8",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "3.5 cm",
+    "pass": true
+   },
+   {
+    "id": "L9",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "4.8 cm",
+    "pass": true
+   },
+   {
+    "id": "L10",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "4.2 cm",
+    "pass": true
+   },
+   {
+    "id": "EX",
+    "check": "exhaust point within 15 cm of a body or axle surface",
+    "value": "1.0 cm",
+    "pass": true
+   },
+   {
+    "id": "SP",
+    "check": "spare point within 23 cm of a body or axle surface",
+    "value": "18.2 cm",
+    "pass": true
+   },
+   {
+    "id": "AN",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "53.2 cm (stock 72.9 cm)",
+    "pass": true
+   },
+   {
+    "id": "BD",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "12.5 cm (stock 4.1 cm)",
+    "pass": true
+   },
+   {
+    "id": "FN",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "4.6 cm (stock 18.1 cm)",
+    "pass": true
+   },
+   {
+    "id": "FS",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "7.4 cm (stock 7.4 cm)",
+    "pass": true
+   },
+   {
+    "id": "FB",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "2.4 cm (stock 1.5 cm)",
+    "pass": true
+   },
+   {
+    "id": "RS",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "18.7 cm (stock 0.8 cm)",
+    "pass": false
+   },
+   {
+    "id": "RB",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "6.4 cm (stock 1.6 cm)",
+    "pass": true
+   },
+   {
+    "id": "RC",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "50.1 cm (stock 65.2 cm)",
+    "pass": true
+   },
+   {
+    "id": "RF",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "19.5 cm (stock 19.5 cm)",
+    "pass": true
+   },
+   {
+    "id": "RL",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "2.4 cm (stock 10.6 cm)",
+    "pass": true
+   },
+   {
+    "id": "SD",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "21.6 cm (stock 11.8 cm)",
+    "pass": true
+   },
+   {
+    "id": "ST",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "12.8 cm (stock 23.0 cm)",
+    "pass": true
+   },
+   {
+    "id": "SN",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "5.2 cm (stock 6.2 cm)",
+    "pass": true
+   },
+   {
+    "id": "WN",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "10.9 cm (stock 10.9 cm)",
+    "pass": true
+   }
+  ]
+ },
+ "images": {
+  "iso": "contact/iso.png",
+  "rig": "contact/rig.png",
+  "gaps": "contact/gaps.png"
+ }
+}

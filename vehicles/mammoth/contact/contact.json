@@ -1,0 +1,1903 @@
+{
+ "generator": "Die Kollektion Werkstatt, tools/contact_sheet.py (prototype of `kollektion contact`)",
+ "view": {
+  "elevation": 35.264,
+  "ortho_scale": 7.4,
+  "target": [
+   0.0,
+   1.0,
+   -0.6
+  ],
+  "tile": [
+   560,
+   420
+  ],
+  "corners": [
+   "front_left",
+   "front_right",
+   "rear_left",
+   "rear_right"
+  ]
+ },
+ "facts": {
+  "codename": "Mammoth",
+  "displayName": "Mammoth",
+  "kind": "patch",
+  "base": {
+   "car": "Mammoth"
+  },
+  "donor": "Mammoth",
+  "itemId": null,
+  "listing": {
+   "family": "Mammoth",
+   "variant": "stock, patched"
+  },
+  "dimensions_m": {
+   "length": 4.452,
+   "width": 2.203,
+   "height": 2.436,
+   "wheelbase": 2.531,
+   "track": 1.8,
+   "ground_clearance_prefab_pose": 0.456
+  },
+  "chassis": {
+   "wheelbase": 2.53,
+   "track": 1.8,
+   "maxSteerAngle": 37.8,
+   "wheel": {
+    "radius": 0.52,
+    "width": 0.4,
+    "y": 0.45
+   },
+   "bodyCut": []
+  },
+  "layout": {
+   "donorWheelbase": 2.531,
+   "shift": 0.001,
+   "transformCut": null
+  },
+  "meshes": {
+   "body_LOD0": {
+    "node": "Parts/Mammoth/Mammoth_body_LOD0",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/mammoth/build/body_LOD0.obj"
+   },
+   "body_LOD1": {
+    "node": "Parts/Mammoth/Mammoth_body_LOD1",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/mammoth/build/body_LOD1.obj"
+   },
+   "body_LOD2": {
+    "node": "Parts/Mammoth/Mammoth_body_LOD2",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/mammoth/build/body_LOD2.obj"
+   },
+   "body_LOD3": {
+    "node": "Parts/Mammoth/Mammoth_body_LOD3",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/mammoth/build/body_LOD3.obj"
+   },
+   "axle_front_LOD0": {
+    "node": "Axles/SuspensionRigidFront/SuspensionRigidMesh_LOD0",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/mammoth/build/suspension_front_LOD0.obj"
+   },
+   "axle_rear_LOD0": {
+    "node": "Axles/SuspensionRigidRear/SuspensionRigidMesh_LOD0",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/mammoth/build/suspension_rear_LOD0.obj"
+   },
+   "collider_top": {
+    "node": "Collider/Top",
+    "origin": "stock",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "extracted/mammoth/Collider__Top.obj"
+   },
+   "collider_base": {
+    "node": "Collider/Base",
+    "origin": "stock",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "extracted/mammoth/Collider__Base.obj"
+   }
+  },
+  "pieces_lod0": 583
+ },
+ "points": [
+  {
+   "id": "HFL",
+   "name": "Axles/WheelColliders/WheelFL",
+   "category": "hub",
+   "unity": [
+    -0.9,
+    0.448,
+    1.221
+   ],
+   "obj": [
+    0.9,
+    0.448,
+    1.221
+   ]
+  },
+  {
+   "id": "HFR",
+   "name": "Axles/WheelColliders/WheelFR",
+   "category": "hub",
+   "unity": [
+    0.9,
+    0.448,
+    1.221
+   ],
+   "obj": [
+    -0.9,
+    0.448,
+    1.221
+   ]
+  },
+  {
+   "id": "HRL",
+   "name": "Axles/WheelColliders/WheelRL",
+   "category": "hub",
+   "unity": [
+    -0.9,
+    0.448,
+    -1.31
+   ],
+   "obj": [
+    0.9,
+    0.448,
+    -1.31
+   ]
+  },
+  {
+   "id": "HRR",
+   "name": "Axles/WheelColliders/WheelRR",
+   "category": "hub",
+   "unity": [
+    0.9,
+    0.448,
+    -1.31
+   ],
+   "obj": [
+    -0.9,
+    0.448,
+    -1.31
+   ]
+  },
+  {
+   "id": "COM",
+   "name": "CoM",
+   "category": "com",
+   "unity": [
+    0.0,
+    0.65,
+    -0.0505
+   ],
+   "obj": [
+    -0.0,
+    0.65,
+    -0.0505
+   ]
+  },
+  {
+   "id": "WF",
+   "name": "Winch/WinchAttachPoints/Front",
+   "category": "winch",
+   "unity": [
+    0.0,
+    0.804,
+    2.125
+   ],
+   "obj": [
+    -0.0,
+    0.804,
+    2.125
+   ],
+   "surface_distance": 0.017
+  },
+  {
+   "id": "WB",
+   "name": "Winch/WinchAttachPoints/Rear",
+   "category": "winch",
+   "unity": [
+    0.0,
+    0.935,
+    -2.238
+   ],
+   "obj": [
+    -0.0,
+    0.935,
+    -2.238
+   ],
+   "surface_distance": 0.021
+  },
+  {
+   "id": "WL",
+   "name": "Winch/WinchAttachPoints/Left",
+   "category": "winch",
+   "unity": [
+    -1.003,
+    0.634,
+    0.0
+   ],
+   "obj": [
+    1.003,
+    0.634,
+    0.0
+   ],
+   "surface_distance": 0.012
+  },
+  {
+   "id": "WR",
+   "name": "Winch/WinchAttachPoints/Right",
+   "category": "winch",
+   "unity": [
+    1.003,
+    0.634,
+    0.0
+   ],
+   "obj": [
+    -1.003,
+    0.634,
+    0.0
+   ],
+   "surface_distance": 0.012
+  },
+  {
+   "id": "D1",
+   "name": "WaterDetector/BackCarSubmerged",
+   "category": "water",
+   "unity": [
+    0.0,
+    2.289,
+    -0.609
+   ],
+   "obj": [
+    -0.0,
+    2.289,
+    -0.609
+   ]
+  },
+  {
+   "id": "D2",
+   "name": "WaterDetector/EngineAirIntakeWaterDetector_1",
+   "category": "water",
+   "unity": [
+    0.0,
+    1.0746,
+    1.459
+   ],
+   "obj": [
+    -0.0,
+    1.0746,
+    1.459
+   ]
+  },
+  {
+   "id": "D3",
+   "name": "WaterDetector/EngineAirIntakeWaterDetector_2",
+   "category": "water",
+   "unity": [
+    0.0,
+    1.784,
+    1.4
+   ],
+   "obj": [
+    -0.0,
+    1.784,
+    1.4
+   ]
+  },
+  {
+   "id": "D4",
+   "name": "WaterDetector/EngineAirIntakeWaterDetector_3",
+   "category": "water",
+   "unity": [
+    0.0,
+    2.297,
+    1.193
+   ],
+   "obj": [
+    -0.0,
+    2.297,
+    1.193
+   ]
+  },
+  {
+   "id": "D5",
+   "name": "WaterDetector/FrontCarSubmerged",
+   "category": "water",
+   "unity": [
+    0.0,
+    2.259,
+    0.97
+   ],
+   "obj": [
+    -0.0,
+    2.259,
+    0.97
+   ]
+  },
+  {
+   "id": "D6",
+   "name": "WaterDetector/IsTouchingWaterDetector",
+   "category": "water",
+   "unity": [
+    0.0,
+    0.029,
+    0.15
+   ],
+   "obj": [
+    -0.0,
+    0.029,
+    0.15
+   ]
+  },
+  {
+   "id": "D7",
+   "name": "WaterDetector/TiresFullySubmergedWaterDetector",
+   "category": "water",
+   "unity": [
+    0.0,
+    0.1644,
+    0.15
+   ],
+   "obj": [
+    -0.0,
+    0.1644,
+    0.15
+   ]
+  },
+  {
+   "id": "L1",
+   "name": "Lights/LeftBrakingBrakelight",
+   "category": "light",
+   "unity": [
+    -0.822,
+    1.04,
+    -2.186
+   ],
+   "obj": [
+    0.822,
+    1.04,
+    -2.186
+   ],
+   "surface_distance": 0.029
+  },
+  {
+   "id": "L2",
+   "name": "Lights/LeftHeadlight",
+   "category": "light",
+   "unity": [
+    -0.56,
+    1.178,
+    1.956
+   ],
+   "obj": [
+    0.56,
+    1.178,
+    1.956
+   ],
+   "surface_distance": 0.003
+  },
+  {
+   "id": "L3",
+   "name": "Lights/LeftPositionBrakelight",
+   "category": "light",
+   "unity": [
+    -0.822,
+    1.04,
+    -2.186
+   ],
+   "obj": [
+    0.822,
+    1.04,
+    -2.186
+   ],
+   "surface_distance": 0.029
+  },
+  {
+   "id": "L4",
+   "name": "Lights/LeftReverselight",
+   "category": "light",
+   "unity": [
+    -0.88,
+    0.7942,
+    -2.075
+   ],
+   "obj": [
+    0.88,
+    0.7942,
+    -2.075
+   ],
+   "surface_distance": 0.017
+  },
+  {
+   "id": "L5",
+   "name": "Lights/LeftSpotlightFlare",
+   "category": "light",
+   "unity": [
+    -0.86,
+    1.67,
+    1.467
+   ],
+   "obj": [
+    0.86,
+    1.67,
+    1.467
+   ],
+   "surface_distance": 0.005
+  },
+  {
+   "id": "L6",
+   "name": "Lights/RightBrakingBrakelight",
+   "category": "light",
+   "unity": [
+    0.822,
+    1.04,
+    -2.186
+   ],
+   "obj": [
+    -0.822,
+    1.04,
+    -2.186
+   ],
+   "surface_distance": 0.029
+  },
+  {
+   "id": "L7",
+   "name": "Lights/RightHeadlight",
+   "category": "light",
+   "unity": [
+    0.56,
+    1.178,
+    1.956
+   ],
+   "obj": [
+    -0.56,
+    1.178,
+    1.956
+   ],
+   "surface_distance": 0.003
+  },
+  {
+   "id": "L8",
+   "name": "Lights/RightPositionBrakelight",
+   "category": "light",
+   "unity": [
+    0.822,
+    1.04,
+    -2.186
+   ],
+   "obj": [
+    -0.822,
+    1.04,
+    -2.186
+   ],
+   "surface_distance": 0.029
+  },
+  {
+   "id": "L9",
+   "name": "Lights/RightReverselight",
+   "category": "light",
+   "unity": [
+    0.88,
+    0.7942,
+    -2.075
+   ],
+   "obj": [
+    -0.88,
+    0.7942,
+    -2.075
+   ],
+   "surface_distance": 0.017
+  },
+  {
+   "id": "L10",
+   "name": "Lights/RightSpotlightFlare",
+   "category": "light",
+   "unity": [
+    0.86,
+    1.67,
+    1.467
+   ],
+   "obj": [
+    -0.86,
+    1.67,
+    1.467
+   ],
+   "surface_distance": 0.005
+  },
+  {
+   "id": "EX",
+   "name": "Effects/VehicleParticles/ExhaustParticlesManager",
+   "category": "exhaust",
+   "unity": [
+    -1.089,
+    0.587,
+    -0.635
+   ],
+   "obj": [
+    1.089,
+    0.587,
+    -0.635
+   ],
+   "surface_distance": 0.039
+  },
+  {
+   "id": "AN",
+   "name": "upgrade slot Antenna (17 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.729,
+    2.9675,
+    1.3873
+   ],
+   "obj": [
+    -0.729,
+    2.9675,
+    1.3873
+   ],
+   "surface_distance": 0.729
+  },
+  {
+   "id": "BD",
+   "name": "upgrade slot Bed (7 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    1.284,
+    -1.899
+   ],
+   "obj": [
+    -0.0,
+    1.284,
+    -1.899
+   ],
+   "surface_distance": 0.041
+  },
+  {
+   "id": "FN",
+   "name": "upgrade slot Fender (28 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    0.678,
+    -0.689
+   ],
+   "obj": [
+    -0.0,
+    0.678,
+    -0.689
+   ],
+   "surface_distance": 0.181
+  },
+  {
+   "id": "FS",
+   "name": "upgrade slot Front (13 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    0.866,
+    1.922
+   ],
+   "obj": [
+    -0.0,
+    0.866,
+    1.922
+   ],
+   "surface_distance": 0.074
+  },
+  {
+   "id": "FB",
+   "name": "upgrade slot Front_Bumper (21 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    0.8297,
+    2.1739
+   ],
+   "obj": [
+    -0.0,
+    0.8297,
+    2.1739
+   ],
+   "surface_distance": 0.015
+  },
+  {
+   "id": "RS",
+   "name": "upgrade slot Rear (20 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    1.4275,
+    -2.14
+   ],
+   "obj": [
+    -0.0,
+    1.4275,
+    -2.14
+   ],
+   "surface_distance": 0.008
+  },
+  {
+   "id": "RB",
+   "name": "upgrade slot Rear_Bumper (20 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    1.1269,
+    -2.128
+   ],
+   "obj": [
+    -0.0,
+    1.1269,
+    -2.128
+   ],
+   "surface_distance": 0.016
+  },
+  {
+   "id": "RC",
+   "name": "upgrade slot Rollcage (1 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    -0.071,
+    0.086
+   ],
+   "obj": [
+    -0.0,
+    -0.071,
+    0.086
+   ],
+   "surface_distance": 0.652
+  },
+  {
+   "id": "RF",
+   "name": "upgrade slot Roof (19 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0009,
+    2.199,
+    0.108
+   ],
+   "obj": [
+    -0.0009,
+    2.199,
+    0.108
+   ],
+   "surface_distance": 0.195
+  },
+  {
+   "id": "RL",
+   "name": "upgrade slot Roof_Bar (17 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    2.264,
+    1.0118
+   ],
+   "obj": [
+    -0.0,
+    2.264,
+    1.0118
+   ],
+   "surface_distance": 0.106
+  },
+  {
+   "id": "SD",
+   "name": "upgrade slot Side (26 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    -0.006,
+    1.439,
+    -1.311
+   ],
+   "obj": [
+    0.006,
+    1.439,
+    -1.311
+   ],
+   "surface_distance": 0.118
+  },
+  {
+   "id": "ST",
+   "name": "upgrade slot Side_Step (4 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    0.575,
+    -0.014
+   ],
+   "obj": [
+    -0.0,
+    0.575,
+    -0.014
+   ],
+   "surface_distance": 0.23
+  },
+  {
+   "id": "SN",
+   "name": "upgrade slot Snorkel (2 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    -0.729,
+    1.589,
+    1.4761
+   ],
+   "obj": [
+    0.729,
+    1.589,
+    1.4761
+   ],
+   "surface_distance": 0.062
+  },
+  {
+   "id": "WN",
+   "name": "upgrade slot Winch (1 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    0.829,
+    1.932
+   ],
+   "obj": [
+    -0.0,
+    0.829,
+    1.932
+   ],
+   "surface_distance": 0.109
+  }
+ ],
+ "colliders": {
+  "collider_hulls": 2,
+  "stock_reference": true
+ },
+ "analysis": {
+  "thresholds": {
+   "pixel": 0.005,
+   "close": 0.02,
+   "min_area": 2.0,
+   "fail_culled": 25.0,
+   "fail_gap": 20.0,
+   "sliver_length_m": 1.5,
+   "sliver_area_m2": 0.01
+  },
+  "holes": [
+   {
+    "file": "vehicles/mammoth/build/body_LOD0.obj",
+    "triangles": 3352,
+    "open_edges": 314,
+    "open_loops": 46,
+    "nonmanifold_edges": 12,
+    "culled": [
+     {
+      "area_cm2": 10.2,
+      "lo": [
+       0.849,
+       1.56,
+       0.374
+      ],
+      "hi": [
+       0.893,
+       1.6,
+       0.6
+      ],
+      "region": "body left",
+      "triangles": 10
+     },
+     {
+      "area_cm2": 9.5,
+      "lo": [
+       -0.893,
+       1.56,
+       0.374
+      ],
+      "hi": [
+       -0.849,
+       1.6,
+       0.6
+      ],
+      "region": "body right",
+      "triangles": 10
+     },
+     {
+      "area_cm2": 9.2,
+      "lo": [
+       -0.893,
+       1.56,
+       -0.634
+      ],
+      "hi": [
+       -0.849,
+       1.6,
+       -0.408
+      ],
+      "region": "body right",
+      "triangles": 10
+     },
+     {
+      "area_cm2": 9.2,
+      "lo": [
+       0.849,
+       1.56,
+       -0.634
+      ],
+      "hi": [
+       0.893,
+       1.6,
+       -0.408
+      ],
+      "region": "body left",
+      "triangles": 10
+     }
+    ],
+    "gaps": [
+     {
+      "area_cm2": 16.2,
+      "at": [
+       0.761,
+       0.859,
+       1.883
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 15.0,
+      "at": [
+       -0.765,
+       0.86,
+       1.882
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 5.5,
+      "at": [
+       -0.816,
+       1.314,
+       1.773
+      ],
+      "region": "body right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.867,
+       0.668,
+       -0.596
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       -0.864,
+       1.024,
+       1.835
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.828,
+       1.315,
+       1.76
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.864,
+       1.023,
+       1.835
+      ],
+      "region": "lower left",
+      "views": 1
+     }
+    ],
+    "fail": false,
+    "failing_findings": 0
+   },
+   {
+    "file": "vehicles/mammoth/build/body_LOD1.obj",
+    "triangles": 2872,
+    "open_edges": 300,
+    "open_loops": 46,
+    "nonmanifold_edges": 12,
+    "culled": [
+     {
+      "area_cm2": 10.2,
+      "lo": [
+       0.849,
+       1.56,
+       0.374
+      ],
+      "hi": [
+       0.893,
+       1.6,
+       0.6
+      ],
+      "region": "body left",
+      "triangles": 10
+     },
+     {
+      "area_cm2": 9.8,
+      "lo": [
+       -0.893,
+       1.56,
+       0.374
+      ],
+      "hi": [
+       -0.849,
+       1.6,
+       0.6
+      ],
+      "region": "body right",
+      "triangles": 10
+     },
+     {
+      "area_cm2": 9.2,
+      "lo": [
+       -0.893,
+       1.56,
+       -0.634
+      ],
+      "hi": [
+       -0.849,
+       1.6,
+       -0.408
+      ],
+      "region": "body right",
+      "triangles": 10
+     },
+     {
+      "area_cm2": 9.2,
+      "lo": [
+       0.849,
+       1.56,
+       -0.634
+      ],
+      "hi": [
+       0.893,
+       1.6,
+       -0.408
+      ],
+      "region": "body left",
+      "triangles": 10
+     }
+    ],
+    "gaps": [
+     {
+      "area_cm2": 16.0,
+      "at": [
+       0.764,
+       0.86,
+       1.882
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 15.0,
+      "at": [
+       -0.765,
+       0.86,
+       1.882
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 5.5,
+      "at": [
+       -0.816,
+       1.314,
+       1.773
+      ],
+      "region": "body right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.867,
+       0.668,
+       -0.596
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       -0.864,
+       1.024,
+       1.835
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.828,
+       1.315,
+       1.76
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.864,
+       1.023,
+       1.835
+      ],
+      "region": "lower left",
+      "views": 1
+     }
+    ],
+    "fail": false,
+    "failing_findings": 0
+   },
+   {
+    "file": "vehicles/mammoth/build/body_LOD2.obj",
+    "triangles": 1693,
+    "open_edges": 241,
+    "open_loops": 46,
+    "nonmanifold_edges": 12,
+    "culled": [
+     {
+      "area_cm2": 11.2,
+      "lo": [
+       -0.882,
+       1.56,
+       0.374
+      ],
+      "hi": [
+       -0.849,
+       1.6,
+       0.6
+      ],
+      "region": "body right",
+      "triangles": 8
+     },
+     {
+      "area_cm2": 10.2,
+      "lo": [
+       -0.882,
+       1.56,
+       -0.634
+      ],
+      "hi": [
+       -0.849,
+       1.6,
+       -0.408
+      ],
+      "region": "body right",
+      "triangles": 8
+     },
+     {
+      "area_cm2": 10.0,
+      "lo": [
+       0.849,
+       1.56,
+       0.374
+      ],
+      "hi": [
+       0.882,
+       1.6,
+       0.6
+      ],
+      "region": "body left",
+      "triangles": 7
+     },
+     {
+      "area_cm2": 9.2,
+      "lo": [
+       0.849,
+       1.56,
+       -0.634
+      ],
+      "hi": [
+       0.882,
+       1.6,
+       -0.408
+      ],
+      "region": "body left",
+      "triangles": 7
+     },
+     {
+      "area_cm2": 5.0,
+      "lo": [
+       0.849,
+       1.56,
+       -0.447
+      ],
+      "hi": [
+       0.882,
+       1.6,
+       -0.408
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 5.0,
+      "lo": [
+       0.849,
+       1.56,
+       0.56
+      ],
+      "hi": [
+       0.882,
+       1.6,
+       0.6
+      ],
+      "region": "body left",
+      "triangles": 1
+     }
+    ],
+    "gaps": [
+     {
+      "area_cm2": 12.0,
+      "at": [
+       -0.839,
+       1.024,
+       1.863
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 6.0,
+      "at": [
+       -0.811,
+       1.316,
+       1.78
+      ],
+      "region": "body right",
+      "views": 1
+     },
+     {
+      "area_cm2": 5.8,
+      "at": [
+       0.862,
+       1.027,
+       1.841
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.5,
+      "at": [
+       0.811,
+       1.316,
+       1.781
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       0.872,
+       0.649,
+       -0.62
+      ],
+      "region": "lower left",
+      "views": 2
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       -0.418,
+       0.713,
+       2.039
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       -0.986,
+       1.799,
+       1.239
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.73,
+       0.881,
+       1.858
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.984,
+       1.804,
+       1.242
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       0.889,
+       1.587,
+       1.283
+      ],
+      "region": "body left",
+      "views": 2
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       -0.749,
+       1.029,
+       1.941
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       -0.945,
+       1.585,
+       1.358
+      ],
+      "region": "body right",
+      "views": 1
+     }
+    ],
+    "fail": false,
+    "failing_findings": 0
+   },
+   {
+    "file": "vehicles/mammoth/build/body_LOD3.obj",
+    "triangles": 698,
+    "open_edges": 150,
+    "open_loops": 46,
+    "nonmanifold_edges": 12,
+    "culled": [
+     {
+      "area_cm2": 5.8,
+      "lo": [
+       -0.882,
+       1.56,
+       -0.447
+      ],
+      "hi": [
+       -0.845,
+       1.59,
+       -0.432
+      ],
+      "region": "body right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 5.5,
+      "lo": [
+       0.845,
+       1.56,
+       -0.609
+      ],
+      "hi": [
+       0.882,
+       1.59,
+       -0.594
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 5.5,
+      "lo": [
+       0.845,
+       1.56,
+       0.398
+      ],
+      "hi": [
+       0.882,
+       1.59,
+       0.413
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 5.5,
+      "lo": [
+       -0.882,
+       1.56,
+       0.561
+      ],
+      "hi": [
+       -0.845,
+       1.59,
+       0.575
+      ],
+      "region": "body right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 5.2,
+      "lo": [
+       -0.882,
+       1.56,
+       -0.609
+      ],
+      "hi": [
+       -0.845,
+       1.59,
+       -0.594
+      ],
+      "region": "body right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 5.0,
+      "lo": [
+       0.845,
+       1.57,
+       -0.447
+      ],
+      "hi": [
+       0.882,
+       1.6,
+       -0.432
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 4.5,
+      "lo": [
+       0.845,
+       1.57,
+       0.561
+      ],
+      "hi": [
+       0.882,
+       1.6,
+       0.575
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 4.2,
+      "lo": [
+       -0.882,
+       1.57,
+       0.398
+      ],
+      "hi": [
+       -0.845,
+       1.6,
+       0.413
+      ],
+      "region": "body right",
+      "triangles": 1
+     }
+    ],
+    "gaps": [
+     {
+      "area_cm2": 13.8,
+      "at": [
+       0.91,
+       1.081,
+       -2.131
+      ],
+      "region": "lower left",
+      "views": 2
+     },
+     {
+      "area_cm2": 13.2,
+      "at": [
+       -0.927,
+       1.094,
+       -2.137
+      ],
+      "region": "lower right",
+      "views": 2
+     },
+     {
+      "area_cm2": 3.8,
+      "at": [
+       -0.805,
+       0.737,
+       1.988
+      ],
+      "region": "lower right",
+      "views": 2
+     },
+     {
+      "area_cm2": 3.8,
+      "at": [
+       0.814,
+       0.734,
+       1.985
+      ],
+      "region": "lower left",
+      "views": 2
+     },
+     {
+      "area_cm2": 3.2,
+      "at": [
+       -0.744,
+       1.027,
+       1.947
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.2,
+      "at": [
+       0.77,
+       1.025,
+       1.919
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       0.889,
+       0.974,
+       1.755
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       0.885,
+       1.598,
+       1.33
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       -0.74,
+       1.718,
+       1.36
+      ],
+      "region": "greenhouse right",
+      "views": 2
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.935,
+       0.647,
+       -0.581
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       1.008,
+       0.803,
+       1.84
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       -1.048,
+       0.886,
+       1.778
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -0.136,
+       0.938,
+       -2.196
+      ],
+      "region": "lower centre",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -0.867,
+       1.561,
+       1.261
+      ],
+      "region": "body right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.933,
+       1.667,
+       1.331
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -0.973,
+       1.762,
+       1.238
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.926,
+       1.719,
+       1.33
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     }
+    ],
+    "fail": false,
+    "failing_findings": 0
+   }
+  ],
+  "slivers": [
+   {
+    "file": "extracted/mammoth/Collider__Base.obj",
+    "slivers": 0
+   },
+   {
+    "file": "extracted/mammoth/Collider__Top.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mammoth/build/body_LOD0.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mammoth/build/body_LOD1.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mammoth/build/body_LOD2.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mammoth/build/body_LOD3.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mammoth/build/suspension_front_LOD0.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mammoth/build/suspension_front_LOD1.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mammoth/build/suspension_front_LOD2.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mammoth/build/suspension_front_LOD3.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mammoth/build/suspension_rear_LOD0.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mammoth/build/suspension_rear_LOD1.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mammoth/build/suspension_rear_LOD2.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mammoth/build/suspension_rear_LOD3.obj",
+    "slivers": 0
+   }
+  ],
+  "triangles": {
+   "body_LOD0": 3352,
+   "body_LOD1": 2872,
+   "body_LOD2": 1693,
+   "body_LOD3": 698,
+   "axle_front_LOD0": 4076,
+   "axle_rear_LOD0": 4076,
+   "collider_top": 20,
+   "collider_base": 24
+  },
+  "attach_points": [
+   {
+    "id": "HFL",
+    "check": "wheel mesh on its collider; tyre clear of the body above the hub (prefab pose)",
+    "value": "mesh offset 0.0 cm, clearance +11.6 cm",
+    "pass": true
+   },
+   {
+    "id": "HFR",
+    "check": "wheel mesh on its collider; tyre clear of the body above the hub (prefab pose)",
+    "value": "mesh offset 0.0 cm, clearance +11.6 cm",
+    "pass": true
+   },
+   {
+    "id": "HRL",
+    "check": "wheel mesh on its collider; tyre clear of the body above the hub (prefab pose)",
+    "value": "mesh offset 0.0 cm, clearance +9.7 cm",
+    "pass": true
+   },
+   {
+    "id": "HRR",
+    "check": "wheel mesh on its collider; tyre clear of the body above the hub (prefab pose)",
+    "value": "mesh offset 0.0 cm, clearance +15.4 cm",
+    "pass": true
+   },
+   {
+    "id": "COM",
+    "check": "centre of mass between the wheels (inside track and wheelbase, above the ground)",
+    "value": "x -0.00, y 0.65, z -0.05 m; -0.08 m from the collider bottom",
+    "pass": true
+   },
+   {
+    "id": "COL",
+    "check": "colliders (convex hulls) cover the LOD0 body no worse than the stock donor's: share of vertices over 10 cm outside within 5 points, worst within 10 cm",
+    "value": "9.2% over 10 cm outside, worst 30 cm (stock 9.4%, worst 34 cm)",
+    "pass": true
+   },
+   {
+    "id": "WF",
+    "check": "winch point within 15 cm of a body or axle surface",
+    "value": "1.7 cm",
+    "pass": true
+   },
+   {
+    "id": "WB",
+    "check": "winch point within 15 cm of a body or axle surface",
+    "value": "2.1 cm",
+    "pass": true
+   },
+   {
+    "id": "WL",
+    "check": "winch point within 15 cm of a body or axle surface",
+    "value": "1.2 cm",
+    "pass": true
+   },
+   {
+    "id": "WR",
+    "check": "winch point within 15 cm of a body or axle surface",
+    "value": "1.2 cm",
+    "pass": true
+   },
+   {
+    "id": "L1",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "2.9 cm",
+    "pass": true
+   },
+   {
+    "id": "L2",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "0.3 cm",
+    "pass": true
+   },
+   {
+    "id": "L3",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "2.9 cm",
+    "pass": true
+   },
+   {
+    "id": "L4",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "1.7 cm",
+    "pass": true
+   },
+   {
+    "id": "L5",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "0.5 cm",
+    "pass": true
+   },
+   {
+    "id": "L6",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "2.9 cm",
+    "pass": true
+   },
+   {
+    "id": "L7",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "0.3 cm",
+    "pass": true
+   },
+   {
+    "id": "L8",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "2.9 cm",
+    "pass": true
+   },
+   {
+    "id": "L9",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "1.7 cm",
+    "pass": true
+   },
+   {
+    "id": "L10",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "0.5 cm",
+    "pass": true
+   },
+   {
+    "id": "EX",
+    "check": "exhaust point within 15 cm of a body or axle surface",
+    "value": "3.9 cm",
+    "pass": true
+   },
+   {
+    "id": "AN",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "72.9 cm (stock 72.9 cm)",
+    "pass": true
+   },
+   {
+    "id": "BD",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "4.1 cm (stock 4.1 cm)",
+    "pass": true
+   },
+   {
+    "id": "FN",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "18.1 cm (stock 18.1 cm)",
+    "pass": true
+   },
+   {
+    "id": "FS",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "7.4 cm (stock 7.4 cm)",
+    "pass": true
+   },
+   {
+    "id": "FB",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "1.5 cm (stock 1.5 cm)",
+    "pass": true
+   },
+   {
+    "id": "RS",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "0.8 cm (stock 0.8 cm)",
+    "pass": true
+   },
+   {
+    "id": "RB",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "1.6 cm (stock 1.6 cm)",
+    "pass": true
+   },
+   {
+    "id": "RC",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "65.2 cm (stock 65.2 cm)",
+    "pass": true
+   },
+   {
+    "id": "RF",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "19.5 cm (stock 19.5 cm)",
+    "pass": true
+   },
+   {
+    "id": "RL",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "10.6 cm (stock 10.6 cm)",
+    "pass": true
+   },
+   {
+    "id": "SD",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "11.8 cm (stock 11.8 cm)",
+    "pass": true
+   },
+   {
+    "id": "ST",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "23.0 cm (stock 23.0 cm)",
+    "pass": true
+   },
+   {
+    "id": "SN",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "6.2 cm (stock 6.2 cm)",
+    "pass": true
+   },
+   {
+    "id": "WN",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "10.9 cm (stock 10.9 cm)",
+    "pass": true
+   }
+  ]
+ },
+ "images": {
+  "iso": "contact/iso.png",
+  "rig": "contact/rig.png",
+  "gaps": "contact/gaps.png"
+ }
+}

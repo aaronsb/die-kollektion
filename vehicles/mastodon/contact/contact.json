@@ -1,0 +1,3814 @@
+{
+ "generator": "Die Kollektion Werkstatt, tools/contact_sheet.py (prototype of `kollektion contact`)",
+ "view": {
+  "elevation": 35.264,
+  "ortho_scale": 7.4,
+  "target": [
+   0.0,
+   1.0,
+   -0.6
+  ],
+  "tile": [
+   560,
+   420
+  ],
+  "corners": [
+   "front_left",
+   "front_right",
+   "rear_left",
+   "rear_right"
+  ]
+ },
+ "facts": {
+  "codename": "Mastodon",
+  "displayName": "Das Mastodon",
+  "kind": "based",
+  "base": {
+   "car": "Mammoth"
+  },
+  "donor": "Mammoth",
+  "itemId": 3000000002,
+  "listing": {
+   "family": "Mammoth",
+   "variant": "two-door, long wheelbase"
+  },
+  "dimensions_m": {
+   "length": 5.022,
+   "width": 2.203,
+   "height": 2.436,
+   "wheelbase": 2.9,
+   "track": 1.8,
+   "ground_clearance_prefab_pose": 0.456
+  },
+  "chassis": {
+   "wheelbase": 2.9,
+   "track": 1.8,
+   "maxSteerAngle": 37.8,
+   "wheel": {
+    "radius": 0.52,
+    "width": 0.4,
+    "y": 0.45
+   },
+   "suspension": {
+    "travel": 0.55,
+    "anchor": 0.62,
+    "springRate": 18300,
+    "damperRate": 4500,
+    "preloadDistance": 0.0,
+    "bumpTravelOffset": 0.05
+   },
+   "bodyCut": [
+    [
+     0.0,
+     -0.62
+    ],
+    [
+     1.05,
+     -0.865
+    ],
+    [
+     1.21,
+     -1.45
+    ]
+   ]
+  },
+  "layout": {
+   "donorWheelbase": 2.531,
+   "shift": -0.369,
+   "transformCut": -0.62
+  },
+  "meshes": {
+   "body_LOD0": {
+    "node": "Parts/Mammoth/Mammoth_body_LOD0",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/mastodon/build/body_LOD0.obj"
+   },
+   "body_LOD1": {
+    "node": "Parts/Mammoth/Mammoth_body_LOD1",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/mastodon/build/body_LOD1.obj"
+   },
+   "body_LOD2": {
+    "node": "Parts/Mammoth/Mammoth_body_LOD2",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/mastodon/build/body_LOD2.obj"
+   },
+   "body_LOD3": {
+    "node": "Parts/Mammoth/Mammoth_body_LOD3",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/mastodon/build/body_LOD3.obj"
+   },
+   "axle_front_LOD0": {
+    "node": "Axles/SuspensionRigidFront/SuspensionRigidMesh_LOD0",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/mastodon/build/suspension_front_LOD0.obj"
+   },
+   "axle_rear_LOD0": {
+    "node": "Axles/SuspensionRigidRear/SuspensionRigidMesh_LOD0",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     -0.369
+    ],
+    "file": "vehicles/mastodon/build/suspension_rear_LOD0.obj"
+   },
+   "collider_top": {
+    "node": "Collider/Top",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/mastodon/build/collider_top.obj"
+   },
+   "collider_base": {
+    "node": "Collider/Base",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/mastodon/build/collider_base.obj"
+   }
+  },
+  "pieces_lod0": 545
+ },
+ "points": [
+  {
+   "id": "HFL",
+   "name": "Axles/WheelColliders/WheelFL",
+   "category": "hub",
+   "unity": [
+    -0.9,
+    0.448,
+    1.221
+   ],
+   "obj": [
+    0.9,
+    0.448,
+    1.221
+   ]
+  },
+  {
+   "id": "HFR",
+   "name": "Axles/WheelColliders/WheelFR",
+   "category": "hub",
+   "unity": [
+    0.9,
+    0.448,
+    1.221
+   ],
+   "obj": [
+    -0.9,
+    0.448,
+    1.221
+   ]
+  },
+  {
+   "id": "HRL",
+   "name": "Axles/WheelColliders/WheelRL",
+   "category": "hub",
+   "unity": [
+    -0.9,
+    0.448,
+    -1.679
+   ],
+   "obj": [
+    0.9,
+    0.448,
+    -1.679
+   ]
+  },
+  {
+   "id": "HRR",
+   "name": "Axles/WheelColliders/WheelRR",
+   "category": "hub",
+   "unity": [
+    0.9,
+    0.448,
+    -1.679
+   ],
+   "obj": [
+    -0.9,
+    0.448,
+    -1.679
+   ]
+  },
+  {
+   "id": "COM",
+   "name": "CoM",
+   "category": "com",
+   "unity": [
+    0.0,
+    0.65,
+    -0.2364
+   ],
+   "obj": [
+    -0.0,
+    0.65,
+    -0.2364
+   ]
+  },
+  {
+   "id": "WF",
+   "name": "Winch/WinchAttachPoints/Front",
+   "category": "winch",
+   "unity": [
+    0.0,
+    0.804,
+    2.125
+   ],
+   "obj": [
+    -0.0,
+    0.804,
+    2.125
+   ],
+   "surface_distance": 0.017
+  },
+  {
+   "id": "WB",
+   "name": "Winch/WinchAttachPoints/Rear",
+   "category": "winch",
+   "unity": [
+    0.0,
+    0.935,
+    -2.607
+   ],
+   "obj": [
+    -0.0,
+    0.935,
+    -2.607
+   ],
+   "surface_distance": 0.022
+  },
+  {
+   "id": "WL",
+   "name": "Winch/WinchAttachPoints/Left",
+   "category": "winch",
+   "unity": [
+    -1.003,
+    0.634,
+    0.0
+   ],
+   "obj": [
+    1.003,
+    0.634,
+    0.0
+   ],
+   "surface_distance": 0.012
+  },
+  {
+   "id": "WR",
+   "name": "Winch/WinchAttachPoints/Right",
+   "category": "winch",
+   "unity": [
+    1.003,
+    0.634,
+    0.0
+   ],
+   "obj": [
+    -1.003,
+    0.634,
+    0.0
+   ],
+   "surface_distance": 0.012
+  },
+  {
+   "id": "D1",
+   "name": "WaterDetector/BackCarSubmerged",
+   "category": "water",
+   "unity": [
+    0.0,
+    2.289,
+    -0.609
+   ],
+   "obj": [
+    -0.0,
+    2.289,
+    -0.609
+   ]
+  },
+  {
+   "id": "D2",
+   "name": "WaterDetector/EngineAirIntakeWaterDetector_1",
+   "category": "water",
+   "unity": [
+    0.0,
+    1.0746,
+    1.459
+   ],
+   "obj": [
+    -0.0,
+    1.0746,
+    1.459
+   ]
+  },
+  {
+   "id": "D3",
+   "name": "WaterDetector/EngineAirIntakeWaterDetector_2",
+   "category": "water",
+   "unity": [
+    0.0,
+    1.784,
+    1.4
+   ],
+   "obj": [
+    -0.0,
+    1.784,
+    1.4
+   ]
+  },
+  {
+   "id": "D4",
+   "name": "WaterDetector/EngineAirIntakeWaterDetector_3",
+   "category": "water",
+   "unity": [
+    0.0,
+    2.297,
+    1.193
+   ],
+   "obj": [
+    -0.0,
+    2.297,
+    1.193
+   ]
+  },
+  {
+   "id": "D5",
+   "name": "WaterDetector/FrontCarSubmerged",
+   "category": "water",
+   "unity": [
+    0.0,
+    2.259,
+    0.97
+   ],
+   "obj": [
+    -0.0,
+    2.259,
+    0.97
+   ]
+  },
+  {
+   "id": "D6",
+   "name": "WaterDetector/IsTouchingWaterDetector",
+   "category": "water",
+   "unity": [
+    0.0,
+    0.029,
+    0.15
+   ],
+   "obj": [
+    -0.0,
+    0.029,
+    0.15
+   ]
+  },
+  {
+   "id": "D7",
+   "name": "WaterDetector/TiresFullySubmergedWaterDetector",
+   "category": "water",
+   "unity": [
+    0.0,
+    0.1644,
+    0.15
+   ],
+   "obj": [
+    -0.0,
+    0.1644,
+    0.15
+   ]
+  },
+  {
+   "id": "L1",
+   "name": "Lights/LeftBrakingBrakelight",
+   "category": "light",
+   "unity": [
+    -0.85,
+    0.725,
+    -2.45
+   ],
+   "obj": [
+    0.85,
+    0.725,
+    -2.45
+   ],
+   "surface_distance": 0.023
+  },
+  {
+   "id": "L2",
+   "name": "Lights/LeftHeadlight",
+   "category": "light",
+   "unity": [
+    -0.56,
+    1.178,
+    1.956
+   ],
+   "obj": [
+    0.56,
+    1.178,
+    1.956
+   ],
+   "surface_distance": 0.003
+  },
+  {
+   "id": "L3",
+   "name": "Lights/LeftPositionBrakelight",
+   "category": "light",
+   "unity": [
+    -0.85,
+    0.725,
+    -2.45
+   ],
+   "obj": [
+    0.85,
+    0.725,
+    -2.45
+   ],
+   "surface_distance": 0.023
+  },
+  {
+   "id": "L4",
+   "name": "Lights/LeftReverselight",
+   "category": "light",
+   "unity": [
+    -0.88,
+    0.7942,
+    -2.444
+   ],
+   "obj": [
+    0.88,
+    0.7942,
+    -2.444
+   ],
+   "surface_distance": 0.017
+  },
+  {
+   "id": "L5",
+   "name": "Lights/LeftSpotlightFlare",
+   "category": "light",
+   "unity": [
+    -0.86,
+    1.67,
+    1.467
+   ],
+   "obj": [
+    0.86,
+    1.67,
+    1.467
+   ],
+   "surface_distance": 0.005
+  },
+  {
+   "id": "L6",
+   "name": "Lights/RightBrakingBrakelight",
+   "category": "light",
+   "unity": [
+    0.85,
+    0.725,
+    -2.45
+   ],
+   "obj": [
+    -0.85,
+    0.725,
+    -2.45
+   ],
+   "surface_distance": 0.023
+  },
+  {
+   "id": "L7",
+   "name": "Lights/RightHeadlight",
+   "category": "light",
+   "unity": [
+    0.56,
+    1.178,
+    1.956
+   ],
+   "obj": [
+    -0.56,
+    1.178,
+    1.956
+   ],
+   "surface_distance": 0.003
+  },
+  {
+   "id": "L8",
+   "name": "Lights/RightPositionBrakelight",
+   "category": "light",
+   "unity": [
+    0.85,
+    0.725,
+    -2.45
+   ],
+   "obj": [
+    -0.85,
+    0.725,
+    -2.45
+   ],
+   "surface_distance": 0.023
+  },
+  {
+   "id": "L9",
+   "name": "Lights/RightReverselight",
+   "category": "light",
+   "unity": [
+    0.88,
+    0.7942,
+    -2.444
+   ],
+   "obj": [
+    -0.88,
+    0.7942,
+    -2.444
+   ],
+   "surface_distance": 0.017
+  },
+  {
+   "id": "L10",
+   "name": "Lights/RightSpotlightFlare",
+   "category": "light",
+   "unity": [
+    0.86,
+    1.67,
+    1.467
+   ],
+   "obj": [
+    -0.86,
+    1.67,
+    1.467
+   ],
+   "surface_distance": 0.005
+  },
+  {
+   "id": "EX",
+   "name": "Effects/VehicleParticles/ExhaustParticlesManager",
+   "category": "exhaust",
+   "unity": [
+    -1.089,
+    0.587,
+    -0.765
+   ],
+   "obj": [
+    1.089,
+    0.587,
+    -0.765
+   ],
+   "surface_distance": 0.039
+  },
+  {
+   "id": "AN",
+   "name": "upgrade slot Antenna (17 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.729,
+    2.9675,
+    1.3873
+   ],
+   "obj": [
+    -0.729,
+    2.9675,
+    1.3873
+   ],
+   "surface_distance": 0.729
+  },
+  {
+   "id": "BD",
+   "name": "upgrade slot Bed (7 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    1.284,
+    -2.268
+   ],
+   "obj": [
+    -0.0,
+    1.284,
+    -2.268
+   ],
+   "surface_distance": 0.041
+  },
+  {
+   "id": "FN",
+   "name": "upgrade slot Fender (28 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    0.678,
+    -0.8735
+   ],
+   "obj": [
+    -0.0,
+    0.678,
+    -0.8735
+   ],
+   "surface_distance": 0.18
+  },
+  {
+   "id": "FS",
+   "name": "upgrade slot Front (13 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    0.866,
+    1.922
+   ],
+   "obj": [
+    -0.0,
+    0.866,
+    1.922
+   ],
+   "surface_distance": 0.074
+  },
+  {
+   "id": "FB",
+   "name": "upgrade slot Front_Bumper (21 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    0.8297,
+    2.1739
+   ],
+   "obj": [
+    -0.0,
+    0.8297,
+    2.1739
+   ],
+   "surface_distance": 0.015
+  },
+  {
+   "id": "RS",
+   "name": "upgrade slot Rear (20 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    1.4275,
+    -2.509
+   ],
+   "obj": [
+    -0.0,
+    1.4275,
+    -2.509
+   ],
+   "surface_distance": 0.187
+  },
+  {
+   "id": "RB",
+   "name": "upgrade slot Rear_Bumper (20 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    1.1269,
+    -2.497
+   ],
+   "obj": [
+    -0.0,
+    1.1269,
+    -2.497
+   ],
+   "surface_distance": 0.016
+  },
+  {
+   "id": "RC",
+   "name": "upgrade slot Rollcage (1 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    -0.071,
+    0.086
+   ],
+   "obj": [
+    -0.0,
+    -0.071,
+    0.086
+   ],
+   "surface_distance": 0.652
+  },
+  {
+   "id": "RF",
+   "name": "upgrade slot Roof (19 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0009,
+    2.199,
+    0.108
+   ],
+   "obj": [
+    -0.0009,
+    2.199,
+    0.108
+   ],
+   "surface_distance": 0.047
+  },
+  {
+   "id": "RL",
+   "name": "upgrade slot Roof_Bar (17 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    2.264,
+    1.0118
+   ],
+   "obj": [
+    -0.0,
+    2.264,
+    1.0118
+   ],
+   "surface_distance": 0.106
+  },
+  {
+   "id": "SD",
+   "name": "upgrade slot Side (26 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    -0.006,
+    1.439,
+    -1.68
+   ],
+   "obj": [
+    0.006,
+    1.439,
+    -1.68
+   ],
+   "surface_distance": 0.198
+  },
+  {
+   "id": "ST",
+   "name": "upgrade slot Side_Step (4 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    0.575,
+    -0.014
+   ],
+   "obj": [
+    -0.0,
+    0.575,
+    -0.014
+   ],
+   "surface_distance": 0.23
+  },
+  {
+   "id": "SN",
+   "name": "upgrade slot Snorkel (2 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    -0.729,
+    1.589,
+    1.4761
+   ],
+   "obj": [
+    0.729,
+    1.589,
+    1.4761
+   ],
+   "surface_distance": 0.062
+  },
+  {
+   "id": "WN",
+   "name": "upgrade slot Winch (1 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    0.829,
+    1.932
+   ],
+   "obj": [
+    -0.0,
+    0.829,
+    1.932
+   ],
+   "surface_distance": 0.109
+  }
+ ],
+ "colliders": {
+  "collider_hulls": 2,
+  "stock_reference": true
+ },
+ "analysis": {
+  "thresholds": {
+   "pixel": 0.005,
+   "close": 0.02,
+   "min_area": 2.0,
+   "fail_culled": 25.0,
+   "fail_gap": 20.0,
+   "sliver_length_m": 1.5,
+   "sliver_area_m2": 0.01
+  },
+  "holes": [
+   {
+    "file": "vehicles/mastodon/build/body_LOD0.obj",
+    "triangles": 3104,
+    "open_edges": 282,
+    "open_loops": 38,
+    "nonmanifold_edges": 12,
+    "culled": [
+     {
+      "area_cm2": 524.2,
+      "lo": [
+       -0.704,
+       0.568,
+       -2.133
+      ],
+      "hi": [
+       -0.704,
+       1.184,
+       -0.856
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 522.5,
+      "lo": [
+       0.704,
+       0.568,
+       -2.133
+      ],
+      "hi": [
+       0.704,
+       1.184,
+       -0.856
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 263.0,
+      "lo": [
+       1.057,
+       1.184,
+       -2.133
+      ],
+      "hi": [
+       1.057,
+       1.244,
+       -0.856
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 262.2,
+      "lo": [
+       -1.057,
+       1.184,
+       -2.133
+      ],
+      "hi": [
+       -1.057,
+       1.244,
+       -0.856
+      ],
+      "region": "body right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 164.8,
+      "lo": [
+       -1.057,
+       1.146,
+       -2.133
+      ],
+      "hi": [
+       -0.702,
+       1.244,
+       -0.856
+      ],
+      "region": "body right",
+      "triangles": 4
+     },
+     {
+      "area_cm2": 163.8,
+      "lo": [
+       0.702,
+       1.146,
+       -2.133
+      ],
+      "hi": [
+       1.057,
+       1.244,
+       -0.856
+      ],
+      "region": "body left",
+      "triangles": 4
+     },
+     {
+      "area_cm2": 134.8,
+      "lo": [
+       -1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       1.07,
+       1.243,
+       0.1
+      ],
+      "region": "body centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 112.2,
+      "lo": [
+       -0.704,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       -0.0,
+       0.568,
+       0.215
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 112.0,
+      "lo": [
+       -0.0,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       0.704,
+       0.568,
+       0.215
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 100.2,
+      "lo": [
+       -1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       1.07,
+       1.296,
+       -2.845
+      ],
+      "region": "body centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 93.5,
+      "lo": [
+       -1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       1.07,
+       1.296,
+       -2.845
+      ],
+      "region": "body centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 62.2,
+      "lo": [
+       -1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       -1.07,
+       1.296,
+       0.1
+      ],
+      "region": "body right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 55.5,
+      "lo": [
+       1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       1.07,
+       1.296,
+       0.1
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 53.2,
+      "lo": [
+       -0.704,
+       0.568,
+       -0.855
+      ],
+      "hi": [
+       -0.704,
+       1.101,
+       0.215
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 48.2,
+      "lo": [
+       0.704,
+       0.568,
+       -0.855
+      ],
+      "hi": [
+       0.704,
+       1.101,
+       0.215
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 41.8,
+      "lo": [
+       0.702,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       1.057,
+       1.184,
+       -0.855
+      ],
+      "region": "lower left",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 39.5,
+      "lo": [
+       -1.057,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       -0.702,
+       1.184,
+       -0.855
+      ],
+      "region": "lower right",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 37.0,
+      "lo": [
+       1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       1.07,
+       1.296,
+       0.1
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 32.8,
+      "lo": [
+       -1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       -1.07,
+       1.296,
+       0.1
+      ],
+      "region": "body right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 31.2,
+      "lo": [
+       -0.847,
+       1.101,
+       0.213
+      ],
+      "hi": [
+       -0.843,
+       1.215,
+       0.801
+      ],
+      "region": "body right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 31.0,
+      "lo": [
+       0.843,
+       1.101,
+       0.213
+      ],
+      "hi": [
+       0.847,
+       1.215,
+       0.801
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 28.5,
+      "lo": [
+       -0.704,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       -0.0,
+       0.568,
+       0.215
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 26.8,
+      "lo": [
+       -0.0,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       0.704,
+       0.568,
+       0.215
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 12.2,
+      "lo": [
+       -1.057,
+       1.184,
+       -2.133
+      ],
+      "hi": [
+       -0.704,
+       1.184,
+       -0.856
+      ],
+      "region": "body right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 11.0,
+      "lo": [
+       0.704,
+       1.184,
+       -2.133
+      ],
+      "hi": [
+       1.057,
+       1.184,
+       -0.856
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 9.8,
+      "lo": [
+       -0.752,
+       1.056,
+       1.861
+      ],
+      "hi": [
+       -0.485,
+       1.147,
+       1.942
+      ],
+      "region": "lower right",
+      "triangles": 7
+     },
+     {
+      "area_cm2": 9.8,
+      "lo": [
+       0.485,
+       1.056,
+       1.861
+      ],
+      "hi": [
+       0.752,
+       1.147,
+       1.942
+      ],
+      "region": "lower left",
+      "triangles": 7
+     },
+     {
+      "area_cm2": 9.5,
+      "lo": [
+       -0.893,
+       1.56,
+       0.374
+      ],
+      "hi": [
+       -0.849,
+       1.6,
+       0.6
+      ],
+      "region": "body right",
+      "triangles": 10
+     },
+     {
+      "area_cm2": 9.5,
+      "lo": [
+       0.849,
+       1.56,
+       0.374
+      ],
+      "hi": [
+       0.893,
+       1.6,
+       0.6
+      ],
+      "region": "body left",
+      "triangles": 10
+     },
+     {
+      "area_cm2": 5.2,
+      "lo": [
+       -1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       1.07,
+       1.243,
+       0.1
+      ],
+      "region": "body centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 4.5,
+      "lo": [
+       -0.704,
+       1.101,
+       -0.008
+      ],
+      "hi": [
+       -0.443,
+       1.106,
+       0.153
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 4.2,
+      "lo": [
+       0.443,
+       1.101,
+       -0.008
+      ],
+      "hi": [
+       0.704,
+       1.106,
+       0.153
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "lo": [
+       0.704,
+       1.184,
+       -2.133
+      ],
+      "hi": [
+       1.057,
+       1.244,
+       -2.133
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "lo": [
+       -1.057,
+       1.184,
+       -2.133
+      ],
+      "hi": [
+       -0.704,
+       1.244,
+       -2.133
+      ],
+      "region": "body right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 1.5,
+      "lo": [
+       0.704,
+       1.054,
+       0.838
+      ],
+      "hi": [
+       1.057,
+       1.157,
+       1.003
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 1.2,
+      "lo": [
+       -1.057,
+       1.054,
+       0.838
+      ],
+      "hi": [
+       -0.704,
+       1.157,
+       1.003
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 0.5,
+      "lo": [
+       -0.847,
+       1.101,
+       0.213
+      ],
+      "hi": [
+       -0.843,
+       1.215,
+       0.976
+      ],
+      "region": "body right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 0.5,
+      "lo": [
+       0.843,
+       1.101,
+       0.213
+      ],
+      "hi": [
+       0.847,
+       1.215,
+       0.976
+      ],
+      "region": "body left",
+      "triangles": 1
+     }
+    ],
+    "gaps": [
+     {
+      "area_cm2": 16.2,
+      "at": [
+       -1.032,
+       1.004,
+       1.728
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 15.2,
+      "at": [
+       0.763,
+       0.858,
+       1.885
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.2,
+      "at": [
+       0.823,
+       1.315,
+       1.764
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.8,
+      "at": [
+       -0.856,
+       1.027,
+       1.844
+      ],
+      "region": "lower right",
+      "views": 2
+     },
+     {
+      "area_cm2": 3.2,
+      "at": [
+       0.858,
+       1.026,
+       1.842
+      ],
+      "region": "lower left",
+      "views": 1
+     }
+    ],
+    "fail": true,
+    "failing_findings": 23
+   },
+   {
+    "file": "vehicles/mastodon/build/body_LOD1.obj",
+    "triangles": 2372,
+    "open_edges": 262,
+    "open_loops": 38,
+    "nonmanifold_edges": 12,
+    "culled": [
+     {
+      "area_cm2": 526.5,
+      "lo": [
+       -0.705,
+       0.568,
+       -2.133
+      ],
+      "hi": [
+       -0.704,
+       1.184,
+       -0.856
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 524.5,
+      "lo": [
+       0.704,
+       0.568,
+       -2.133
+      ],
+      "hi": [
+       0.705,
+       1.184,
+       -0.856
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 220.0,
+      "lo": [
+       -1.057,
+       1.184,
+       -2.133
+      ],
+      "hi": [
+       -0.704,
+       1.244,
+       -0.856
+      ],
+      "region": "body right",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 219.2,
+      "lo": [
+       0.704,
+       1.184,
+       -2.133
+      ],
+      "hi": [
+       1.057,
+       1.244,
+       -0.856
+      ],
+      "region": "body left",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 206.5,
+      "lo": [
+       1.057,
+       1.184,
+       -2.133
+      ],
+      "hi": [
+       1.057,
+       1.244,
+       -0.856
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 205.5,
+      "lo": [
+       -1.057,
+       1.184,
+       -2.133
+      ],
+      "hi": [
+       -1.057,
+       1.244,
+       -0.856
+      ],
+      "region": "body right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 131.0,
+      "lo": [
+       -1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       1.07,
+       1.243,
+       0.1
+      ],
+      "region": "body centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 112.8,
+      "lo": [
+       -0.705,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       0.705,
+       0.568,
+       1.209
+      ],
+      "region": "lower centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 101.2,
+      "lo": [
+       -1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       1.07,
+       1.296,
+       -2.845
+      ],
+      "region": "body centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 97.2,
+      "lo": [
+       -0.705,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       0.704,
+       0.568,
+       1.209
+      ],
+      "region": "lower centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 94.8,
+      "lo": [
+       -1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       1.07,
+       1.296,
+       -2.845
+      ],
+      "region": "body centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 62.0,
+      "lo": [
+       1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       1.07,
+       1.296,
+       0.1
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 57.0,
+      "lo": [
+       -1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       -1.07,
+       1.296,
+       0.1
+      ],
+      "region": "body right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 54.5,
+      "lo": [
+       0.704,
+       0.72,
+       -0.855
+      ],
+      "hi": [
+       0.847,
+       1.218,
+       0.801
+      ],
+      "region": "lower left",
+      "triangles": 4
+     },
+     {
+      "area_cm2": 41.8,
+      "lo": [
+       0.704,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       0.705,
+       1.184,
+       -0.855
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 39.5,
+      "lo": [
+       -0.705,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       -0.704,
+       1.184,
+       -0.855
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 38.0,
+      "lo": [
+       -1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       -1.07,
+       1.296,
+       0.1
+      ],
+      "region": "body right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 32.8,
+      "lo": [
+       1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       1.07,
+       1.296,
+       0.1
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 18.8,
+      "lo": [
+       0.704,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       0.705,
+       1.101,
+       0.581
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 12.0,
+      "lo": [
+       0.702,
+       1.146,
+       -1.342
+      ],
+      "hi": [
+       0.745,
+       1.228,
+       -0.927
+      ],
+      "region": "body left",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 12.0,
+      "lo": [
+       -0.745,
+       1.146,
+       -1.342
+      ],
+      "hi": [
+       -0.702,
+       1.228,
+       -0.927
+      ],
+      "region": "body right",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 9.8,
+      "lo": [
+       0.677,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       0.86,
+       0.681,
+       1.209
+      ],
+      "region": "lower left",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 9.5,
+      "lo": [
+       -0.893,
+       1.56,
+       0.374
+      ],
+      "hi": [
+       -0.849,
+       1.6,
+       0.6
+      ],
+      "region": "body right",
+      "triangles": 10
+     },
+     {
+      "area_cm2": 9.5,
+      "lo": [
+       0.849,
+       1.56,
+       0.374
+      ],
+      "hi": [
+       0.893,
+       1.6,
+       0.6
+      ],
+      "region": "body left",
+      "triangles": 10
+     },
+     {
+      "area_cm2": 9.0,
+      "lo": [
+       -0.705,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       -0.704,
+       0.681,
+       1.209
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 7.0,
+      "lo": [
+       -1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       1.07,
+       1.243,
+       0.1
+      ],
+      "region": "body centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 5.8,
+      "lo": [
+       0.704,
+       0.568,
+       0.838
+      ],
+      "hi": [
+       0.704,
+       1.189,
+       1.212
+      ],
+      "region": "lower left",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 5.2,
+      "lo": [
+       0.678,
+       0.607,
+       -0.072
+      ],
+      "hi": [
+       1.012,
+       0.607,
+       0.578
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 4.8,
+      "lo": [
+       0.244,
+       1.068,
+       1.919
+      ],
+      "hi": [
+       0.447,
+       1.136,
+       1.943
+      ],
+      "region": "lower left",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 2.5,
+      "lo": [
+       0.704,
+       1.184,
+       -2.133
+      ],
+      "hi": [
+       1.057,
+       1.244,
+       -2.133
+      ],
+      "region": "body left",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 2.5,
+      "lo": [
+       -1.057,
+       1.184,
+       -2.133
+      ],
+      "hi": [
+       -0.704,
+       1.244,
+       -2.133
+      ],
+      "region": "body right",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 2.0,
+      "lo": [
+       -0.705,
+       1.101,
+       -0.008
+      ],
+      "hi": [
+       0.704,
+       1.104,
+       0.153
+      ],
+      "region": "lower centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "lo": [
+       0.704,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       0.705,
+       0.72,
+       0.596
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 1.5,
+      "lo": [
+       -1.012,
+       0.607,
+       -0.072
+      ],
+      "hi": [
+       -0.678,
+       0.607,
+       0.578
+      ],
+      "region": "lower right",
+      "triangles": 1
+     }
+    ],
+    "gaps": [
+     {
+      "area_cm2": 13.2,
+      "at": [
+       -0.76,
+       0.858,
+       1.884
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 11.8,
+      "at": [
+       0.494,
+       0.714,
+       2.039
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 7.8,
+      "at": [
+       0.855,
+       1.028,
+       1.847
+      ],
+      "region": "lower left",
+      "views": 2
+     },
+     {
+      "area_cm2": 7.5,
+      "at": [
+       -0.924,
+       0.738,
+       1.884
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 5.5,
+      "at": [
+       -0.85,
+       1.024,
+       1.849
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -0.647,
+       1.711,
+       1.416
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -0.758,
+       1.711,
+       1.353
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.675,
+       1.326,
+       1.906
+      ],
+      "region": "body left",
+      "views": 1
+     }
+    ],
+    "fail": true,
+    "failing_findings": 18
+   },
+   {
+    "file": "vehicles/mastodon/build/body_LOD2.obj",
+    "triangles": 1404,
+    "open_edges": 214,
+    "open_loops": 40,
+    "nonmanifold_edges": 12,
+    "culled": [
+     {
+      "area_cm2": 493.8,
+      "lo": [
+       -0.705,
+       0.568,
+       -2.133
+      ],
+      "hi": [
+       -0.704,
+       1.184,
+       -0.856
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 493.5,
+      "lo": [
+       0.704,
+       0.568,
+       -2.133
+      ],
+      "hi": [
+       0.705,
+       1.184,
+       -0.856
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 244.0,
+      "lo": [
+       -1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       1.07,
+       1.243,
+       0.1
+      ],
+      "region": "body centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 231.0,
+      "lo": [
+       1.057,
+       1.184,
+       -2.133
+      ],
+      "hi": [
+       1.057,
+       1.244,
+       -0.856
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 229.5,
+      "lo": [
+       -1.057,
+       1.184,
+       -2.133
+      ],
+      "hi": [
+       -1.057,
+       1.244,
+       -0.856
+      ],
+      "region": "body right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 225.0,
+      "lo": [
+       -1.057,
+       1.184,
+       -2.133
+      ],
+      "hi": [
+       -0.704,
+       1.244,
+       -0.856
+      ],
+      "region": "body right",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 213.0,
+      "lo": [
+       0.704,
+       1.184,
+       -2.133
+      ],
+      "hi": [
+       1.057,
+       1.244,
+       -0.855
+      ],
+      "region": "body left",
+      "triangles": 3
+     },
+     {
+      "area_cm2": 121.0,
+      "lo": [
+       -1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       1.07,
+       1.302,
+       -2.822
+      ],
+      "region": "body centre",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 115.5,
+      "lo": [
+       -0.705,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       0.705,
+       0.568,
+       1.209
+      ],
+      "region": "lower centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 106.5,
+      "lo": [
+       -1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       1.07,
+       1.302,
+       -2.82
+      ],
+      "region": "body centre",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 101.2,
+      "lo": [
+       -0.705,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       0.704,
+       0.568,
+       1.209
+      ],
+      "region": "lower centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 66.5,
+      "lo": [
+       1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       1.07,
+       1.296,
+       0.1
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 64.0,
+      "lo": [
+       -1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       -0.997,
+       1.438,
+       0.1
+      ],
+      "region": "body right",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 42.2,
+      "lo": [
+       -1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       -1.07,
+       1.296,
+       0.1
+      ],
+      "region": "body right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 38.8,
+      "lo": [
+       1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       1.07,
+       1.296,
+       0.1
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 38.5,
+      "lo": [
+       0.704,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       0.705,
+       1.184,
+       -0.855
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 37.8,
+      "lo": [
+       -0.705,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       -0.704,
+       1.184,
+       -0.855
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 34.2,
+      "lo": [
+       0.704,
+       0.925,
+       -0.855
+      ],
+      "hi": [
+       0.705,
+       1.101,
+       0.801
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 32.5,
+      "lo": [
+       0.704,
+       0.703,
+       -0.855
+      ],
+      "hi": [
+       0.705,
+       1.101,
+       0.654
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 25.5,
+      "lo": [
+       -1.057,
+       0.681,
+       0.585
+      ],
+      "hi": [
+       -0.704,
+       0.964,
+       0.743
+      ],
+      "region": "lower right",
+      "triangles": 6
+     },
+     {
+      "area_cm2": 25.2,
+      "lo": [
+       0.704,
+       0.681,
+       0.585
+      ],
+      "hi": [
+       1.057,
+       0.964,
+       0.743
+      ],
+      "region": "lower left",
+      "triangles": 6
+     },
+     {
+      "area_cm2": 17.8,
+      "lo": [
+       0.704,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       0.705,
+       1.101,
+       0.585
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 16.2,
+      "lo": [
+       0.408,
+       1.238,
+       -2.133
+      ],
+      "hi": [
+       0.708,
+       1.244,
+       -0.855
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 12.5,
+      "lo": [
+       -0.745,
+       1.146,
+       -1.342
+      ],
+      "hi": [
+       -0.702,
+       1.228,
+       -0.927
+      ],
+      "region": "body right",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 11.8,
+      "lo": [
+       0.702,
+       1.146,
+       -1.342
+      ],
+      "hi": [
+       0.745,
+       1.228,
+       -0.927
+      ],
+      "region": "body left",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 11.2,
+      "lo": [
+       -1.07,
+       1.243,
+       -2.845
+      ],
+      "hi": [
+       1.07,
+       1.243,
+       0.1
+      ],
+      "region": "body centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 11.2,
+      "lo": [
+       -0.882,
+       1.56,
+       0.374
+      ],
+      "hi": [
+       -0.849,
+       1.6,
+       0.6
+      ],
+      "region": "body right",
+      "triangles": 8
+     },
+     {
+      "area_cm2": 9.8,
+      "lo": [
+       0.493,
+       1.3,
+       -2.774
+      ],
+      "hi": [
+       0.997,
+       1.307,
+       0.029
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 9.8,
+      "lo": [
+       0.677,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       0.878,
+       0.681,
+       1.209
+      ],
+      "region": "lower left",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 9.2,
+      "lo": [
+       0.849,
+       1.56,
+       0.374
+      ],
+      "hi": [
+       0.882,
+       1.6,
+       0.6
+      ],
+      "region": "body left",
+      "triangles": 7
+     },
+     {
+      "area_cm2": 9.0,
+      "lo": [
+       -0.705,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       -0.704,
+       0.681,
+       1.209
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 5.2,
+      "lo": [
+       0.678,
+       0.607,
+       -0.072
+      ],
+      "hi": [
+       1.012,
+       0.607,
+       0.578
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 5.0,
+      "lo": [
+       0.849,
+       1.56,
+       0.374
+      ],
+      "hi": [
+       0.882,
+       1.6,
+       0.413
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "lo": [
+       -1.057,
+       1.184,
+       -2.133
+      ],
+      "hi": [
+       -0.704,
+       1.244,
+       -2.133
+      ],
+      "region": "body right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 1.8,
+      "lo": [
+       0.704,
+       1.184,
+       -2.133
+      ],
+      "hi": [
+       1.057,
+       1.244,
+       -2.133
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 1.5,
+      "lo": [
+       -1.012,
+       0.607,
+       -0.072
+      ],
+      "hi": [
+       -0.678,
+       0.607,
+       0.578
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 0.5,
+      "lo": [
+       -1.005,
+       1.3,
+       0.029
+      ],
+      "hi": [
+       -0.49,
+       1.438,
+       0.033
+      ],
+      "region": "body right",
+      "triangles": 1
+     }
+    ],
+    "gaps": [
+     {
+      "area_cm2": 10.5,
+      "at": [
+       -0.753,
+       0.87,
+       1.865
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 9.8,
+      "at": [
+       0.75,
+       0.872,
+       1.863
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.5,
+      "at": [
+       0.791,
+       1.318,
+       1.8
+      ],
+      "region": "body left",
+      "views": 2
+     },
+     {
+      "area_cm2": 4.2,
+      "at": [
+       -0.791,
+       1.317,
+       1.801
+      ],
+      "region": "body right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       0.748,
+       0.732,
+       2.015
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       -0.987,
+       1.798,
+       1.241
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       -0.747,
+       0.732,
+       2.016
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       -0.854,
+       1.022,
+       1.838
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       0.982,
+       1.79,
+       1.242
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       1.036,
+       0.726,
+       0.618
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       -0.667,
+       1.042,
+       1.982
+      ],
+      "region": "lower right",
+      "views": 1
+     }
+    ],
+    "fail": true,
+    "failing_findings": 21
+   },
+   {
+    "file": "vehicles/mastodon/build/body_LOD3.obj",
+    "triangles": 541,
+    "open_edges": 101,
+    "open_loops": 27,
+    "nonmanifold_edges": 12,
+    "culled": [
+     {
+      "area_cm2": 488.5,
+      "lo": [
+       -0.705,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       0.704,
+       0.568,
+       1.209
+      ],
+      "region": "lower centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 394.0,
+      "lo": [
+       0.704,
+       0.568,
+       -2.133
+      ],
+      "hi": [
+       0.705,
+       1.239,
+       -0.856
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 384.8,
+      "lo": [
+       -0.705,
+       0.568,
+       -2.133
+      ],
+      "hi": [
+       -0.704,
+       1.235,
+       -0.855
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 298.5,
+      "lo": [
+       -1.057,
+       1.122,
+       -2.133
+      ],
+      "hi": [
+       -0.704,
+       1.235,
+       -0.844
+      ],
+      "region": "body right",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 264.8,
+      "lo": [
+       -0.705,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       0.705,
+       0.568,
+       1.209
+      ],
+      "region": "lower centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 257.8,
+      "lo": [
+       0.705,
+       1.122,
+       -2.133
+      ],
+      "hi": [
+       1.057,
+       1.224,
+       -0.856
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 186.2,
+      "lo": [
+       -0.729,
+       1.103,
+       -0.051
+      ],
+      "hi": [
+       0.714,
+       1.157,
+       0.152
+      ],
+      "region": "lower centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 183.2,
+      "lo": [
+       -0.652,
+       1.02,
+       1.922
+      ],
+      "hi": [
+       0.547,
+       1.183,
+       1.955
+      ],
+      "region": "lower centre",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 153.0,
+      "lo": [
+       -0.705,
+       0.684,
+       -0.855
+      ],
+      "hi": [
+       -0.704,
+       1.122,
+       0.732
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 146.2,
+      "lo": [
+       -1.059,
+       0.822,
+       1.515
+      ],
+      "hi": [
+       -0.817,
+       1.174,
+       1.804
+      ],
+      "region": "lower right",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 144.8,
+      "lo": [
+       -0.704,
+       0.568,
+       0.958
+      ],
+      "hi": [
+       -0.704,
+       1.205,
+       1.744
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 142.8,
+      "lo": [
+       0.704,
+       1.204,
+       -2.133
+      ],
+      "hi": [
+       1.057,
+       1.239,
+       -0.856
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 140.5,
+      "lo": [
+       0.704,
+       0.684,
+       -0.856
+      ],
+      "hi": [
+       0.705,
+       1.122,
+       0.732
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 128.5,
+      "lo": [
+       -1.057,
+       1.204,
+       -2.133
+      ],
+      "hi": [
+       -0.704,
+       1.235,
+       -0.856
+      ],
+      "region": "body right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 117.8,
+      "lo": [
+       0.704,
+       0.568,
+       0.958
+      ],
+      "hi": [
+       0.704,
+       1.205,
+       1.783
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 92.2,
+      "lo": [
+       -0.704,
+       0.568,
+       1.209
+      ],
+      "hi": [
+       0.704,
+       0.929,
+       1.744
+      ],
+      "region": "lower centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 89.0,
+      "lo": [
+       0.704,
+       0.888,
+       0.958
+      ],
+      "hi": [
+       1.059,
+       1.205,
+       1.783
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 86.0,
+      "lo": [
+       -1.059,
+       0.929,
+       0.958
+      ],
+      "hi": [
+       -0.704,
+       1.205,
+       1.744
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 81.2,
+      "lo": [
+       -0.729,
+       1.103,
+       0.119
+      ],
+      "hi": [
+       0.865,
+       1.238,
+       0.184
+      ],
+      "region": "body centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 78.0,
+      "lo": [
+       0.848,
+       1.039,
+       1.402
+      ],
+      "hi": [
+       1.059,
+       1.283,
+       1.744
+      ],
+      "region": "body left",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 75.2,
+      "lo": [
+       -0.41,
+       1.031,
+       1.949
+      ],
+      "hi": [
+       0.547,
+       1.183,
+       1.955
+      ],
+      "region": "lower centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 71.5,
+      "lo": [
+       -1.053,
+       0.684,
+       0.597
+      ],
+      "hi": [
+       -0.704,
+       1.205,
+       0.958
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 71.5,
+      "lo": [
+       0.704,
+       0.684,
+       0.597
+      ],
+      "hi": [
+       1.053,
+       1.205,
+       0.958
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 70.8,
+      "lo": [
+       0.848,
+       0.822,
+       1.515
+      ],
+      "hi": [
+       1.059,
+       1.155,
+       1.804
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 60.0,
+      "lo": [
+       -1.06,
+       1.139,
+       0.803
+      ],
+      "hi": [
+       -0.704,
+       1.283,
+       1.515
+      ],
+      "region": "body right",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 59.2,
+      "lo": [
+       0.704,
+       1.139,
+       0.803
+      ],
+      "hi": [
+       1.06,
+       1.283,
+       1.515
+      ],
+      "region": "body left",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 57.0,
+      "lo": [
+       0.408,
+       1.224,
+       -2.133
+      ],
+      "hi": [
+       0.839,
+       1.244,
+       -0.834
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 42.5,
+      "lo": [
+       0.704,
+       0.737,
+       0.597
+      ],
+      "hi": [
+       1.06,
+       1.208,
+       0.995
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 42.2,
+      "lo": [
+       -1.06,
+       0.737,
+       0.597
+      ],
+      "hi": [
+       -0.704,
+       1.208,
+       0.995
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 41.8,
+      "lo": [
+       -0.704,
+       0.568,
+       1.209
+      ],
+      "hi": [
+       0.704,
+       0.929,
+       1.783
+      ],
+      "region": "lower centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 37.0,
+      "lo": [
+       -0.833,
+       1.23,
+       -2.133
+      ],
+      "hi": [
+       0.704,
+       1.244,
+       -0.844
+      ],
+      "region": "body centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 23.0,
+      "lo": [
+       0.72,
+       1.039,
+       1.657
+      ],
+      "hi": [
+       0.876,
+       1.183,
+       1.881
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 19.5,
+      "lo": [
+       -0.704,
+       0.568,
+       0.605
+      ],
+      "hi": [
+       -0.704,
+       1.205,
+       1.209
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 18.8,
+      "lo": [
+       -0.879,
+       1.011,
+       1.661
+      ],
+      "hi": [
+       -0.652,
+       1.305,
+       1.922
+      ],
+      "region": "body right",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 17.8,
+      "lo": [
+       -0.704,
+       0.835,
+       -2.391
+      ],
+      "hi": [
+       -0.704,
+       1.244,
+       -2.133
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 17.8,
+      "lo": [
+       -0.869,
+       1.103,
+       0.152
+      ],
+      "hi": [
+       -0.729,
+       1.242,
+       0.803
+      ],
+      "region": "body right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 17.8,
+      "lo": [
+       0.704,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       0.705,
+       1.122,
+       0.605
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 17.5,
+      "lo": [
+       -0.705,
+       0.568,
+       -1.677
+      ],
+      "hi": [
+       -0.704,
+       1.122,
+       0.605
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 14.8,
+      "lo": [
+       0.704,
+       0.568,
+       0.605
+      ],
+      "hi": [
+       0.704,
+       1.205,
+       1.209
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 13.5,
+      "lo": [
+       0.704,
+       0.835,
+       -2.391
+      ],
+      "hi": [
+       0.704,
+       1.244,
+       -2.133
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 11.2,
+      "lo": [
+       -0.652,
+       1.02,
+       1.866
+      ],
+      "hi": [
+       -0.41,
+       1.309,
+       1.952
+      ],
+      "region": "body right",
+      "triangles": 3
+     },
+     {
+      "area_cm2": 8.2,
+      "lo": [
+       -0.705,
+       0.568,
+       -2.391
+      ],
+      "hi": [
+       -0.704,
+       1.235,
+       -1.677
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 6.5,
+      "lo": [
+       0.704,
+       0.568,
+       -2.391
+      ],
+      "hi": [
+       0.705,
+       1.239,
+       -1.677
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 3.8,
+      "lo": [
+       0.677,
+       0.681,
+       -0.064
+      ],
+      "hi": [
+       0.875,
+       0.737,
+       0.581
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "lo": [
+       -1.025,
+       1.508,
+       1.243
+      ],
+      "hi": [
+       -0.864,
+       1.882,
+       1.266
+      ],
+      "region": "greenhouse right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 1.8,
+      "lo": [
+       -0.729,
+       1.103,
+       0.152
+      ],
+      "hi": [
+       0.865,
+       1.777,
+       0.192
+      ],
+      "region": "body centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 1.5,
+      "lo": [
+       0.678,
+       0.607,
+       -0.072
+      ],
+      "hi": [
+       0.992,
+       0.637,
+       0.578
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 1.2,
+      "lo": [
+       0.411,
+       1.031,
+       1.948
+      ],
+      "hi": [
+       0.569,
+       1.327,
+       1.955
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 0.2,
+      "lo": [
+       -1.055,
+       1.292,
+       -2.83
+      ],
+      "hi": [
+       1.056,
+       1.297,
+       0.086
+      ],
+      "region": "body centre",
+      "triangles": 1
+     }
+    ],
+    "gaps": [
+     {
+      "area_cm2": 3.2,
+      "at": [
+       -0.949,
+       1.734,
+       1.255
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       -0.704,
+       0.927,
+       0.69
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.704,
+       0.93,
+       0.69
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.934,
+       1.666,
+       1.335
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     }
+    ],
+    "fail": true,
+    "failing_findings": 31
+   }
+  ],
+  "slivers": [
+   {
+    "file": "vehicles/mastodon/build/body_LOD0.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mastodon/build/body_LOD1.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mastodon/build/body_LOD2.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mastodon/build/body_LOD3.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mastodon/build/collider_base.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mastodon/build/collider_top.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mastodon/build/suspension_front_LOD0.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mastodon/build/suspension_front_LOD1.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mastodon/build/suspension_front_LOD2.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mastodon/build/suspension_front_LOD3.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mastodon/build/suspension_rear_LOD0.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mastodon/build/suspension_rear_LOD1.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mastodon/build/suspension_rear_LOD2.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/mastodon/build/suspension_rear_LOD3.obj",
+    "slivers": 0
+   }
+  ],
+  "triangles": {
+   "body_LOD0": 3104,
+   "body_LOD1": 2372,
+   "body_LOD2": 1404,
+   "body_LOD3": 541,
+   "axle_front_LOD0": 4076,
+   "axle_rear_LOD0": 4076,
+   "collider_top": 20,
+   "collider_base": 24
+  },
+  "attach_points": [
+   {
+    "id": "HFL",
+    "check": "wheel mesh on its collider; tyre clear of the body above the hub (prefab pose)",
+    "value": "mesh offset 0.0 cm, clearance +11.6 cm",
+    "pass": true
+   },
+   {
+    "id": "HFR",
+    "check": "wheel mesh on its collider; tyre clear of the body above the hub (prefab pose)",
+    "value": "mesh offset 0.0 cm, clearance +11.6 cm",
+    "pass": true
+   },
+   {
+    "id": "HRL",
+    "check": "wheel mesh on its collider; tyre clear of the body above the hub (prefab pose)",
+    "value": "mesh offset 0.0 cm, clearance +15.3 cm",
+    "pass": true
+   },
+   {
+    "id": "HRR",
+    "check": "wheel mesh on its collider; tyre clear of the body above the hub (prefab pose)",
+    "value": "mesh offset 0.0 cm, clearance +15.3 cm",
+    "pass": true
+   },
+   {
+    "id": "COM",
+    "check": "centre of mass between the wheels (inside track and wheelbase, above the ground)",
+    "value": "x -0.00, y 0.65, z -0.24 m; -0.08 m from the collider bottom",
+    "pass": true
+   },
+   {
+    "id": "COL",
+    "check": "colliders (convex hulls) cover the LOD0 body no worse than the stock donor's: share of vertices over 10 cm outside within 5 points, worst within 10 cm",
+    "value": "9.6% over 10 cm outside, worst 57 cm (stock 9.4%, worst 34 cm)",
+    "pass": false
+   },
+   {
+    "id": "WF",
+    "check": "winch point within 15 cm of a body or axle surface",
+    "value": "1.7 cm",
+    "pass": true
+   },
+   {
+    "id": "WB",
+    "check": "winch point within 15 cm of a body or axle surface",
+    "value": "2.2 cm",
+    "pass": true
+   },
+   {
+    "id": "WL",
+    "check": "winch point within 15 cm of a body or axle surface",
+    "value": "1.2 cm",
+    "pass": true
+   },
+   {
+    "id": "WR",
+    "check": "winch point within 15 cm of a body or axle surface",
+    "value": "1.2 cm",
+    "pass": true
+   },
+   {
+    "id": "L1",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "2.3 cm",
+    "pass": true
+   },
+   {
+    "id": "L2",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "0.3 cm",
+    "pass": true
+   },
+   {
+    "id": "L3",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "2.3 cm",
+    "pass": true
+   },
+   {
+    "id": "L4",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "1.7 cm",
+    "pass": true
+   },
+   {
+    "id": "L5",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "0.5 cm",
+    "pass": true
+   },
+   {
+    "id": "L6",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "2.3 cm",
+    "pass": true
+   },
+   {
+    "id": "L7",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "0.3 cm",
+    "pass": true
+   },
+   {
+    "id": "L8",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "2.3 cm",
+    "pass": true
+   },
+   {
+    "id": "L9",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "1.7 cm",
+    "pass": true
+   },
+   {
+    "id": "L10",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "0.5 cm",
+    "pass": true
+   },
+   {
+    "id": "EX",
+    "check": "exhaust point within 15 cm of a body or axle surface",
+    "value": "3.9 cm",
+    "pass": true
+   },
+   {
+    "id": "AN",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "72.9 cm (stock 72.9 cm)",
+    "pass": true
+   },
+   {
+    "id": "BD",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "4.1 cm (stock 4.1 cm)",
+    "pass": true
+   },
+   {
+    "id": "FN",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "18.0 cm (stock 18.1 cm)",
+    "pass": true
+   },
+   {
+    "id": "FS",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "7.4 cm (stock 7.4 cm)",
+    "pass": true
+   },
+   {
+    "id": "FB",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "1.5 cm (stock 1.5 cm)",
+    "pass": true
+   },
+   {
+    "id": "RS",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "18.7 cm (stock 0.8 cm)",
+    "pass": false
+   },
+   {
+    "id": "RB",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "1.6 cm (stock 1.6 cm)",
+    "pass": true
+   },
+   {
+    "id": "RC",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "65.2 cm (stock 65.2 cm)",
+    "pass": true
+   },
+   {
+    "id": "RF",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "4.7 cm (stock 19.5 cm)",
+    "pass": true
+   },
+   {
+    "id": "RL",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "10.6 cm (stock 10.6 cm)",
+    "pass": true
+   },
+   {
+    "id": "SD",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "19.8 cm (stock 11.8 cm)",
+    "pass": true
+   },
+   {
+    "id": "ST",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "23.0 cm (stock 23.0 cm)",
+    "pass": true
+   },
+   {
+    "id": "SN",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "6.2 cm (stock 6.2 cm)",
+    "pass": true
+   },
+   {
+    "id": "WN",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "10.9 cm (stock 10.9 cm)",
+    "pass": true
+   }
+  ]
+ },
+ "images": {
+  "iso": "contact/iso.png",
+  "rig": "contact/rig.png",
+  "gaps": "contact/gaps.png"
+ }
+}

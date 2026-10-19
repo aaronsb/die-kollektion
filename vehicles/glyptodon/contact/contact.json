@@ -1,0 +1,3205 @@
+{
+ "generator": "Die Kollektion Werkstatt, tools/contact_sheet.py (prototype of `kollektion contact`)",
+ "view": {
+  "elevation": 35.264,
+  "ortho_scale": 7.4,
+  "target": [
+   0.0,
+   1.0,
+   -0.6
+  ],
+  "tile": [
+   560,
+   420
+  ],
+  "corners": [
+   "front_left",
+   "front_right",
+   "rear_left",
+   "rear_right"
+  ]
+ },
+ "facts": {
+  "codename": "Glyptodon",
+  "displayName": "Das Glyptodon",
+  "kind": "based",
+  "base": {
+   "car": "Mammoth"
+  },
+  "donor": "Mammoth",
+  "itemId": 3000000003,
+  "listing": {
+   "family": "Glyptodon",
+   "variant": "two-door"
+  },
+  "dimensions_m": {
+   "length": 5.627,
+   "width": 2.707,
+   "height": 2.588,
+   "wheelbase": 3.25,
+   "track": 1.86,
+   "ground_clearance_prefab_pose": 0.429
+  },
+  "chassis": {
+   "wheelbase": 3.25,
+   "track": 1.86,
+   "maxSteerAngle": 37.8,
+   "wheel": {
+    "radius": 0.52,
+    "width": 0.4,
+    "y": 0.45
+   },
+   "tyre": {
+    "radius": 0.545,
+    "width": 0.352
+   },
+   "suspension": {
+    "travel": 0.4,
+    "anchor": 0.725,
+    "springRate": 18300,
+    "damperRate": 4500,
+    "preloadDistance": 0.1,
+    "bumpTravelOffset": 0.03
+   },
+   "bodyCut": [
+    [
+     0.0,
+     -0.62
+    ],
+    [
+     1.05,
+     -0.865
+    ],
+    [
+     1.21,
+     -1.45
+    ]
+   ]
+  },
+  "layout": {
+   "donorWheelbase": 2.531,
+   "shift": -0.719,
+   "transformCut": -0.62
+  },
+  "meshes": {
+   "body_LOD0": {
+    "node": "Parts/Mammoth/Mammoth_body_LOD0",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/glyptodon/build/body_LOD0.obj"
+   },
+   "body_LOD1": {
+    "node": "Parts/Mammoth/Mammoth_body_LOD1",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/glyptodon/build/body_LOD1.obj"
+   },
+   "body_LOD2": {
+    "node": "Parts/Mammoth/Mammoth_body_LOD2",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/glyptodon/build/body_LOD2.obj"
+   },
+   "body_LOD3": {
+    "node": "Parts/Mammoth/Mammoth_body_LOD3",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/glyptodon/build/body_LOD3.obj"
+   },
+   "axle_front_LOD0": {
+    "node": "Axles/SuspensionRigidFront/SuspensionRigidMesh_LOD0",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/glyptodon/build/suspension_front_LOD0.obj"
+   },
+   "axle_rear_LOD0": {
+    "node": "Axles/SuspensionRigidRear/SuspensionRigidMesh_LOD0",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     -0.719
+    ],
+    "file": "vehicles/glyptodon/build/suspension_rear_LOD0.obj"
+   },
+   "collider_top": {
+    "node": "Collider/Top",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/glyptodon/build/collider_top.obj"
+   },
+   "collider_base": {
+    "node": "Collider/Base",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/glyptodon/build/collider_base.obj"
+   }
+  },
+  "pieces_lod0": 1175
+ },
+ "points": [
+  {
+   "id": "HFL",
+   "name": "Axles/WheelColliders/WheelFL",
+   "category": "hub",
+   "unity": [
+    -0.93,
+    0.448,
+    1.221
+   ],
+   "obj": [
+    0.93,
+    0.448,
+    1.221
+   ]
+  },
+  {
+   "id": "HFR",
+   "name": "Axles/WheelColliders/WheelFR",
+   "category": "hub",
+   "unity": [
+    0.93,
+    0.448,
+    1.221
+   ],
+   "obj": [
+    -0.93,
+    0.448,
+    1.221
+   ]
+  },
+  {
+   "id": "HRL",
+   "name": "Axles/WheelColliders/WheelRL",
+   "category": "hub",
+   "unity": [
+    -0.93,
+    0.448,
+    -2.029
+   ],
+   "obj": [
+    0.93,
+    0.448,
+    -2.029
+   ]
+  },
+  {
+   "id": "HRR",
+   "name": "Axles/WheelColliders/WheelRR",
+   "category": "hub",
+   "unity": [
+    0.93,
+    0.448,
+    -2.029
+   ],
+   "obj": [
+    -0.93,
+    0.448,
+    -2.029
+   ]
+  },
+  {
+   "id": "COM",
+   "name": "CoM",
+   "category": "com",
+   "unity": [
+    0.0,
+    0.65,
+    -0.4123
+   ],
+   "obj": [
+    -0.0,
+    0.65,
+    -0.4123
+   ]
+  },
+  {
+   "id": "WF",
+   "name": "Winch/WinchAttachPoints/Front",
+   "category": "winch",
+   "unity": [
+    0.0,
+    0.85,
+    2.3
+   ],
+   "obj": [
+    -0.0,
+    0.85,
+    2.3
+   ],
+   "surface_distance": 0.02
+  },
+  {
+   "id": "WB",
+   "name": "Winch/WinchAttachPoints/Rear",
+   "category": "winch",
+   "unity": [
+    0.0,
+    0.88,
+    -3.335
+   ],
+   "obj": [
+    -0.0,
+    0.88,
+    -3.335
+   ],
+   "surface_distance": 0.011
+  },
+  {
+   "id": "WL",
+   "name": "Winch/WinchAttachPoints/Left",
+   "category": "winch",
+   "unity": [
+    -1.003,
+    0.634,
+    0.0
+   ],
+   "obj": [
+    1.003,
+    0.634,
+    0.0
+   ],
+   "surface_distance": 0.133
+  },
+  {
+   "id": "WR",
+   "name": "Winch/WinchAttachPoints/Right",
+   "category": "winch",
+   "unity": [
+    1.003,
+    0.634,
+    0.0
+   ],
+   "obj": [
+    -1.003,
+    0.634,
+    0.0
+   ],
+   "surface_distance": 0.133
+  },
+  {
+   "id": "D1",
+   "name": "WaterDetector/BackCarSubmerged",
+   "category": "water",
+   "unity": [
+    0.0,
+    2.289,
+    -0.609
+   ],
+   "obj": [
+    -0.0,
+    2.289,
+    -0.609
+   ]
+  },
+  {
+   "id": "D2",
+   "name": "WaterDetector/EngineAirIntakeWaterDetector_1",
+   "category": "water",
+   "unity": [
+    0.0,
+    1.0746,
+    1.459
+   ],
+   "obj": [
+    -0.0,
+    1.0746,
+    1.459
+   ]
+  },
+  {
+   "id": "D3",
+   "name": "WaterDetector/EngineAirIntakeWaterDetector_2",
+   "category": "water",
+   "unity": [
+    0.0,
+    1.784,
+    1.4
+   ],
+   "obj": [
+    -0.0,
+    1.784,
+    1.4
+   ]
+  },
+  {
+   "id": "D4",
+   "name": "WaterDetector/EngineAirIntakeWaterDetector_3",
+   "category": "water",
+   "unity": [
+    0.0,
+    2.297,
+    1.193
+   ],
+   "obj": [
+    -0.0,
+    2.297,
+    1.193
+   ]
+  },
+  {
+   "id": "D5",
+   "name": "WaterDetector/FrontCarSubmerged",
+   "category": "water",
+   "unity": [
+    0.0,
+    2.259,
+    0.97
+   ],
+   "obj": [
+    -0.0,
+    2.259,
+    0.97
+   ]
+  },
+  {
+   "id": "D6",
+   "name": "WaterDetector/IsTouchingWaterDetector",
+   "category": "water",
+   "unity": [
+    0.0,
+    0.029,
+    0.15
+   ],
+   "obj": [
+    -0.0,
+    0.029,
+    0.15
+   ]
+  },
+  {
+   "id": "D7",
+   "name": "WaterDetector/TiresFullySubmergedWaterDetector",
+   "category": "water",
+   "unity": [
+    0.0,
+    0.1644,
+    0.15
+   ],
+   "obj": [
+    -0.0,
+    0.1644,
+    0.15
+   ]
+  },
+  {
+   "id": "L1",
+   "name": "Lights/LeftBrakingBrakelight",
+   "category": "light",
+   "unity": [
+    -0.885,
+    1.04,
+    -3.345
+   ],
+   "obj": [
+    0.885,
+    1.04,
+    -3.345
+   ],
+   "surface_distance": 0.035
+  },
+  {
+   "id": "L2",
+   "name": "Lights/LeftHeadlight",
+   "category": "light",
+   "unity": [
+    -0.7,
+    0.83,
+    2.3
+   ],
+   "obj": [
+    0.7,
+    0.83,
+    2.3
+   ],
+   "surface_distance": 0.043
+  },
+  {
+   "id": "L3",
+   "name": "Lights/LeftPositionBrakelight",
+   "category": "light",
+   "unity": [
+    -0.885,
+    1.04,
+    -3.345
+   ],
+   "obj": [
+    0.885,
+    1.04,
+    -3.345
+   ],
+   "surface_distance": 0.035
+  },
+  {
+   "id": "L4",
+   "name": "Lights/LeftReverselight",
+   "category": "light",
+   "unity": [
+    -0.8,
+    1.04,
+    -3.345
+   ],
+   "obj": [
+    0.8,
+    1.04,
+    -3.345
+   ],
+   "surface_distance": 0.048
+  },
+  {
+   "id": "L5",
+   "name": "Lights/LeftSpotlightFlare",
+   "category": "light",
+   "unity": [
+    -0.7,
+    0.83,
+    2.3
+   ],
+   "obj": [
+    0.7,
+    0.83,
+    2.3
+   ],
+   "surface_distance": 0.043
+  },
+  {
+   "id": "L6",
+   "name": "Lights/RightBrakingBrakelight",
+   "category": "light",
+   "unity": [
+    0.885,
+    1.04,
+    -3.345
+   ],
+   "obj": [
+    -0.885,
+    1.04,
+    -3.345
+   ],
+   "surface_distance": 0.035
+  },
+  {
+   "id": "L7",
+   "name": "Lights/RightHeadlight",
+   "category": "light",
+   "unity": [
+    0.7,
+    0.83,
+    2.3
+   ],
+   "obj": [
+    -0.7,
+    0.83,
+    2.3
+   ],
+   "surface_distance": 0.042
+  },
+  {
+   "id": "L8",
+   "name": "Lights/RightPositionBrakelight",
+   "category": "light",
+   "unity": [
+    0.885,
+    1.04,
+    -3.345
+   ],
+   "obj": [
+    -0.885,
+    1.04,
+    -3.345
+   ],
+   "surface_distance": 0.035
+  },
+  {
+   "id": "L9",
+   "name": "Lights/RightReverselight",
+   "category": "light",
+   "unity": [
+    0.8,
+    1.04,
+    -3.345
+   ],
+   "obj": [
+    -0.8,
+    1.04,
+    -3.345
+   ],
+   "surface_distance": 0.048
+  },
+  {
+   "id": "L10",
+   "name": "Lights/RightSpotlightFlare",
+   "category": "light",
+   "unity": [
+    0.7,
+    0.83,
+    2.3
+   ],
+   "obj": [
+    -0.7,
+    0.83,
+    2.3
+   ],
+   "surface_distance": 0.042
+  },
+  {
+   "id": "EX",
+   "name": "Effects/VehicleParticles/ExhaustParticlesManager",
+   "category": "exhaust",
+   "unity": [
+    -1.17,
+    0.69,
+    -1.32
+   ],
+   "obj": [
+    1.17,
+    0.69,
+    -1.32
+   ],
+   "surface_distance": 0.01
+  },
+  {
+   "id": "SP",
+   "name": "spare (Mammoth_wheel)",
+   "category": "spare",
+   "unity": [
+    -0.531,
+    0.86,
+    -0.35
+   ],
+   "obj": [
+    0.531,
+    0.86,
+    -0.35
+   ],
+   "surface_distance": 0.165
+  },
+  {
+   "id": "AN",
+   "name": "upgrade slot Antenna (17 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.729,
+    2.9675,
+    1.3873
+   ],
+   "obj": [
+    -0.729,
+    2.9675,
+    1.3873
+   ],
+   "surface_distance": 0.532
+  },
+  {
+   "id": "BD",
+   "name": "upgrade slot Bed (7 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    1.284,
+    -2.618
+   ],
+   "obj": [
+    -0.0,
+    1.284,
+    -2.618
+   ],
+   "surface_distance": 0.125
+  },
+  {
+   "id": "FN",
+   "name": "upgrade slot Fender (28 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    0.678,
+    -1.0485
+   ],
+   "obj": [
+    -0.0,
+    0.678,
+    -1.0485
+   ],
+   "surface_distance": 0.043
+  },
+  {
+   "id": "FS",
+   "name": "upgrade slot Front (13 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    0.866,
+    1.922
+   ],
+   "obj": [
+    -0.0,
+    0.866,
+    1.922
+   ],
+   "surface_distance": 0.074
+  },
+  {
+   "id": "FB",
+   "name": "upgrade slot Front_Bumper (21 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    0.8297,
+    2.1739
+   ],
+   "obj": [
+    -0.0,
+    0.8297,
+    2.1739
+   ],
+   "surface_distance": 0.024
+  },
+  {
+   "id": "RS",
+   "name": "upgrade slot Rear (20 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    1.4275,
+    -2.859
+   ],
+   "obj": [
+    -0.0,
+    1.4275,
+    -2.859
+   ],
+   "surface_distance": 0.187
+  },
+  {
+   "id": "RB",
+   "name": "upgrade slot Rear_Bumper (20 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    1.1269,
+    -2.847
+   ],
+   "obj": [
+    -0.0,
+    1.1269,
+    -2.847
+   ],
+   "surface_distance": 0.064
+  },
+  {
+   "id": "RC",
+   "name": "upgrade slot Rollcage (1 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    -0.071,
+    0.086
+   ],
+   "obj": [
+    -0.0,
+    -0.071,
+    0.086
+   ],
+   "surface_distance": 0.501
+  },
+  {
+   "id": "RF",
+   "name": "upgrade slot Roof (19 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0009,
+    2.199,
+    0.108
+   ],
+   "obj": [
+    -0.0009,
+    2.199,
+    0.108
+   ],
+   "surface_distance": 0.118
+  },
+  {
+   "id": "RL",
+   "name": "upgrade slot Roof_Bar (17 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    2.264,
+    1.0118
+   ],
+   "obj": [
+    -0.0,
+    2.264,
+    1.0118
+   ],
+   "surface_distance": 0.024
+  },
+  {
+   "id": "SD",
+   "name": "upgrade slot Side (26 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    -0.006,
+    1.439,
+    -2.03
+   ],
+   "obj": [
+    0.006,
+    1.439,
+    -2.03
+   ],
+   "surface_distance": 0.268
+  },
+  {
+   "id": "ST",
+   "name": "upgrade slot Side_Step (4 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    0.575,
+    -0.014
+   ],
+   "obj": [
+    -0.0,
+    0.575,
+    -0.014
+   ],
+   "surface_distance": 0.128
+  },
+  {
+   "id": "SN",
+   "name": "upgrade slot Snorkel (2 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    -0.729,
+    1.589,
+    1.4761
+   ],
+   "obj": [
+    0.729,
+    1.589,
+    1.4761
+   ],
+   "surface_distance": 0.052
+  },
+  {
+   "id": "WN",
+   "name": "upgrade slot Winch (1 options; median pivot)",
+   "category": "slot",
+   "unity": [
+    0.0,
+    0.829,
+    1.932
+   ],
+   "obj": [
+    -0.0,
+    0.829,
+    1.932
+   ],
+   "surface_distance": 0.109
+  }
+ ],
+ "colliders": {
+  "collider_hulls": 2,
+  "stock_reference": true
+ },
+ "analysis": {
+  "thresholds": {
+   "pixel": 0.005,
+   "close": 0.02,
+   "min_area": 2.0,
+   "fail_culled": 25.0,
+   "fail_gap": 20.0,
+   "sliver_length_m": 1.5,
+   "sliver_area_m2": 0.01
+  },
+  "holes": [
+   {
+    "file": "vehicles/glyptodon/build/body_LOD0.obj",
+    "triangles": 11018,
+    "open_edges": 309,
+    "open_loops": 31,
+    "nonmanifold_edges": 4200,
+    "culled": [
+     {
+      "area_cm2": 5.8,
+      "lo": [
+       -1.125,
+       1.143,
+       -3.305
+      ],
+      "hi": [
+       1.125,
+       1.196,
+       -3.305
+      ],
+      "region": "body centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 4.2,
+      "lo": [
+       -1.125,
+       1.143,
+       -3.305
+      ],
+      "hi": [
+       -1.125,
+       1.196,
+       -0.03
+      ],
+      "region": "body right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 4.2,
+      "lo": [
+       1.125,
+       1.143,
+       -3.305
+      ],
+      "hi": [
+       1.125,
+       1.196,
+       -0.03
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 4.0,
+      "lo": [
+       -1.008,
+       1.309,
+       -0.001
+      ],
+      "hi": [
+       -1.005,
+       1.552,
+       0.15
+      ],
+      "region": "body right",
+      "triangles": 1
+     }
+    ],
+    "gaps": [
+     {
+      "area_cm2": 14.0,
+      "at": [
+       0.999,
+       1.35,
+       1.627
+      ],
+      "region": "body left",
+      "views": 2
+     },
+     {
+      "area_cm2": 4.5,
+      "at": [
+       0.804,
+       0.599,
+       -0.276
+      ],
+      "region": "lower left",
+      "views": 2
+     },
+     {
+      "area_cm2": 4.5,
+      "at": [
+       0.804,
+       0.599,
+       -0.383
+      ],
+      "region": "lower left",
+      "views": 2
+     },
+     {
+      "area_cm2": 4.0,
+      "at": [
+       0.94,
+       0.415,
+       0.452
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       0.833,
+       0.91,
+       2.093
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       1.124,
+       0.858,
+       -1.461
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       -0.639,
+       0.752,
+       -1.399
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       -0.833,
+       0.91,
+       2.093
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       -0.978,
+       2.316,
+       1.061
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       -0.906,
+       2.231,
+       1.232
+      ],
+      "region": "greenhouse right",
+      "views": 2
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       0.308,
+       1.457,
+       2.073
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.2,
+      "at": [
+       0.813,
+       0.613,
+       0.025
+      ],
+      "region": "lower left",
+      "views": 2
+     },
+     {
+      "area_cm2": 3.2,
+      "at": [
+       0.997,
+       1.347,
+       1.724
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.2,
+      "at": [
+       1.047,
+       0.894,
+       -1.443
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       0.997,
+       1.346,
+       1.673
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       -0.945,
+       0.421,
+       0.45
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       -0.754,
+       1.112,
+       -3.275
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.313,
+       1.38,
+       2.106
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       1.121,
+       0.689,
+       0.558
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       0.758,
+       1.116,
+       -3.28
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       0.803,
+       0.597,
+       -0.506
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       -0.878,
+       2.374,
+       1.198
+      ],
+      "region": "roof",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       -1.101,
+       2.276,
+       1.049
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.974,
+       0.945,
+       0.421
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       -0.99,
+       0.618,
+       0.482
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       1.101,
+       2.276,
+       1.049
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.371,
+       1.437,
+       2.086
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.638,
+       1.382,
+       2.098
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       1.13,
+       1.142,
+       -2.448
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -1.13,
+       1.142,
+       -2.448
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.253,
+       1.426,
+       2.057
+      ],
+      "region": "body centre",
+      "views": 1
+     }
+    ],
+    "fail": false,
+    "failing_findings": 0
+   },
+   {
+    "file": "vehicles/glyptodon/build/body_LOD1.obj",
+    "triangles": 9246,
+    "open_edges": 306,
+    "open_loops": 27,
+    "nonmanifold_edges": 3154,
+    "culled": [
+     {
+      "area_cm2": 2.0,
+      "lo": [
+       -1.014,
+       1.303,
+       -0.001
+      ],
+      "hi": [
+       -1.005,
+       1.552,
+       0.15
+      ],
+      "region": "body right",
+      "triangles": 1
+     }
+    ],
+    "gaps": [
+     {
+      "area_cm2": 14.8,
+      "at": [
+       0.999,
+       1.351,
+       1.621
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 10.5,
+      "at": [
+       0.998,
+       1.347,
+       1.664
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.8,
+      "at": [
+       -0.904,
+       2.227,
+       1.234
+      ],
+      "region": "greenhouse right",
+      "views": 2
+     },
+     {
+      "area_cm2": 4.5,
+      "at": [
+       0.804,
+       0.599,
+       -0.276
+      ],
+      "region": "lower left",
+      "views": 2
+     },
+     {
+      "area_cm2": 4.5,
+      "at": [
+       0.804,
+       0.599,
+       -0.383
+      ],
+      "region": "lower left",
+      "views": 2
+     },
+     {
+      "area_cm2": 4.2,
+      "at": [
+       -0.941,
+       0.426,
+       0.446
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.0,
+      "at": [
+       -1.109,
+       0.69,
+       0.556
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.8,
+      "at": [
+       1.041,
+       0.885,
+       -1.436
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       0.835,
+       0.911,
+       2.094
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       1.124,
+       0.858,
+       -1.461
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       1.004,
+       0.937,
+       1.753
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       -0.638,
+       0.751,
+       -1.399
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       -0.834,
+       0.911,
+       2.094
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       0.308,
+       1.457,
+       2.073
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       0.975,
+       0.656,
+       0.493
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       -0.755,
+       1.113,
+       -3.276
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.313,
+       1.38,
+       2.106
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       0.758,
+       1.116,
+       -3.28
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       0.803,
+       0.597,
+       -0.506
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       -1.017,
+       0.993,
+       1.699
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.636,
+       0.611,
+       0.323
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.443,
+       0.611,
+       0.657
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.976,
+       0.95,
+       0.426
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       -1.164,
+       2.265,
+       1.044
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.373,
+       1.434,
+       2.083
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.638,
+       1.382,
+       2.098
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       1.269,
+       1.916,
+       1.02
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.357,
+       0.721,
+       0.731
+      ],
+      "region": "lower left",
+      "views": 2
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -0.978,
+       2.333,
+       1.117
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       1.031,
+       1.004,
+       1.688
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.967,
+       2.338,
+       1.124
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -0.944,
+       0.887,
+       2.127
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.557,
+       1.505,
+       2.04
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -1.001,
+       1.349,
+       1.727
+      ],
+      "region": "body right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.944,
+       0.887,
+       2.128
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.253,
+       1.426,
+       2.057
+      ],
+      "region": "body centre",
+      "views": 1
+     }
+    ],
+    "fail": false,
+    "failing_findings": 0
+   },
+   {
+    "file": "vehicles/glyptodon/build/body_LOD2.obj",
+    "triangles": 7055,
+    "open_edges": 225,
+    "open_loops": 29,
+    "nonmanifold_edges": 2429,
+    "culled": [
+     {
+      "area_cm2": 5.8,
+      "lo": [
+       -1.125,
+       1.196,
+       -3.305
+      ],
+      "hi": [
+       1.125,
+       1.202,
+       -3.282
+      ],
+      "region": "body centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 5.5,
+      "lo": [
+       -0.983,
+       1.7,
+       1.146
+      ],
+      "hi": [
+       -0.887,
+       2.338,
+       1.264
+      ],
+      "region": "greenhouse right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 5.2,
+      "lo": [
+       -1.125,
+       1.196,
+       -3.305
+      ],
+      "hi": [
+       1.098,
+       1.202,
+       -3.28
+      ],
+      "region": "body centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 5.0,
+      "lo": [
+       0.887,
+       1.7,
+       1.146
+      ],
+      "hi": [
+       0.983,
+       2.338,
+       1.264
+      ],
+      "region": "greenhouse left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 5.0,
+      "lo": [
+       -1.017,
+       0.988,
+       -0.001
+      ],
+      "hi": [
+       -0.835,
+       1.306,
+       0.15
+      ],
+      "region": "lower right",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 4.8,
+      "lo": [
+       0.962,
+       1.305,
+       -0.001
+      ],
+      "hi": [
+       1.015,
+       1.831,
+       0.15
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 4.8,
+      "lo": [
+       0.835,
+       0.988,
+       -0.001
+      ],
+      "hi": [
+       1.015,
+       1.305,
+       0.188
+      ],
+      "region": "lower left",
+      "triangles": 4
+     },
+     {
+      "area_cm2": 4.2,
+      "lo": [
+       1.1,
+       1.196,
+       -3.305
+      ],
+      "hi": [
+       1.125,
+       1.202,
+       -0.03
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "lo": [
+       0.887,
+       1.7,
+       0.188
+      ],
+      "hi": [
+       0.983,
+       2.338,
+       0.188
+      ],
+      "region": "greenhouse left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "lo": [
+       -1.004,
+       1.555,
+       0.188
+      ],
+      "hi": [
+       -0.891,
+       1.7,
+       0.188
+      ],
+      "region": "greenhouse right",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 2.5,
+      "lo": [
+       0.891,
+       1.555,
+       1.264
+      ],
+      "hi": [
+       0.99,
+       1.7,
+       1.273
+      ],
+      "region": "greenhouse left",
+      "triangles": 3
+     },
+     {
+      "area_cm2": 2.0,
+      "lo": [
+       0.904,
+       0.988,
+       0.188
+      ],
+      "hi": [
+       0.991,
+       0.988,
+       0.74
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "lo": [
+       0.904,
+       1.167,
+       1.091
+      ],
+      "hi": [
+       1.007,
+       1.18,
+       1.226
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 1.5,
+      "lo": [
+       0.891,
+       1.555,
+       0.188
+      ],
+      "hi": [
+       0.983,
+       1.7,
+       0.188
+      ],
+      "region": "greenhouse left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 1.0,
+      "lo": [
+       0.881,
+       1.305,
+       -0.005
+      ],
+      "hi": [
+       1.015,
+       2.342,
+       0.15
+      ],
+      "region": "greenhouse left",
+      "triangles": 1
+     }
+    ],
+    "gaps": [
+     {
+      "area_cm2": 15.0,
+      "at": [
+       0.999,
+       1.351,
+       1.625
+      ],
+      "region": "body left",
+      "views": 2
+     },
+     {
+      "area_cm2": 5.0,
+      "at": [
+       0.767,
+       0.83,
+       0.778
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.8,
+      "at": [
+       -0.904,
+       2.227,
+       1.234
+      ],
+      "region": "greenhouse right",
+      "views": 3
+     },
+     {
+      "area_cm2": 4.5,
+      "at": [
+       0.804,
+       0.599,
+       -0.276
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.5,
+      "at": [
+       0.804,
+       0.599,
+       -0.342
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.2,
+      "at": [
+       0.804,
+       0.599,
+       -0.49
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.2,
+      "at": [
+       0.973,
+       0.717,
+       -1.314
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.2,
+      "at": [
+       -0.941,
+       0.426,
+       0.446
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.0,
+      "at": [
+       -1.109,
+       0.69,
+       0.556
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.0,
+      "at": [
+       0.634,
+       1.366,
+       2.089
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.8,
+      "at": [
+       -0.942,
+       1.575,
+       1.796
+      ],
+      "region": "body right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       1.124,
+       0.858,
+       -1.461
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       1.004,
+       0.937,
+       1.753
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       -0.638,
+       0.751,
+       -1.399
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.805,
+       0.599,
+       -0.405
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.751,
+       1.111,
+       -3.267
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       -0.752,
+       1.111,
+       -3.267
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       -0.838,
+       0.911,
+       2.098
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.384,
+       1.434,
+       2.089
+      ],
+      "region": "body left",
+      "views": 2
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.255,
+       1.364,
+       2.098
+      ],
+      "region": "body centre",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.31,
+       1.456,
+       2.072
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       0.856,
+       0.925,
+       2.112
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       0.967,
+       0.673,
+       0.498
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       -1.017,
+       0.993,
+       1.699
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.636,
+       0.611,
+       0.323
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.443,
+       0.611,
+       0.657
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.898,
+       1.551,
+       1.862
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.976,
+       0.95,
+       0.426
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       -1.164,
+       2.265,
+       1.044
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.309,
+       1.382,
+       2.108
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       1.266,
+       1.897,
+       1.015
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       1.099,
+       0.74,
+       0.576
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.357,
+       0.721,
+       0.731
+      ],
+      "region": "lower left",
+      "views": 2
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       1.031,
+       1.004,
+       1.688
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.967,
+       2.338,
+       1.124
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -0.942,
+       0.887,
+       2.129
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.558,
+       1.506,
+       2.039
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.943,
+       0.887,
+       2.127
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.366,
+       1.164,
+       2.016
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       1.116,
+       0.839,
+       0.67
+      ],
+      "region": "lower left",
+      "views": 1
+     }
+    ],
+    "fail": false,
+    "failing_findings": 0
+   },
+   {
+    "file": "vehicles/glyptodon/build/body_LOD3.obj",
+    "triangles": 6609,
+    "open_edges": 189,
+    "open_loops": 22,
+    "nonmanifold_edges": 2357,
+    "culled": [
+     {
+      "area_cm2": 5.5,
+      "lo": [
+       -0.983,
+       1.7,
+       1.146
+      ],
+      "hi": [
+       -0.887,
+       2.338,
+       1.264
+      ],
+      "region": "greenhouse right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 5.0,
+      "lo": [
+       0.887,
+       1.7,
+       1.146
+      ],
+      "hi": [
+       0.983,
+       2.338,
+       1.264
+      ],
+      "region": "greenhouse left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 5.0,
+      "lo": [
+       -1.017,
+       0.988,
+       -0.001
+      ],
+      "hi": [
+       -0.835,
+       1.306,
+       0.15
+      ],
+      "region": "lower right",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 4.8,
+      "lo": [
+       0.962,
+       1.305,
+       -0.001
+      ],
+      "hi": [
+       1.015,
+       1.831,
+       0.15
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 4.8,
+      "lo": [
+       0.835,
+       0.988,
+       -0.001
+      ],
+      "hi": [
+       1.015,
+       1.305,
+       0.188
+      ],
+      "region": "lower left",
+      "triangles": 4
+     },
+     {
+      "area_cm2": 2.8,
+      "lo": [
+       0.887,
+       1.7,
+       0.188
+      ],
+      "hi": [
+       0.983,
+       2.338,
+       0.188
+      ],
+      "region": "greenhouse left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "lo": [
+       -1.004,
+       1.555,
+       0.188
+      ],
+      "hi": [
+       -0.891,
+       1.7,
+       0.188
+      ],
+      "region": "greenhouse right",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 2.5,
+      "lo": [
+       0.891,
+       1.555,
+       1.264
+      ],
+      "hi": [
+       0.99,
+       1.7,
+       1.273
+      ],
+      "region": "greenhouse left",
+      "triangles": 3
+     },
+     {
+      "area_cm2": 2.0,
+      "lo": [
+       0.904,
+       0.988,
+       0.188
+      ],
+      "hi": [
+       0.991,
+       0.988,
+       0.74
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 1.5,
+      "lo": [
+       0.891,
+       1.555,
+       0.188
+      ],
+      "hi": [
+       0.983,
+       1.7,
+       0.188
+      ],
+      "region": "greenhouse left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 1.0,
+      "lo": [
+       0.881,
+       1.305,
+       -0.005
+      ],
+      "hi": [
+       1.015,
+       2.342,
+       0.15
+      ],
+      "region": "greenhouse left",
+      "triangles": 1
+     }
+    ],
+    "gaps": [
+     {
+      "area_cm2": 16.5,
+      "at": [
+       1.0,
+       1.353,
+       1.63
+      ],
+      "region": "body left",
+      "views": 2
+     },
+     {
+      "area_cm2": 16.2,
+      "at": [
+       0.825,
+       1.138,
+       -3.304
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 15.8,
+      "at": [
+       -0.828,
+       1.137,
+       -3.303
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 6.5,
+      "at": [
+       0.415,
+       0.665,
+       0.777
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 6.0,
+      "at": [
+       1.014,
+       0.96,
+       1.73
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.8,
+      "at": [
+       1.12,
+       0.858,
+       -1.459
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.5,
+      "at": [
+       0.943,
+       1.572,
+       1.804
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.5,
+      "at": [
+       0.804,
+       0.599,
+       -0.29
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.5,
+      "at": [
+       0.804,
+       0.599,
+       -0.476
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.5,
+      "at": [
+       -0.94,
+       0.425,
+       0.446
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.0,
+      "at": [
+       0.805,
+       0.599,
+       -0.434
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.0,
+      "at": [
+       -1.109,
+       0.69,
+       0.556
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.0,
+      "at": [
+       0.634,
+       1.366,
+       2.089
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.8,
+      "at": [
+       -0.942,
+       1.575,
+       1.796
+      ],
+      "region": "body right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.8,
+      "at": [
+       -0.906,
+       2.223,
+       1.234
+      ],
+      "region": "greenhouse right",
+      "views": 2
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       1.021,
+       1.124,
+       -3.291
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.5,
+      "at": [
+       -0.638,
+       0.751,
+       -1.399
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.2,
+      "at": [
+       0.967,
+       0.672,
+       0.498
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.2,
+      "at": [
+       0.975,
+       0.715,
+       -1.314
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       0.813,
+       0.611,
+       0.019
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       1.091,
+       1.692,
+       -3.214
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       0.899,
+       1.548,
+       1.87
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       -1.04,
+       1.689,
+       -3.273
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.0,
+      "at": [
+       1.037,
+       1.694,
+       -3.272
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.803,
+       0.597,
+       -0.343
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       -0.988,
+       1.109,
+       -3.276
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.382,
+       1.416,
+       2.083
+      ],
+      "region": "body left",
+      "views": 2
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.255,
+       1.364,
+       2.098
+      ],
+      "region": "body centre",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.8,
+      "at": [
+       0.31,
+       1.456,
+       2.072
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       -1.017,
+       0.993,
+       1.699
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       0.091,
+       0.961,
+       2.304
+      ],
+      "region": "lower centre",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.358,
+       0.721,
+       0.729
+      ],
+      "region": "lower left",
+      "views": 2
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.443,
+       0.611,
+       0.657
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       -1.091,
+       1.676,
+       -3.25
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.976,
+       0.945,
+       0.424
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.805,
+       0.599,
+       -0.243
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.746,
+       1.05,
+       -3.27
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.309,
+       1.382,
+       2.108
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       1.266,
+       1.897,
+       1.015
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       1.093,
+       1.685,
+       -3.134
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -0.988,
+       1.67,
+       -3.276
+      ],
+      "region": "greenhouse right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.985,
+       1.675,
+       -3.274
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       1.083,
+       2.275,
+       1.057
+      ],
+      "region": "greenhouse left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -0.713,
+       1.099,
+       -3.29
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.366,
+       1.164,
+       2.016
+      ],
+      "region": "body left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -1.048,
+       0.791,
+       2.117
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       1.048,
+       0.791,
+       2.117
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       1.116,
+       0.839,
+       0.67
+      ],
+      "region": "lower left",
+      "views": 1
+     }
+    ],
+    "fail": false,
+    "failing_findings": 0
+   }
+  ],
+  "slivers": [
+   {
+    "file": "vehicles/glyptodon/build/body_LOD0.obj",
+    "slivers": 8
+   },
+   {
+    "file": "vehicles/glyptodon/build/body_LOD1.obj",
+    "slivers": 8
+   },
+   {
+    "file": "vehicles/glyptodon/build/body_LOD2.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/glyptodon/build/body_LOD3.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/glyptodon/build/collider_base.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/glyptodon/build/collider_top.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/glyptodon/build/suspension_front_LOD0.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/glyptodon/build/suspension_front_LOD1.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/glyptodon/build/suspension_front_LOD2.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/glyptodon/build/suspension_front_LOD3.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/glyptodon/build/suspension_rear_LOD0.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/glyptodon/build/suspension_rear_LOD1.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/glyptodon/build/suspension_rear_LOD2.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/glyptodon/build/suspension_rear_LOD3.obj",
+    "slivers": 0
+   }
+  ],
+  "triangles": {
+   "body_LOD0": 11018,
+   "body_LOD1": 9246,
+   "body_LOD2": 7055,
+   "body_LOD3": 6609,
+   "axle_front_LOD0": 4076,
+   "axle_rear_LOD0": 4076,
+   "collider_top": 20,
+   "collider_base": 24
+  },
+  "attach_points": [
+   {
+    "id": "HFL",
+    "check": "wheel mesh on its collider; tyre clear of the body above the hub (prefab pose)",
+    "value": "mesh offset 0.0 cm, clearance +7.2 cm",
+    "pass": true
+   },
+   {
+    "id": "HFR",
+    "check": "wheel mesh on its collider; tyre clear of the body above the hub (prefab pose)",
+    "value": "mesh offset 0.0 cm, clearance +7.2 cm",
+    "pass": true
+   },
+   {
+    "id": "HRL",
+    "check": "wheel mesh on its collider; tyre clear of the body above the hub (prefab pose)",
+    "value": "mesh offset 0.0 cm, clearance +12.8 cm",
+    "pass": true
+   },
+   {
+    "id": "HRR",
+    "check": "wheel mesh on its collider; tyre clear of the body above the hub (prefab pose)",
+    "value": "mesh offset 0.0 cm, clearance +12.8 cm",
+    "pass": true
+   },
+   {
+    "id": "COM",
+    "check": "centre of mass between the wheels (inside track and wheelbase, above the ground)",
+    "value": "x -0.00, y 0.65, z -0.41 m; -0.08 m from the collider bottom",
+    "pass": true
+   },
+   {
+    "id": "COL",
+    "check": "colliders (convex hulls) cover the LOD0 body no worse than the stock donor's: share of vertices over 10 cm outside within 5 points, worst within 10 cm",
+    "value": "12.0% over 10 cm outside, worst 57 cm (stock 9.4%, worst 34 cm)",
+    "pass": false
+   },
+   {
+    "id": "WF",
+    "check": "winch point within 15 cm of a body or axle surface",
+    "value": "2.0 cm",
+    "pass": true
+   },
+   {
+    "id": "WB",
+    "check": "winch point within 15 cm of a body or axle surface",
+    "value": "1.1 cm",
+    "pass": true
+   },
+   {
+    "id": "WL",
+    "check": "winch point within 15 cm of a body or axle surface",
+    "value": "13.3 cm",
+    "pass": true
+   },
+   {
+    "id": "WR",
+    "check": "winch point within 15 cm of a body or axle surface",
+    "value": "13.3 cm",
+    "pass": true
+   },
+   {
+    "id": "L1",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "3.5 cm",
+    "pass": true
+   },
+   {
+    "id": "L2",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "4.3 cm",
+    "pass": true
+   },
+   {
+    "id": "L3",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "3.5 cm",
+    "pass": true
+   },
+   {
+    "id": "L4",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "4.8 cm",
+    "pass": true
+   },
+   {
+    "id": "L5",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "4.3 cm",
+    "pass": true
+   },
+   {
+    "id": "L6",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "3.5 cm",
+    "pass": true
+   },
+   {
+    "id": "L7",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "4.2 cm",
+    "pass": true
+   },
+   {
+    "id": "L8",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "3.5 cm",
+    "pass": true
+   },
+   {
+    "id": "L9",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "4.8 cm",
+    "pass": true
+   },
+   {
+    "id": "L10",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "4.2 cm",
+    "pass": true
+   },
+   {
+    "id": "EX",
+    "check": "exhaust point within 15 cm of a body or axle surface",
+    "value": "1.0 cm",
+    "pass": true
+   },
+   {
+    "id": "SP",
+    "check": "spare point within 23 cm of a body or axle surface",
+    "value": "16.5 cm",
+    "pass": true
+   },
+   {
+    "id": "AN",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "53.2 cm (stock 72.9 cm)",
+    "pass": true
+   },
+   {
+    "id": "BD",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "12.5 cm (stock 4.1 cm)",
+    "pass": true
+   },
+   {
+    "id": "FN",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "4.3 cm (stock 18.1 cm)",
+    "pass": true
+   },
+   {
+    "id": "FS",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "7.4 cm (stock 7.4 cm)",
+    "pass": true
+   },
+   {
+    "id": "FB",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "2.4 cm (stock 1.5 cm)",
+    "pass": true
+   },
+   {
+    "id": "RS",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "18.7 cm (stock 0.8 cm)",
+    "pass": false
+   },
+   {
+    "id": "RB",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "6.4 cm (stock 1.6 cm)",
+    "pass": true
+   },
+   {
+    "id": "RC",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "50.1 cm (stock 65.2 cm)",
+    "pass": true
+   },
+   {
+    "id": "RF",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "11.8 cm (stock 19.5 cm)",
+    "pass": true
+   },
+   {
+    "id": "RL",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "2.4 cm (stock 10.6 cm)",
+    "pass": true
+   },
+   {
+    "id": "SD",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "26.8 cm (stock 11.8 cm)",
+    "pass": true
+   },
+   {
+    "id": "ST",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "12.8 cm (stock 23.0 cm)",
+    "pass": true
+   },
+   {
+    "id": "SN",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "5.2 cm (stock 6.2 cm)",
+    "pass": true
+   },
+   {
+    "id": "WN",
+    "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
+    "value": "10.9 cm (stock 10.9 cm)",
+    "pass": true
+   }
+  ]
+ },
+ "images": {
+  "iso": "contact/iso.png",
+  "rig": "contact/rig.png",
+  "gaps": "contact/gaps.png"
+ }
+}

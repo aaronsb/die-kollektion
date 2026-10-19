@@ -1,7 +1,8 @@
 #!/bin/sh
 # Extract the game data the build reads from the player's own install into the gitignored folders:
 # the Mammoth donor meshes and its wheel for spare previews (extracted/mammoth/), the mechanic truck
-# (extracted/merchant/), and the atlas maps and stock icon (extracted/textures/, extracted/icons/).
+# (extracted/merchant/), the atlas maps and stock icon (extracted/textures/, extracted/icons/), and the
+# Mammoth prefab's node facts for contact sheets (extracted/mammoth/nodes.json).
 # Nothing under extracted/ is ever committed. Needs a Python with UnityPy (PYTHON, default .venv/bin/python).
 # Usage: tools/export_game_data.sh [<game folder>]   (default: GAME_DIR, else Steam's default library)
 set -e
@@ -31,3 +32,4 @@ cd "$root"
     Mammoth_wheel_LOD0 Mammoth_wheel_LOD1 Mammoth_wheel_LOD2 Mammoth_wheel_LOD3
 "$py" -I tools/export_images.py "$cars" extracted/textures Mammoth_masks Mammoth_skin00 Mammoth_AO
 "$py" -I tools/export_images.py "$objects" extracted/icons Mammoth_Icon
+"$py" -I tools/export_node_facts.py "$cars" Car_Mammoth extracted/mammoth/nodes.json
