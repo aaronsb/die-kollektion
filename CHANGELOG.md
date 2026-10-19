@@ -5,7 +5,7 @@ All notable changes to Die Kollektion Werkstatt. The format follows [Keep a Chan
 ## [Unreleased]
 
 ### Added
-- **Releases reach Nexus Mods on their own.** When a GitHub release is published and its checks pass, CI uploads `die-kollektion-werkstatt-<version>.zip` to the Nexus page as a new version of the main file (the previous one is archived), with that version's entry from `docs/nexus/changelog.txt`. It uses Nexus Mods' official upload action and the `NEXUSMODS_API_KEY` repository secret, skips a version Nexus already has, and can be re-run for a tag by hand.
+- **Releases reach Nexus Mods on their own.** When a GitHub release (not a prerelease) is out and its checks pass, CI uploads `die-kollektion-werkstatt-<version>.zip` to the Nexus page as a new version of the main file (the previous one is archived), with that version's entry from `docs/nexus/changelog.txt` as the mod's changelog. It uses Nexus Mods' official upload action and the `NEXUSMODS_API_KEY` repository secret, skips a version Nexus already has, refuses one older than the newest there, and can be re-run for a tag by hand.
 
 ## [0.6.0] - 2026-10-19
 
