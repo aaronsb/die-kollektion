@@ -21,6 +21,8 @@ vehicles/.old-contact.json
 
 # Build output and local captures
 dist/
+# The ready-made plugin a release zip carries (`make release`); never committed
+prebuilt/
 plugins/*/bin/
 plugins/*/obj/
 renders/

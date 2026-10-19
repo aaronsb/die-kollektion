@@ -1,0 +1,8 @@
+0.5.0 (2026-10-19): first public release.
+- Werkstatt make flow: make start walks a new user from a fresh game install to a deployed mod, one step at a time; make bepinex installs the pinned, checksum-verified BepInEx; make all builds and deploys; make undeploy removes exactly what was installed.
+- Contact sheets on GitHub for every vehicle: isometric renders, rig view with colliders and attach points, mesh checks.
+- One self-contained folder per vehicle; pack manifest and make pack (our own files only).
+- Golf-bag canary on The Ding: the first patch on a stock car other than the Mammoth.
+- Fixed: rear-section upgrades now sit on the tailgate of the Glyptodon, Megaloceros and Mastodon.
+- Fixed: crash during the logo after the game update of 2026-10-19; the plugin now reserves its own memory for its hooks and runs the game without the mod rather than crash.
+- Fixed: BepInEx download refused with HTTP 403.

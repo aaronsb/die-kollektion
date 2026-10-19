@@ -4,10 +4,10 @@
 PY      := .venv/bin/python
 WS      := python3 tools/werkstatt.py
 GAME_DIR ?= $(shell python3 tools/werkstatt.py game-dir 2>/dev/null)
-export GAME_DIR MY_GAMES DEPLOY_DIR FORCE BEPINEX_ARCHIVE PROFILE
+export GAME_DIR MY_GAMES DEPLOY_DIR FORCE BEPINEX_ARCHIVE PROFILE VERSION DRY_RUN
 
 .DEFAULT_GOAL := start
-.PHONY: start help doctor setup bepinex extract build check contact loop pack deploy undeploy status save-add all
+.PHONY: start help doctor setup bepinex extract build check contact loop pack deploy undeploy status save-add all release
 
 start: ## The next setup step, in plain words. Run it again after each step.
 	@$(WS) start
@@ -42,7 +42,6 @@ build: ## Build every vehicle's meshes and icons from vehicles/
 
 check: ## Run every gate (holes, slivers, names, catalogue, hook-page placement); fails if any does
 	@$(WS) gates
-	@dotnet run --project tools/near-plan -v quiet -- tests/maps/*.maps
 
 contact: ## Render every vehicle's contact sheet (needs Blender)
 	@for d in $$($(PY) -I -c 'import glob, json; print(" ".join(sorted({json.load(open(p))["donor"] for p in glob.glob("vehicles/*/vehicle.json")})))'); do $(PY) tools/composite_atlas.py $$d || exit 1; done
@@ -50,7 +49,8 @@ contact: ## Render every vehicle's contact sheet (needs Blender)
 
 deploy: check ## Install the mod into the game (game closed). DEPLOY_DIR=<dir> deploys elsewhere to inspect it
 	@$(WS) preflight-deploy
-	cd plugins/VehicleMods && dotnet build -c Release -nologo -v minimal -p:GameDir="$(GAME_DIR)" $(if $(DEPLOY_DIR),-p:DeployDir="$(abspath $(DEPLOY_DIR))")
+	@$(WS) compile-plugin
+	@$(WS) copy-deploy
 	@$(WS) record-deploy
 
 undeploy: ## Remove exactly the files the last deploy installed (FORCE=1 if you changed them since)
@@ -76,3 +76,8 @@ loop: ## Change one vehicle: build it, run its gates, redo its contact sheet, su
 
 pack: ## Build the shareable zip of a pack into dist/ (P=<pack>, default die-kollektion)
 	@python3 tools/pack.py build packs/$(or $(P),die-kollektion)
+
+# ---------------------------------------------------------------- publishing (maintainers)
+
+release: ## Maintainers: tag and publish a release (VERSION=x.y.z; DRY_RUN=1 builds everything but publishes nothing)
+	@python3 tools/release.py build $(VERSION) $(if $(filter 1,$(DRY_RUN)),--dry-run)
