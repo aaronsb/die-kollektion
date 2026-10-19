@@ -39,6 +39,8 @@ sealed class VehicleDefinition
     public WheelSize Tyre { get; set; }
     /// <summary>A spare wheel cloned from one of the donor's wheel visuals ("spare"), or null for none.</summary>
     public SpareWheel Spare { get; set; }
+    /// <summary>Headlight colour and brightness for this vehicle ("headlights"), or null for the game's.</summary>
+    public HeadlightSettings Headlights { get; set; }
 
     public string MeshDirectory { get; private set; }
     public string CatalogName => Codename.ToLowerInvariant();
@@ -77,6 +79,17 @@ sealed class VehicleDefinition
         public UnityEngine.Vector3 Position { get; set; }
         public UnityEngine.Vector3 Rotation { get; set; }
         public WheelSize Size { get; set; }
+    }
+
+    /// <summary>Headlight colour and brightness, applied to this vehicle's own copies of the game's shared
+    /// headlight and bounce-light configs (docs/engine.md, "Lights").</summary>
+    public sealed class HeadlightSettings
+    {
+        /// <summary>Target headlight colour temperature in kelvin (1000-40000; outside, clamped), or null to
+        /// keep the game's colour. The bounce light moves by the same step from the game's headlight.</summary>
+        public float? Kelvin { get; set; }
+        /// <summary>Factor on the game's intensity, above 0.</summary>
+        public float Intensity { get; set; } = 1f;
     }
 
     public sealed class WheelSize
@@ -125,6 +138,7 @@ sealed class VehicleDefinition
                 Wheel = root.TryGetProperty("wheel", out var wheel) ? ReadWheel(wheel) : null,
                 Tyre = root.TryGetProperty("tyre", out var tyre) ? ReadWheel(tyre) : null,
                 Spare = root.TryGetProperty("spare", out var spare) ? ReadSpare(spare) : null,
+                Headlights = root.TryGetProperty("headlights", out var headlights) ? ReadHeadlights(headlights, root.GetProperty("codename").GetString()) : null,
             };
             definition.MeshDirectory = Path.Combine(directory, definition.CatalogName);
             definitions.Add(definition);
@@ -188,6 +202,32 @@ sealed class VehicleDefinition
         Rotation = ReadVector(obj.GetProperty("rotation")),
         Size = obj.TryGetProperty("radius", out _) ? ReadWheel(obj) : null,
     };
+
+    /// <summary>The "headlights" block, or null with a log line when it is malformed or asks for no light:
+    /// a bad block costs only that vehicle its headlight change, never the other definitions.</summary>
+    static HeadlightSettings ReadHeadlights(JsonElement obj, string codename)
+    {
+        string problem = null;
+        float? kelvin = null;
+        var intensity = 1f;
+        if (obj.ValueKind != JsonValueKind.Object) problem = $"is {obj.ValueKind}, not an object";
+        else
+        {
+            if (obj.TryGetProperty("kelvin", out var k))
+            {
+                if (k.ValueKind == JsonValueKind.Number) kelvin = k.GetSingle();
+                else problem = $"kelvin is {k.ValueKind}, not a number";
+            }
+            if (obj.TryGetProperty("intensity", out var i))
+            {
+                if (i.ValueKind != JsonValueKind.Number) problem = $"intensity is {i.ValueKind}, not a number";
+                else if ((intensity = i.GetSingle()) <= 0f) problem = $"intensity {intensity} is not above 0";
+            }
+        }
+        if (problem == null) return new HeadlightSettings { Kelvin = kelvin, Intensity = intensity };
+        Plugin.Logger.LogWarning($"Lights: {codename}: the headlights block {problem}; headlights left as the game's");
+        return null;
+    }
 
     static UnityEngine.Vector3 ReadVector(JsonElement array)
     {

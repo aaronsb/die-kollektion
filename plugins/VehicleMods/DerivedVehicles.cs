@@ -25,6 +25,8 @@ static class DerivedVehicles
 
     static readonly List<Entry> entries = new();
     static readonly Dictionary<string, Mesh> meshCache = new();
+    // This mod's copies of the game's light configs, by "<codename>/<group>"; the shared originals stay untouched.
+    static readonly Dictionary<string, CarLightConfig> lightConfigs = new();
     static readonly HashSet<int> reshapedDummies = new();
     static readonly string[] Corners = { "FL", "FR", "RL", "RR" };
     // Spawned vehicles (not dummies) for LogRestPoses: codename, root, spawn time.
@@ -264,6 +266,14 @@ static class DerivedVehicles
         var vehicle = root.GetComponent<VPVehicleController>();
         if (vehicle != null && definition.MaxSteerAngle > 0) vehicle.steering.maxSteerAngle = definition.MaxSteerAngle;
         ApplySuspension(root, definition);
+        try
+        {
+            ApplyHeadlights(root, definition);
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogError($"Lights: {definition.Codename}: failed: {e}");
+        }
 
         Plugin.Logger.LogInfo($"{definition.Codename}: reshaped {root.name}: wheelbase {donorWheelbase:0.00} -> {definition.Wheelbase:0.00} m ({moved} nodes moved), track {definition.Track:0.00} m" +
             (vehicle != null ? $", max steer {vehicle.steering.maxSteerAngle:0.0}°" : ""));
@@ -330,6 +340,92 @@ static class DerivedVehicles
             numberOfExtraRays = donor.numberOfExtraRays,
             physicsGroundPenetration = donor.physicsGroundPenetration,
         };
+    }
+
+    /// <summary>The game's headlight colour, (0.996, 0.833, 0.659), as a colour temperature: the reference a
+    /// definition's kelvin is measured from (docs/engine.md, "Lights").</summary>
+    const float GameHeadlightKelvin = 4200f;
+
+    /// <summary>Gives this vehicle's headlights, and the fake bounce light that stands for their glow on the
+    /// ground, copies of the game's shared light configs with the definition's colour and brightness, so
+    /// stock cars keep theirs. The colour moves each config's own colour by the step from the game's
+    /// headlight temperature to the definition's, channel by channel, so the bounce light stays as much
+    /// whiter than the beam as the game made it. The lights' current colour is set as well, in case the
+    /// game copied it from the config already.</summary>
+    static void ApplyHeadlights(Transform root, VehicleDefinition definition)
+    {
+        var settings = definition.Headlights;
+        if (settings == null) return;
+        var controller = root.Find("Lights")?.GetComponent<LightsController>();
+        if (controller == null) return; // display dummies may carry no lights
+        var game = controller.headlights?.Config;
+        if (game == null)
+        {
+            Plugin.Logger.LogWarning($"Lights: {definition.Codename}: {root.name} has no headlight config; headlights left as the game's");
+            return;
+        }
+        var gameIntensity = game.Intensity;
+        var kelvin = settings.Kelvin.HasValue ? Mathf.Clamp(settings.Kelvin.Value, 1000f, 40000f) : (float?)null;
+        var tint = Color.white;
+        if (kelvin.HasValue)
+        {
+            var target = KelvinColor(kelvin.Value);
+            var reference = KelvinColor(GameHeadlightKelvin);
+            tint = new Color(target.r / reference.r, target.g / reference.g, target.b / reference.b, 1f);
+        }
+        var headlights = Retune(controller.headlights, $"{definition.Codename}/headlights", tint, settings.Intensity);
+        var bounce = Retune(controller.fakeBounceLights, $"{definition.Codename}/fakeBounceLights", tint, settings.Intensity);
+        var applied = controller.headlights.Config;
+        var colour = applied.Color;
+        Plugin.Logger.LogInfo($"Lights: {definition.Codename}: {headlights} headlights and {bounce} bounce light(s) on {root.name} -> " +
+            (kelvin.HasValue ? $"{kelvin.Value:0} K" + (kelvin.Value != settings.Kelvin.Value ? $" (clamped from {settings.Kelvin.Value:0} K)" : "") : "game colour") +
+            $", colour ({colour.r:0.000}, {colour.g:0.000}, {colour.b:0.000}), intensity {applied.Intensity:0.0} (game's {gameIntensity:0.0}, x{settings.Intensity:0.00})");
+    }
+
+    /// <summary>Points one light group at this vehicle's copy of its config, making the copy on first use
+    /// (colour times <paramref name="tint"/>, intensity times <paramref name="intensity"/>), and sets its
+    /// lights' colour. Returns how many lights it set.</summary>
+    static int Retune(LightsController.TurnableLights group, string key, Color tint, float intensity)
+    {
+        var original = group?.Config;
+        if (original == null) return 0;
+        if (!lightConfigs.TryGetValue(key, out var config) || config == null)
+        {
+            config = Object.Instantiate(original);
+            config.name = key;
+            config.hideFlags = HideFlags.DontUnloadUnusedAsset;
+            var c = original.Color;
+            var shifted = new Color(c.r * tint.r, c.g * tint.g, c.b * tint.b, c.a);
+            var max = Mathf.Max(shifted.r, Mathf.Max(shifted.g, shifted.b));
+            if (max > 1f) shifted = new Color(shifted.r / max, shifted.g / max, shifted.b / max, c.a);
+            config.Color = shifted;
+            config.Intensity = original.Intensity * intensity;
+            lightConfigs[key] = config;
+        }
+        group.Config = config;
+        var lights = group.Lights;
+        var count = 0;
+        for (var i = 0; lights != null && i < lights.Count; i++)
+        {
+            var light = lights[i];
+            if (light == null) continue;
+            light.color = config.Color;
+            count++;
+        }
+        return count;
+    }
+
+    /// <summary>The colour of a black body at <paramref name="kelvin"/>, brightest channel 1 (Tanner
+    /// Helland's fit to the CIE data, 1000-40000 K). 3200 K, a halogen bulb, gives about (1, 0.72, 0.48).</summary>
+    static Color KelvinColor(float kelvin)
+    {
+        var t = Mathf.Clamp(kelvin, 1000f, 40000f) / 100f;
+        var r = t <= 66f ? 255f : 329.698727446f * Mathf.Pow(t - 60f, -0.1332047592f);
+        var g = t <= 66f ? 99.4708025861f * Mathf.Log(t) - 161.1195681661f : 288.1221695283f * Mathf.Pow(t - 60f, -0.0755148492f);
+        var b = t >= 66f ? 255f : t <= 19f ? 0f : 138.5177312231f * Mathf.Log(t - 10f) - 305.0447927307f;
+        var c = new Color(Mathf.Clamp(r, 1f, 255f) / 255f, Mathf.Clamp(g, 1f, 255f) / 255f, Mathf.Clamp(b, 1f, 255f) / 255f, 1f);
+        var max = Mathf.Max(c.r, Mathf.Max(c.g, c.b));
+        return new Color(c.r / max, c.g / max, c.b / max, 1f);
     }
 
     /// <summary>Sets the wheel colliders' suspension before VPP reads it in Spawned, and logs it. The
