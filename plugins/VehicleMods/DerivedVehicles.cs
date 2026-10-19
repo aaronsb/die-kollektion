@@ -40,6 +40,8 @@ static class DerivedVehicles
         var directory = Path.Combine(pluginDirectory, "vehicles");
         foreach (var definition in VehicleDefinition.LoadAll(directory))
         {
+            if (definition.Patch) MenuSentinel.PatchesDefined++;
+            else MenuSentinel.VehiclesDefined++;
             var donor = Catalog.Find(catalog, definition.DonorCatalogName);
             if (donor == null)
             {
@@ -49,6 +51,7 @@ static class DerivedVehicles
             if (definition.Patch)
             {
                 entries.Add(new Entry { Definition = definition, CarInfo = donor });
+                MenuSentinel.PatchesApplied++;
                 Plugin.Logger.LogInfo($"{definition.Codename}: patching stock {definition.Donor}");
                 continue;
             }
@@ -79,7 +82,7 @@ static class DerivedVehicles
             {
                 Plugin.Logger.LogError($"{definition.Codename}: icon failed, keeping {definition.Donor}'s: {e}");
             }
-            Catalog.Add(catalog, car, definition.CatalogName);
+            if (Catalog.Add(catalog, car, definition.CatalogName)) MenuSentinel.VehiclesRegistered++;
             entries.Add(new Entry { Definition = definition, CarInfo = car });
         }
     }

@@ -7,7 +7,8 @@ The BepInEx 6 IL2CPP plugin ("Die Kollektion") that puts the trucks in the game.
 1. `Plugin.Load` touches no IL2CPP type. It starts a background thread that sleeps 2 s, then waits for `[AddressablesPreLoader] Addressables finished loading` in Player.log.
 2. `DobbyNearPages` moves Dobby's hook slots onto pages of our own, then the thread patches only `GameStateManager.Transition` (`MainThreadEntry`).
 3. That hook's first call (main thread, before the main menu) applies every other `[HarmonyPatch]` class independently and registers the cars.
-4. `DerivedVehicles` clones the donor `CarInfo`, maps the new prefab addresses back to the donor's prefab, and on spawn reshapes the clone: wheelbase, track, steering, suspension, meshes, colliders, and the spare wheel (`AddSpare`). `HiddenCars` un-hides Rancho and Grizzly. `Catalog` and `LocalizedText` add the names.
+4. `MenuSentinel` appends a status line to the main menu's build label (`ContextUIMainMenu.BuildVersionLabel`) from a `StateMainMenu.Update` postfix: version, vehicles and patches registered out of those defined, failed game hooks; amber with a pointer to `BepInEx/LogOutput.log` when anything is short. It writes the game's own label text and creates nothing. It checks every frame until the line is in, then every 30 frames, because the game may rewrite the label after the menu opens.
+5. `DerivedVehicles` clones the donor `CarInfo`, maps the new prefab addresses back to the donor's prefab, and on spawn reshapes the clone: wheelbase, track, steering, suspension, meshes, colliders, and the spare wheel (`AddSpare`). `HiddenCars` un-hides Rancho and Grizzly. `Catalog` and `LocalizedText` add the names.
 
 ## Invariants
 
@@ -22,7 +23,8 @@ Dobby keeps each hook's 8-byte jump slot and relocated prologue in near pages th
 
 - `Dobby pages: reserved at Load: Gap …` or `… ReservationTop …`
 - `Dobby pages: using 0x…-0x… of the 0x…-0x… block`
-- `Dobby pages: 0x… holds 56 bytes of slots` (all seven hooks)
+- `Dobby pages: 0x… holds 64 bytes of slots` (all eight hooks)
+- `Main menu: Die Kollektion <version> · 4 vehicles · 2 patches` when the menu first shows
 
 `No hooks installed: Die Kollektion is inactive this session` means no safe place was found: the game runs without the mod. Capture `/proc/<pid>/maps` while it runs, add it to `tests/maps/` and fix `NearBlockPlanner`. Change the planner only with `make check` green over every captured layout.
 
