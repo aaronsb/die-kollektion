@@ -421,6 +421,11 @@ def write(truck):
             # Winch points on the Glyptodon bumper and the rear crossmember.
             "Winch/WinchAttachPoints/Front": {"position": [0.0, 0.85, 2.30]},
             "Winch/WinchAttachPoints/Rear": {"position": [0.0, 0.88, round(BED_E - 0.03, 3)]},
+            # The rear-section upgrades (the tailgate spare and its accessories, the bike rack) hang on the
+            # Mammoth's tailgate. The plugin moves them back only by the added wheelbase, but the bed's end
+            # moves BED_REAR_EXTRA further, so without this they sit inside the bed. Same height, moved with it.
+            "Parts/Mammoth_CosmeticParts/Visual/Rear": {
+                "position": [0.0, 0.903, round(-2.077 - (WHEELBASE - DONOR_WHEELBASE) + BED_REAR_EXTRA, 3)]},
         },
         "meshes": meshes,
         # Unity root space (x right): the OBJ pose with x negated; the clone's outer face (its local -x)

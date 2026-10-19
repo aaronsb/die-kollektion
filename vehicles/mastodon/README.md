@@ -50,7 +50,7 @@ Body in X-ray with each connected piece in its own colour (545 pieces at LOD0); 
 | FN | `upgrade slot Fender (28 options; median pivot)` | slot | (+0.000, +0.678, -0.874) | 18.0 cm |
 | FS | `upgrade slot Front (13 options; median pivot)` | slot | (+0.000, +0.866, +1.922) | 7.4 cm |
 | FB | `upgrade slot Front_Bumper (21 options; median pivot)` | slot | (+0.000, +0.830, +2.174) | 1.5 cm |
-| RS | `upgrade slot Rear (20 options; median pivot)` | slot | (+0.000, +1.427, -2.509) | 18.7 cm |
+| RS | `upgrade slot Rear (20 options; median pivot)` | slot | (+0.000, +1.427, -2.820) | 0.8 cm |
 | RB | `upgrade slot Rear_Bumper (20 options; median pivot)` | slot | (+0.000, +1.127, -2.497) | 1.6 cm |
 | RC | `upgrade slot Rollcage (1 options; median pivot)` | slot | (+0.000, -0.071, +0.086) | 65.2 cm |
 | RF | `upgrade slot Roof (19 options; median pivot)` | slot | (+0.001, +2.199, +0.108) | 4.7 cm |
@@ -92,7 +92,7 @@ Body in X-ray with each connected piece in its own colour (545 pieces at LOD0); 
 | FN | upgrade-slot pivot no further from the body than on the stock donor (+15 cm) | 18.0 cm (stock 18.1 cm) | pass |
 | FS | upgrade-slot pivot no further from the body than on the stock donor (+15 cm) | 7.4 cm (stock 7.4 cm) | pass |
 | FB | upgrade-slot pivot no further from the body than on the stock donor (+15 cm) | 1.5 cm (stock 1.5 cm) | pass |
-| RS | upgrade-slot pivot no further from the body than on the stock donor (+15 cm) | 18.7 cm (stock 0.8 cm) | **FAIL** |
+| RS | upgrade-slot pivot no further from the body than on the stock donor (+15 cm) | 0.8 cm (stock 0.8 cm) | pass |
 | RB | upgrade-slot pivot no further from the body than on the stock donor (+15 cm) | 1.6 cm (stock 1.6 cm) | pass |
 | RC | upgrade-slot pivot no further from the body than on the stock donor (+15 cm) | 65.2 cm (stock 65.2 cm) | pass |
 | RF | upgrade-slot pivot no further from the body than on the stock donor (+15 cm) | 4.7 cm (stock 19.5 cm) | pass |
