@@ -6,7 +6,7 @@ Runs on a scratch copy of the checkout's vehicle folders (the builds and extract
 the checkout is never written. Needs `make extract` (with upgrades.json) and the vehicle built. Exits non-zero on
 any failure. The panel's real draw is tested under Xvfb by tests/blender/test_panel_gui.py.
 """
-import json, math, os, shutil, sys, traceback
+import hashlib, json, math, os, shutil, sys, tempfile, traceback
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "blender", "addons"))
@@ -402,6 +402,30 @@ def main():
               "the winch moved 5 cm forward and 1 cm up in game space")
         r = bpy.ops.werkstatt.nudge(node="Winch_01", axis="x", steps=-3, unit="mm")
         check(r == {"FINISHED"} and close(api.placement("Winch_01")["offset"], (-0.003, 0.01, 0.05)), "the operator nudges with plain arguments")
+
+        # The agent loop: the roof rack starts inside the Megaloceros' taller roof; one nudge of the roof slot
+        # group by the measured depth brings it out, and the same review views come back for a no-op.
+        before = api.clearance("RoofSpare/RoofrackFlatA")
+        check(before["ok"] and before["intersecting"] and before["direction"] == "up" and 0.18 < before["penetration"] < 0.26
+              and before["clear_by"] == ["y", 1] and before["touches"] == "body_LOD0", f"clearance finds the rack inside the roof: {before}")
+        api.nudge(roof, before["clear_by"][0], before["clear_by"][1] * (round(before["penetration"] * 1000) + 3), "mm")
+        after = api.clearance("RoofSpare/RoofrackFlatA")
+        check(after["ok"] and not after["intersecting"] and 0 < after["gap"] < 0.02, f"raised by the measured depth, it clears the roof: {after}")
+        winch_check = api.clearance("Winch_01")
+        check(winch_check["ok"] and winch_check["touches"] is not None, f"clearance of the winch: {winch_check}")
+        out = tempfile.mkdtemp(prefix="werkstatt-review-")
+        first = api.review_views("RoofSpare/RoofrackFlatA", out)
+        check(first["ok"] and sorted(first["views"]) == ["front", "side", "three_quarter", "top"], f"review_views renders four views: {first.get('views')}")
+        hashes = {k: hashlib.sha256(open(v, "rb").read()).hexdigest() for k, v in first["views"].items()}
+        second = api.review_views("RoofSpare/RoofrackFlatA", out)
+        check(all(hashlib.sha256(open(v, "rb").read()).hexdigest() == hashes[k] for k, v in second["views"].items()),
+              "the same item renders the same views again (like with like)")
+        api.nudge(roof, "y", 5, "cm")
+        third = api.review_views("RoofSpare/RoofrackFlatA", out)
+        check(any(hashlib.sha256(open(v, "rb").read()).hexdigest() != hashes[k] for k, v in third["views"].items()),
+              "a nudge shows in the views")
+        shutil.rmtree(out, ignore_errors=True)
+        api.reset(roof)
 
         # A slot group and a child under it: the child's offset turns with the group, as in the plugin.
         api.set_placement(roof, offset=(0.0, 0.02, 0.0), rotation=(0.0, 10.0, 0.0))

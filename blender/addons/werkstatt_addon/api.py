@@ -17,7 +17,7 @@ import functools, os, subprocess
 import bpy
 import mathutils
 
-from . import model, scene
+from . import model, review, scene
 
 UNITS = {"mm": 0.001, "cm": 0.01, "dm": 0.1, "m": 1.0}
 AXES = {"x": (1.0, 0.0, 0.0), "y": (0.0, 1.0, 0.0), "z": (0.0, 0.0, 1.0)}
@@ -518,6 +518,26 @@ def frame(node=None):
                 framed = True
     return {"node": e["werkstatt_node"], "centre": model.clean(model.blender_to_game(centre), 4),
             "size": model.clean(model.scale_blender_to_game(tuple(b - a for a, b in zip(lo, hi))), 4), "framed": framed}
+
+
+@_api
+def clearance(node=None, reach=0.5):
+    """How the item sits against the vehicle's body, in game metres: {"intersecting", "gap" (when clear),
+    "penetration" (how deep, when intersecting), "touches" (the part), "at" (the point)}. Drive a penetration
+    to a small positive gap, e.g. nudge up until intersecting is False and gap is a few millimetres."""
+    return review.clearance(_empty(node), reach)
+
+
+@_api
+def review_views(node=None, out_dir=None):
+    """Renders front, side, top and three-quarter views framed on the item, at a fixed resolution and with the
+    same lighting every time, into out_dir (default: a folder named after the item in the system's temp
+    folder); returns {"views": {name: path}}."""
+    e = _empty(node)
+    if out_dir is None:
+        import tempfile
+        out_dir = os.path.join(tempfile.gettempdir(), "werkstatt-review", e["werkstatt_node"].rsplit("/", 1)[-1])
+    return {"node": e["werkstatt_node"], "views": review.review_views(e, out_dir)}
 
 
 @_api(undo="ghost")

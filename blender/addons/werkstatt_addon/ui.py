@@ -88,6 +88,7 @@ class WerkstattSettings(bpy.types.PropertyGroup):
     ghost: BoolProperty(name="Ghost of the donor", default=False, update=_ghost_update)
     ghost_offset: FloatProperty(name="Beside by", default=3.0, unit="LENGTH", update=_ghost_update)
     last_loop: StringProperty()
+    last_clearance: StringProperty()
 
 
 def refresh_items(context):
@@ -244,6 +245,21 @@ class WERKSTATT_OT_frame(_NodeOp, bpy.types.Operator):
         return _report(self, api.frame(self.node or None))
 
 
+class WERKSTATT_OT_clearance(_NodeOp, bpy.types.Operator):
+    """Measure the gap between the item and the body (or how deep it sits inside it)"""
+    bl_idname = "werkstatt.clearance"
+    bl_label = "Clearance"
+
+    def execute(self, context):
+        result = api.clearance(self.node or None)
+        if result.get("ok"):
+            context.scene.werkstatt.last_clearance = (
+                f"{result['penetration'] * 1000:.0f} mm into {result['touches']}" if result["intersecting"]
+                else f"{result['gap'] * 1000:.0f} mm from {result['touches']}" if result["gap"] is not None
+                else result.get("note", ""))
+        return _report(self, result, lambda r: context.scene.werkstatt.last_clearance)
+
+
 class WERKSTATT_OT_save(bpy.types.Operator):
     """Write the vehicle's placements.json (only the file; committing it is yours)"""
     bl_idname = "werkstatt.save"
@@ -357,6 +373,10 @@ class WERKSTATT_PT_panel(bpy.types.Panel):
             op = row.operator("werkstatt.rotate", text=f"{name} +")
             op.axis, op.steps = axis, 1
         row = box.row(align=True)
+        row.operator("werkstatt.clearance", icon="SNAP_FACE")
+        if w.last_clearance:
+            row.label(text=w.last_clearance)
+        row = box.row(align=True)
         row.operator("werkstatt.reset", icon="LOOP_BACK")
         row.operator("werkstatt.duplicate", icon="DUPLICATE")
         row.operator("werkstatt.delete_copy", text="", icon="TRASH")
@@ -384,7 +404,7 @@ class WerkstattPreferences(bpy.types.AddonPreferences):
 
 CLASSES = (WerkstattItem, WerkstattSettings, WERKSTATT_UL_items, WERKSTATT_OT_open_vehicle, WERKSTATT_OT_nudge,
            WERKSTATT_OT_rotate, WERKSTATT_OT_reset, WERKSTATT_OT_duplicate, WERKSTATT_OT_delete_copy, WERKSTATT_OT_show,
-           WERKSTATT_OT_show_slot, WERKSTATT_OT_frame, WERKSTATT_OT_save, WERKSTATT_OT_run_loop, WERKSTATT_OT_refresh,
+           WERKSTATT_OT_show_slot, WERKSTATT_OT_frame, WERKSTATT_OT_clearance, WERKSTATT_OT_save, WERKSTATT_OT_run_loop, WERKSTATT_OT_refresh,
            WERKSTATT_PT_panel, WerkstattPreferences)
 
 
