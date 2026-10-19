@@ -38,6 +38,7 @@
     ],
     "failCulledCm2": 90
   },
+  "generator": "tools/golf_bag.py",
   "golfBag": {
     "notes": [
       "x, z: the bag's centre on the roof, Unity car-root space (x right, z forward). roofY, legY: from python3 tools/golf_bag.py vehicles/dingding/vehicle.json --measure.",

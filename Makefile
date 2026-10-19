@@ -34,6 +34,8 @@ extract: ## Copy the game parts the build needs from your install into extracted
 build: ## Build every vehicle's meshes and icons from vehicles/
 	$(PY) tools/make_glyptodon.py
 	$(PY) tools/make_megaloceros.py
+	@for v in vehicles/*/vehicle.json; do g=$$($(PY) -I -c 'import json, sys; print(json.load(open(sys.argv[1])).get("generator", ""))' "$$v"); \
+		if [ -n "$$g" ]; then echo "generate $$v ($$g)"; $(PY) "$$g" "$$v" || exit 1; fi; done
 	@for v in vehicles/*/vehicle.json; do echo "build $$v"; $(PY) tools/build_vehicle.py "$$v" || exit 1; done
 	$(PY) tools/trace_icons.py
 	$(PY) -I tools/rasterize_icons.py

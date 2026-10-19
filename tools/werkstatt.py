@@ -874,9 +874,12 @@ def cmd_loop(args):
         return 2
     name = args[0]
     vdir = os.path.join(ROOT, "vehicles", name)
-    generator = manifest(vdir).get("generator") or (f"tools/make_{name}.py" if os.path.isfile(
-        os.path.join(ROOT, "tools", f"make_{name}.py")) else None)
-    steps = ([[VENV_PY, os.path.join(ROOT, generator)]] if generator else []) + [
+    # A vehicle's generator: tools/make_<name>.py (writes the whole manifest), and/or a part generator the
+    # manifest names (e.g. tools/golf_bag.py), which rewrites its own meshes from the manifest it is given.
+    make = os.path.join(ROOT, "tools", f"make_{name}.py")
+    parts = manifest(vdir).get("generator")
+    steps = ([[VENV_PY, make]] if os.path.isfile(make) else []) + (
+        [[VENV_PY, os.path.join(ROOT, parts), os.path.join(vdir, "vehicle.json")]] if parts else []) + [
         [VENV_PY, os.path.join(ROOT, "tools", "build_vehicle.py"), os.path.join(vdir, "vehicle.json")],
         [sys.executable, os.path.abspath(__file__), "gates", name],
         [VENV_PY, os.path.join(ROOT, "tools", "composite_atlas.py"), manifest(vdir).get("base", {}).get("car", "Mammoth")],
