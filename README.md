@@ -25,7 +25,7 @@ make start
 
 Or from source: `git clone https://github.com/aaronsb/die-kollektion && cd die-kollektion && make start`.
 
-`make start` checks everything and prints one next step: install a missing program, `make setup`, `make bepinex` (the mod loader), the Steam launch option, starting the game once, then `make all`, which builds the trucks and installs the mod. Run `make start` again after each step until it says everything is ready. Each step is explained in [Setup in detail](#setup-in-detail).
+`make start` checks everything and prints one next step: install a missing program, `make setup`, `make bepinex` (the mod loader), the Steam launch option (Werkstatt's launch script, which also rebuilds the plugin after a game update), starting the game once, then `make all`, which builds the trucks and installs the mod. Run `make start` again after each step until it says everything is ready. Each step is explained in [Setup in detail](#setup-in-detail).
 
 **Fastest: ask your agent.** Open this folder with an AI coding agent (Claude Code, or any agent that reads [`AGENTS.md`](AGENTS.md)) and say "set me up". It runs `make start` step by step, explains each step, and tells you when you need to click something in Steam.
 
@@ -83,14 +83,14 @@ There are no release builds yet: Werkstatt builds the mod on your machine from t
    - install a few programs with your system's package manager (it prints the command for your system);
    - run `make setup` (Werkstatt's Python packages);
    - run `make bepinex`: it downloads BepInEx, the mod loader (33 MB, from the official build server, after asking you), checks it against the pinned checksum, installs it into the game folder and sets it up;
-   - tell Steam to start the game through BepInEx: Library → right-click Over the Hill → Properties → General → Launch Options, and paste `"./run_bepinex.sh" %command%`;
+   - tell Steam to start the game through Werkstatt's launch script, which `make bepinex` has just put in the game folder: Library → right-click Over the Hill → Properties → General → Launch Options, and paste `"./run_werkstatt.sh" %command%`. It starts BepInEx; after a game update it starts the game once without the mod and, when you quit, rebuilds the plugin for the new version. Already set up with `"./run_bepinex.sh" %command%`? Run `make deploy` first (it installs the script), then change the option;
    - start the game once from Steam and quit at the main menu. BepInEx uses this first start (slow, once) to prepare files the Werkstatt plugin is compiled against, which is why the mod can only be built after it;
    - run `make all`: it copies the parts it needs from your game, builds the trucks, checks them and installs the mod (about a minute).
 5. Start the game. The trucks are at the merchant. Optional, with the game closed: `make save-add` puts all four in your garage.
 
 **Your save.** Back up `~/My Games/over the hill/Saves/` before you start, and edit a save only with the game closed (and Steam Cloud in mind). `make save-add` writes the save only when a truck is missing, and backs it up first to `~/My Games/over the hill/DieKollektion/backups/` (outside `Saves/`, so Steam Cloud doesn't sync the backups; the last ten are kept). A save that holds one of these trucks still lists it after the mod is removed; how the game treats that is not yet tested.
 
-**Undoing it.** `make undeploy` removes exactly the files `make deploy` installed. To remove BepInEx as well, clear the Steam launch option and delete `BepInEx/`, `dotnet/`, `libdoorstop.so`, `run_bepinex.sh`, `.doorstop_version` and `changelog.txt` from the game folder.
+**Undoing it.** `make undeploy` removes exactly the files `make deploy` installed. To remove BepInEx as well, clear the Steam launch option and delete `BepInEx/`, `dotnet/`, `libdoorstop.so`, `run_bepinex.sh`, `run_werkstatt.sh`, `.doorstop_version` and `changelog.txt` from the game folder.
 
 ## Werkstatt commands
 
@@ -101,14 +101,15 @@ There are no release builds yet: Werkstatt builds the mod on your machine from t
 | `make start` | Checks your setup and prints the one next step. Also the default: plain `make` does the same. |
 | `make doctor` | Every check at once, each with what it is and how to get it on your system. |
 | `make setup` | Creates `.venv/` and installs the Python packages. |
-| `make bepinex` | Installs BepInEx from the pinned build in `tools/bepinex.json` (asks before downloading, checksum-verified; `BEPINEX_ARCHIVE=<zip>` installs a file you downloaded yourself), makes its start script runnable, and turns its Unity log listener off. |
+| `make bepinex` | Installs BepInEx from the pinned build in `tools/bepinex.json` (asks before downloading, checksum-verified; `BEPINEX_ARCHIVE=<zip>` installs a file you downloaded yourself), makes its start script runnable, installs Werkstatt's launch script `run_werkstatt.sh`, and turns its Unity log listener off. |
 | `make extract` | Copies the game parts the trucks are built from into `extracted/` (never committed or shared). |
 | `make build` | Builds every vehicle in `vehicles/`: meshes, icons. |
-| `make check` | Runs every gate: holes and slivers on each built mesh (with any exception a vehicle declares in its manifest's `gates` block), real names outside the catalogue, the catalogue itself. |
+| `make check` | Runs every gate: holes and slivers on each built mesh (with any exception a vehicle declares in its manifest's `gates` block), the game-update handling tests, real names outside the catalogue, the catalogue itself. |
 | `make deploy` | With the game closed: runs the gates, compiles the plugin and installs it with the vehicles into `BepInEx/plugins/VehicleMods/`, recording every file in `deployed.json`. An older install not made this way is moved aside, next to `plugins/`. `DEPLOY_DIR=<dir>` installs somewhere else to inspect it. |
 | `make undeploy` | Removes exactly what `deployed.json` lists (`FORCE=1` if you changed those files since; `make deploy` needs it too then). |
 | `make save-add` | With the game closed, puts the four trucks in your save (`PROFILE=<name>` for another profile). |
-| `make status` | Compares the repo, the build and the game folder. |
+| `make update` | After a game update, with the game closed: rebuilds the plugin for the new version and installs it again (the launch script does this on its own). When this checkout isn't the one deployed, it deploys it in full, with the gates. |
+| `make status` | Compares the repo, the build and the game folder, and says whether the plugin fits the game's version. |
 | `make all` | `extract`, `build`, `deploy`, after checking the setup is done. |
 | `make contact` | Renders every vehicle's contact sheet (needs Blender). |
 | `make pack` | Builds the shareable zip of the Die Kollektion pack into `dist/` (only our own files). |
