@@ -6,7 +6,7 @@ A vehicle mod system for *Over the Hill*: it adds new vehicles to the game's mer
 
 ## What you need
 
-- **Over the Hill** on Steam, the native Linux build. Windows isn't supported yet.
+- **Over the Hill** on Steam, the native Linux build. Windows support is planned (the cross-platform CLI and plugin build are in the design), not ready yet.
 - **A Linux machine** (Arch, Debian/Ubuntu or Fedora; `make start` prints the install command for yours) with:
   - **Python 3.10 or newer**, for the build tools;
   - **the .NET SDK 6 or newer**, to compile the plugin;
