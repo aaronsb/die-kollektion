@@ -30,7 +30,7 @@ def table():
     for d in rows:
         lst = d.get("listing", {})
         real = lst.get("real", {})
-        name = d.get("displayName") or f"{d['codename']} (patch on the stock car)"
+        name = d.get("displayName") or f"{(d.get('listing') or {}).get('family') or d['codename']} (patch on the stock car)"
         name = f"[{cell(name)}](vehicles/{d['_folder']}/)"
         vehicle = " ".join(x for x in (real.get("make"), real.get("model")) if x)
         variant = real.get("variant")

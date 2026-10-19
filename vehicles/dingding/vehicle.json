@@ -1,0 +1,108 @@
+{
+  "codename": "DingDing",
+  "patch": true,
+  "kind": "patch",
+  "base": {
+    "car": "DingDing"
+  },
+  "donor": "DingDing",
+  "notes": [
+    "The canary: the smallest possible patch on a stock car other than the Mammoth, and the first vehicle mod a newcomer sees.",
+    "It adds one golf bag with clubs, strapped to The Ding's roof, as our own geometry (tools/golf_bag.py) inserted into each body LOD.",
+    "Nothing else changes: same wheelbase, track, suspension and steering, no new item, nothing in the save. Remove it with make undeploy, or delete this folder and redeploy."
+  ],
+  "listing": {
+    "family": "Ding",
+    "variant": "stock, with a golf bag on the roof",
+    "real": {
+      "make": "",
+      "model": "",
+      "series": "",
+      "variant": "",
+      "years": "",
+      "description": "",
+      "basis": "A patch on the game's stock Ding (a starter vehicle): one golf bag strapped to the roof, the canary for modding a stock vehicle."
+    }
+  },
+  "donorAxleZ": {
+    "front": 1.265,
+    "rear": -1.029
+  },
+  "wheelbase": 2.294,
+  "track": 1.43,
+  "bodyCut": [],
+  "gates": {
+    "notes": [
+      "The stock Ding's own LOD3 body shows an 85.5 cm2 back-face patch at its front bumper (z 1.89..1.99, low centre), identical in the extracted stock mesh: the game's, not ours.",
+      "Accepted at 90 cm2 so any new culled patch or gap from the bag still fails; the bag's own LODs add none."
+    ],
+    "failCulledCm2": 90
+  },
+  "golfBag": {
+    "notes": [
+      "x, z: the bag's centre on the roof, Unity car-root space (x right, z forward). roofY, legY: from python3 tools/golf_bag.py vehicles/dingding/vehicle.json --measure.",
+      "Colours are flat points on the Ding's own atlas that every Ding livery leaves alone (outside the livery-blue mask): orange (the small side-marker square), dark grey and mid grey. The atlas has no teal or yellow outside the livery areas, so the bag is orange with dark-grey trim and grey irons."
+    ],
+    "x": 0.2,
+    "z": -0.75,
+    "roofY": 2.0883,
+    "legY": 2.0801,
+    "headsForward": true,
+    "uv": {
+      "bag": [
+        0.7783,
+        0.7715
+      ],
+      "trim": [
+        0.293,
+        0.1699
+      ],
+      "metal": [
+        0.6348,
+        0.8145
+      ]
+    }
+  },
+  "meshes": {
+    "Parts/DingDing/DingDing_body_LOD0": {
+      "file": "body_LOD0.obj",
+      "stretch": false,
+      "ops": [
+        {
+          "op": "insertPart",
+          "file": "meshes/golf_bag_LOD0.obj"
+        }
+      ]
+    },
+    "Parts/DingDing/DingDing_body_LOD1": {
+      "file": "body_LOD1.obj",
+      "stretch": false,
+      "ops": [
+        {
+          "op": "insertPart",
+          "file": "meshes/golf_bag_LOD1.obj"
+        }
+      ]
+    },
+    "Parts/DingDing/DingDing_body_LOD2": {
+      "file": "body_LOD2.obj",
+      "stretch": false,
+      "ops": [
+        {
+          "op": "insertPart",
+          "file": "meshes/golf_bag_LOD2.obj"
+        }
+      ]
+    },
+    "Parts/DingDing/DingDing_body_LOD3": {
+      "file": "body_LOD3.obj",
+      "stretch": false,
+      "ops": [
+        {
+          "op": "insertPart",
+          "file": "meshes/golf_bag_LOD3.obj"
+        }
+      ]
+    }
+  }
+}

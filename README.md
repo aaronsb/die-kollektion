@@ -20,6 +20,7 @@ In the game every vehicle has a fictional name. Here is what each one is modelle
 | [Das Mastodon](vehicles/mastodon/) | Mammoth | two-door, long wheelbase | Mercedes-Benz Unimog U 1100 L, two-door cab | 416 | A two-door truck of the 416 series with the rounded cab. | The game's Mammoth on a 2.90 m wheelbase with the mechanic truck's single cab and front, portal axles, coil springs and a ribbed steel bed. |
 | [Das Megatherium](vehicles/megatherium/) | Mammoth | crew cab, long wheelbase | Mercedes-Benz Unimog U 1100, crew cab | 416 | A crew-cab truck of the 416 series with the rounded cab. | The game's Mammoth crew cab on a 2.90 m wheelbase with portal axles, coil springs, a side-exit exhaust and a ribbed steel bed. |
 | [Mammoth (patch on the stock car)](vehicles/mammoth/) | Mammoth | stock, patched | – | – | – | A patch on the game's stock Mammoth: portal axles, coil springs, side-exit exhaust and more steering lock. |
+| [Ding (patch on the stock car)](vehicles/dingding/) | Ding | stock, with a golf bag on the roof | – | – | – | A patch on the game's stock Ding (a starter vehicle): one golf bag strapped to the roof, the canary for modding a stock vehicle. |
 <!-- /catalogue -->
 
 ## Making your own

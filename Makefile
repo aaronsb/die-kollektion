@@ -42,7 +42,7 @@ check: ## Run every gate (holes, slivers, names, catalogue); fails if any does
 	@$(WS) gates
 
 contact: ## Render every vehicle's contact sheet (needs Blender)
-	$(PY) tools/composite_atlas.py Mammoth
+	@for d in $$($(PY) -I -c 'import glob, json; print(" ".join(sorted({json.load(open(p))["donor"] for p in glob.glob("vehicles/*/vehicle.json")})))'); do $(PY) tools/composite_atlas.py $$d || exit 1; done
 	@for v in vehicles/*/; do $(PY) tools/contact_sheet.py "$${v%/}" || exit 1; done
 
 deploy: check ## Install the mod into the game (game closed). DEPLOY_DIR=<dir> deploys elsewhere to inspect it
