@@ -1,0 +1,35 @@
+{
+  "notes": [
+    "Die Kollektion's pack manifest: what the pack holds and how the game should group it.",
+    "It follows the game's official livery manifest (strict JSON: no comments, no trailing commas; `notes` fields carry comments) and extends it with the pack, its groups, its vehicles and its patches.",
+    "Paths are relative to the repository root. `make pack` builds the shareable zip from this file; `make check` validates it."
+  ],
+  "pack": {
+    "id": "aaronsb/die-kollektion",
+    "name": "Die Kollektion",
+    "version": "0.4.0",
+    "author": "Aaron Bockelie",
+    "schema": 1,
+    "license": "Art CC BY-SA 4.0; code GPL-3.0-or-later (see COPYING.md)",
+    "notes": "The example set of vehicle packs for Die Kollektion Werkstatt."
+  },
+  "groups": [
+    {
+      "id": "die-kollektion",
+      "name": "Die Kollektion",
+      "baseCategory": "Mammoth",
+      "notes": "A merchant section of its own, cloned from the donor's category (planned; today the trucks sit in the donor's category)."
+    }
+  ],
+  "vehicles": [
+    {"path": "vehicles/glyptodon", "group": "die-kollektion"},
+    {"path": "vehicles/megaloceros", "group": "die-kollektion"},
+    {"path": "vehicles/mastodon", "group": "die-kollektion"},
+    {"path": "vehicles/megatherium", "group": "die-kollektion"}
+  ],
+  "patches": [
+    {"path": "vehicles/mammoth", "car": "Mammoth",
+     "notes": "Portal axles, coil springs, side-exit exhaust and more steering lock on the stock Mammoth."}
+  ],
+  "liveries": []
+}

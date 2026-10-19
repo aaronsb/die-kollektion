@@ -8,7 +8,7 @@ Standard library only, so it runs before the Python environment exists. Usage:
     python3 tools/werkstatt.py require          exit 1 with the next step unless setup is done up to building
     python3 tools/werkstatt.py game-dir         print the game folder (GAME_DIR, else Steam's libraries)
     python3 tools/werkstatt.py bepinex          install BepInEx from tools/bepinex.json and set its config
-    python3 tools/werkstatt.py gates            run every gate; exit 1 if any fails
+    python3 tools/werkstatt.py gates [vehicle ...]  run every gate (mesh gates for the named vehicles only); exit 1 if any fails
     python3 tools/werkstatt.py preflight-deploy [--deploy-dir D]   refuse unsafe deploys, clear the old one
     python3 tools/werkstatt.py record-deploy [--deploy-dir D]      write deployed.json after a deploy
     python3 tools/werkstatt.py undeploy [--deploy-dir D] [--force] remove exactly what deployed.json lists
@@ -561,11 +561,13 @@ def holes(obj, culled, gap):
     return obj, r.returncode, last
 
 
-def cmd_gates(_args):
+def cmd_gates(args):
+    """Every gate, or only the named vehicles' mesh gates plus the repo-wide ones (`make loop` passes one)."""
     py = VENV_PY if os.path.isfile(VENV_PY) else sys.executable
+    chosen = [v for v in vehicles() if not args or os.path.basename(v) in args]
     failed = []
     jobs = []
-    for v in vehicles():
+    for v in chosen:
         name = os.path.basename(v)
         bodies = sorted(glob.glob(os.path.join(v, "build", "body_LOD*.obj")))
         if not bodies:
@@ -580,7 +582,7 @@ def cmd_gates(_args):
             print(f"holes    {'ok  ' if code == 0 else 'FAIL'} {rel}: {last}")
             if code:
                 failed.append(f"holes: {rel}")
-    for v in vehicles():
+    for v in chosen:
         objs = sorted(glob.glob(os.path.join(v, "build", "*.obj")))
         if not objs:
             continue
@@ -594,7 +596,8 @@ def cmd_gates(_args):
         if r.returncode:
             failed.append(f"slivers: {name}")
     for label, cmd in (("names   ", [sys.executable, "tools/check_names.py"]),
-                       ("catalog ", [sys.executable, "tools/catalogue.py", "--check"])):
+                       ("catalog ", [sys.executable, "tools/catalogue.py", "--check"]),
+                       ("packs   ", [sys.executable, "tools/pack.py", "check"])):
         r = run(cmd, cwd=ROOT)
         print(f"{label} {'ok  ' if r.returncode == 0 else 'FAIL'} {(r.stdout + r.stderr).strip().splitlines()[-1] if (r.stdout + r.stderr).strip() else ''}")
         if r.returncode:
@@ -727,12 +730,16 @@ def cmd_record_deploy(args):
         print("The deploy is missing files it should have copied:\n  " + "\n  ".join(missing))
         return 1
     head = run(["git", "rev-parse", "HEAD"], cwd=ROOT).stdout.strip()
+    branch = run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=ROOT).stdout.strip()
     dirty = bool(run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=ROOT).stdout.strip())
     record = {
         "notes": "Written by `make deploy`. `make undeploy` removes exactly these files; `make status` compares them with the repo.",
         "tool": "werkstatt",
         "deployedAt": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
         "repoCommit": head + ("+dirty" if dirty else ""),
+        "branch": branch,
+        # `make try PR=<n>` sets WERKSTATT_PR, so `make approve` can tell a driven pull request from an undriven one.
+        "pr": int(os.environ["WERKSTATT_PR"]) if os.environ.get("WERKSTATT_PR", "").isdigit() else None,
         "files": [{"path": rel, "sha256": sha256(p),
                    "source": os.path.relpath(sources[rel], ROOT).replace(os.sep, "/") if rel in sources else None}
                   for rel, p in sorted(files.items())],
@@ -763,6 +770,10 @@ def cmd_undeploy(args):
 
 def cmd_status(args):
     game = game_dir()
+    head = run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT).stdout.strip()
+    branch = run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=ROOT).stdout.strip()
+    dirty = bool(run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=ROOT).stdout.strip())
+    print(f"Checkout:     {branch} @ {head}{' (uncommitted changes)' if dirty else ''}")
     print(f"Game folder:  {game or 'not found'}")
     if game:
         print(f"Game running: {'yes' if game_running() else 'no'}")
@@ -774,6 +785,14 @@ def cmd_status(args):
         state = deploy_state(folder)
         print(f"Deployed:     {state} ({folder})")
         rec_path = os.path.join(folder, "deployed.json")
+        if os.path.isfile(rec_path):
+            rec = json.load(open(rec_path))
+            commit = rec.get("repoCommit", "?")
+            same = commit.split("+")[0].startswith(run(["git", "rev-parse", "HEAD"], cwd=ROOT).stdout.strip()) and "+dirty" not in commit
+            print(f"  installed:  {rec.get('branch', '?')} @ {commit[:7]}{'+dirty' if '+dirty' in commit else ''}"
+                  + (f", pull request #{rec['pr']}" if rec.get("pr") else "")
+                  + f" ({rec.get('deployedAt', '?')}); "
+                  + ("matches this checkout" if same and state == "current" else "differs from this checkout"))
         if state in ("stale", "modified") and os.path.isfile(rec_path):
             rec = {f["path"]: f for f in json.load(open(rec_path))["files"]}
             for dest, src in sorted(expected_sources().items()):

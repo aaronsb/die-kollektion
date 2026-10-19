@@ -2,6 +2,7 @@
 
 Usage: python3 tools/contact_sheet.py vehicles/<name> [--no-holes] [--no-render]
        python3 tools/contact_sheet.py --diff <a/contact.json> <b/contact.json> [--out <file.md>]
+       python3 tools/contact_sheet.py --changes <old.json|-> <new.json> [--out <file.md>]
 
 Part of Die Kollektion Werkstatt (prototype of `kollektion contact`). Data first: it writes
 vehicles/<name>/contact/contact.json, then renders vehicles/<name>/README.md from it, so GitHub
@@ -590,14 +591,80 @@ def diff(a_path, b_path):
     return "\n".join(out) + "\n"
 
 
+def changes(old, new):
+    """What a change did to one vehicle, in the order a reviewer reads it: facts, points, gates, triangles.
+
+    `old` may be None (a vehicle the change adds). Written by `make loop` as the vehicle's
+    contact/CHANGES.md and gathered into the pull request's description by `make pr`."""
+    name = new["facts"]["displayName"]
+    if old is None:
+        return f"### {name}\n\nNew vehicle: no earlier contact sheet to compare with.\n"
+    out = []
+    fo, fn = old["facts"], new["facts"]
+    facts = []
+    for group in ("dimensions_m", "chassis"):
+        for k in sorted(set(fo.get(group, {})) | set(fn.get(group, {}))):
+            a, b = fo.get(group, {}).get(k), fn.get(group, {}).get(k)
+            if a != b:
+                facts.append(f"| {k}{' (m)' if group == 'dimensions_m' else ''} | {json.dumps(a)} | {json.dumps(b)} |")
+    for k in ("kind", "base", "itemId"):
+        if fo.get(k) != fn.get(k):
+            facts.append(f"| {k} | {json.dumps(fo.get(k))} | {json.dumps(fn.get(k))} |")
+    if facts:
+        out += ["**Facts**", "", "| | before | after |", "|---|---|---|"] + facts + [""]
+    po, pn = {p["id"]: p for p in old["points"]}, {p["id"]: p for p in new["points"]}
+    moved = []
+    for k in sorted(set(po) | set(pn)):
+        a, b = po.get(k), pn.get(k)
+        if a and b:
+            d = float(np.linalg.norm(np.array(a["unity"]) - np.array(b["unity"])))
+            if d >= 0.005:
+                moved.append(f"| {k} | {b['name']} | {a['unity']} | {b['unity']} | {d * 100:.1f} cm |")
+        else:
+            moved.append(f"| {k} | {(a or b)['name']} | {a and a['unity']} | {b and b['unity']} | {'added' if b else 'removed'} |")
+    if moved:
+        out += ["**Points moved** (Unity car-root metres, x right)", "",
+                "| id | point | before | after | moved |", "|---|---|---|---|---|"] + moved + [""]
+    gates = []
+    co = {c["id"] + c["check"]: c for c in old["analysis"]["attach_points"]}
+    cn = {c["id"] + c["check"]: c for c in new["analysis"]["attach_points"]}
+    for k in sorted(set(co) | set(cn)):
+        a, b = co.get(k), cn.get(k)
+        if (a and a["pass"], a and a["value"]) != (b and b["pass"], b and b["value"]):
+            gates.append(f"| {(a or b)['id']} | {a and a['value']} {yes(a['pass']) if a else ''} | {b and b['value']} {yes(b['pass']) if b else ''} |")
+    for lod, (a, b) in enumerate(zip(old["analysis"]["holes"], new["analysis"]["holes"])):
+        if (a["fail"], len(a["culled"]), len(a["gaps"])) != (b["fail"], len(b["culled"]), len(b["gaps"])):
+            gates.append(f"| holes LOD{lod} | {len(a['culled'])} culled, {len(a['gaps'])} gaps {yes(not a['fail'])} "
+                         f"| {len(b['culled'])} culled, {len(b['gaps'])} gaps {yes(not b['fail'])} |")
+    if gates:
+        out += ["**Checks changed**", "", "| check | before | after |", "|---|---|---|"] + gates + [""]
+    to, tn = old["analysis"]["triangles"], new["analysis"]["triangles"]
+    tris = [f"| {k} | {to.get(k)} | {tn.get(k)} |" for k in sorted(set(to) | set(tn)) if to.get(k) != tn.get(k)]
+    if tris:
+        out += ["**Triangles**", "", "| mesh | before | after |", "|---|---|---|"] + tris + [""]
+    still = [c["id"] for c in new["analysis"]["attach_points"] if not c["pass"]] + \
+            [f"LOD{i}" for i, h in enumerate(new["analysis"]["holes"]) if h["fail"]]
+    body = "\n".join(out) if out else "No change to facts, points, checks or triangles (renders may differ by noise).\n"
+    return f"### {name}\n\n{body}\n" + (f"Still failing: {', '.join(still)}.\n" if still else "All checks pass.\n")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("vehicle", nargs="?")
     ap.add_argument("--diff", nargs=2, metavar=("A", "B"))
+    ap.add_argument("--changes", nargs=2, metavar=("OLD", "NEW"),
+                    help="summarise what changed between two contact.json files (OLD may be '-' for none)")
     ap.add_argument("--out")
     ap.add_argument("--no-holes", action="store_true")
     ap.add_argument("--no-render", action="store_true")
     args = ap.parse_args()
+    if args.changes:
+        old = None if args.changes[0] == "-" else json.load(open(args.changes[0]))
+        text = changes(old, json.load(open(args.changes[1])))
+        if args.out:
+            open(args.out, "w").write(text)
+        print(text)
+        return
     if args.diff:
         text = diff(*args.diff)
         if args.out:

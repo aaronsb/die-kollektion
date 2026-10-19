@@ -34,13 +34,26 @@ Work out which of two modes fits; if the first message doesn't make it clear, as
 
 ## What runs today, and what doesn't yet
 
-Today Werkstatt is the plugin plus Python and Blender scripts, built from source and driven by the Makefile. **The `kollektion` CLI, packs (`.kpack`), the Blender add-on and the vehicle templates are designed but not built** (`docs/vehicle_factory.md`). Never tell a person to run a `kollektion` command; use the commands below.
+Today Werkstatt is the plugin plus Python and Blender scripts, built from source and driven by the Makefile. **The `kollektion` CLI, the plugin loading packs, the Blender add-on and the vehicle templates are designed but not built**; a pack's manifest and its shareable zip exist (`packs/die-kollektion/`, `make pack`), but the plugin still installs from the vehicle folders (`docs/vehicle_factory.md`). Never tell a person to run a `kollektion` command; use the commands below.
 
 What a person can do today:
 - Set up from scratch and install our four trucks and the Mammoth patch: `make start`, repeated (Commands).
 - Tweak the Mammoth patch: edit `vehicles/mammoth/vehicle.json` (`maxSteerAngle`, `track`, `wheel`, `transforms`, and a `suspension` block shaped like the trucks', which the Mammoth patch hasn't used yet, so check it in-game), rebuild, deploy.
 - Tweak one of our trucks: for the Glyptodon family, change the constants in `tools/make_glyptodon.py` / `make_megaloceros.py` (they regenerate the manifest); for the Mastodon and Megatherium, edit their manifests directly.
 - A patch on a stock car other than the Mammoth means a new manifest shaped like `vehicles/mammoth/vehicle.json` with that car as `donor`. That path is untested: say so, keep the change small, and have the person check it in-game and read the logs with you.
+
+## The workshop loop
+
+How a change gets from an idea to the person's game, with GitHub as the place they review it. Use the make targets; they refuse unsafe states (game running, uncommitted changes) and each prints the one next step.
+
+1. **The person drives and reports.** `make report V=<vehicle>` opens the Drive report form (`.github/ISSUE_TEMPLATE/drive-report.yml`) prefilled with the vehicle and the installed build. Read open reports with `gh issue list --label drive-report`.
+2. **You make the change on a branch** (`git switch -c fix/<what>`): a manifest value, a generator constant, a placement in `transforms`.
+3. **`make loop V=<vehicle>`** builds that vehicle, runs its gates, regenerates its contact sheet and writes `contact/CHANGES.md`: facts, points moved (with distances), checks changed and triangle counts, compared with where the branch left main. Read the sheet's renders and rig view yourself before going on.
+4. **Commit the vehicle folder, then `make pr`.** It pushes the branch and opens or updates the pull request with every changed vehicle's summary and a link to its sheet on the branch; GitHub shows the renders before and after.
+5. **The person tries it:** `make try PR=<n>` checks out the branch, builds, checks and installs it, recording the branch, commit and pull request in `deployed.json`. They drive, then `make comment PR=<n> MSG="..."` or `make report`, and you iterate from step 2.
+6. **`make approve PR=<n>`** merges it (a regular merge) once it has been installed and driven (`FORCE=1` to merge undriven; `DRY_RUN=1` to only check), then does `make main`: back to main, pulled, built, checked, installed. `make main` alone returns to the known-good build without merging.
+
+`make prs` lists open pull requests and the vehicles they change; `make sheet V=<vehicle>` opens a sheet on GitHub; `make status` shows the checkout and the installed branch, commit and pull request.
 
 ## Liveries
 
@@ -61,10 +74,12 @@ The Makefile is the front door; `make help` lists every target. Run them from th
 - `make extract`, `make build`, `make check`, `make contact`: game parts into `extracted/`; every vehicle's meshes and icons; all gates (exit 1 on any failure); contact sheets (needs Blender; textured renders also need `tools/composite_atlas.py Mammoth`, which `make contact` runs).
 - `make deploy` (game closed): gates, then the plugin build and install into `BepInEx/plugins/VehicleMods/` with `deployed.json` listing every file and its sha256. `DEPLOY_DIR=<dir>` installs elsewhere to inspect it. `make undeploy` removes exactly those files (`FORCE=1` if they changed). `make status` compares repo, build and game folder.
 - `make all`: extract, build, deploy, after `werkstatt.py require` confirms setup is done.
+- The workshop loop (above): `make loop V=<vehicle>`, `make pr`, `make prs`, `make try PR=<n>`, `make main`, `make sheet V=<vehicle>`, `make report V=<vehicle>`, `make comment PR=<n> MSG="..."`, `make approve PR=<n>` (`tools/workshop.py`; `NO_BROWSER=1` prints links instead of opening them).
+- `make pack`: `dist/die-kollektion-<version>.zip` from `packs/die-kollektion/manifest.json` (`tools/pack.py`; `P=<pack>` for another): the manifest, the pack's README, the licences and the vehicle folders' tracked files; it refuses anything under `extracted/`, `build/` or `generated/` and any file byte-identical to one in `extracted/`. `make check` validates every pack manifest with the game's rules (strict JSON; `liveries` entries need `car` and `texture`).
 - `make save-add` (game closed; backs the save up first, outside `Saves/`; `PROFILE=<name>` for another profile; a no-op when all four are owned): adds our four trucks. ItemIds: Megatherium 3000000001, Mastodon 3000000002, Glyptodon 3000000003, Megaloceros 3000000004.
 - Gate exceptions live in each manifest's `gates` block with `notes` saying why: `failCulledCm2` / `failGapCm2` for `check_holes`, `sliverAllow` boxes for `check_slivers`. Never raise one to make a new defect pass; fix the mesh.
 
-Underneath (for agents who need one step): `tools/werkstatt.py` (setup checks, BepInEx, gates, deploy bookkeeping), `tools/export_game_data.sh "<game folder>"`, `tools/make_glyptodon.py` / `make_megaloceros.py` (regenerate those manifests), `tools/build_vehicle.py vehicles/<name>/vehicle.json`, `tools/trace_icons.py` then `tools/rasterize_icons.py` (run with `-I`), `tools/draw_icons.py` (Glyptodon-family icon sources), `tools/check_holes.py`, `tools/check_slivers.py`, `tools/check_names.py`, `tools/catalogue.py` (`--check`), `tools/contact_sheet.py vehicles/<name>` (`--diff a b`), `tools/preview_vehicle.sh vehicles/<name>/vehicle.json`, and `dotnet build -c Release -p:GameDir="<game folder>"` in `plugins/VehicleMods/` (`-p:DeployDir=`, `-p:Deploy=false`).
+Underneath (for agents who need one step): `tools/werkstatt.py` (setup checks, BepInEx, gates, deploy bookkeeping), `tools/export_game_data.sh "<game folder>"`, `tools/make_glyptodon.py` / `make_megaloceros.py` (regenerate those manifests), `tools/build_vehicle.py vehicles/<name>/vehicle.json`, `tools/trace_icons.py` then `tools/rasterize_icons.py` (run with `-I`), `tools/draw_icons.py` (Glyptodon-family icon sources), `tools/check_holes.py`, `tools/check_slivers.py`, `tools/check_names.py`, `tools/catalogue.py` (`--check`), `tools/contact_sheet.py vehicles/<name>` (`--diff a b`, `--changes old new`), `tools/workshop.py`, `tools/pack.py`, `tools/preview_vehicle.sh vehicles/<name>/vehicle.json`, and `dotnet build -c Release -p:GameDir="<game folder>"` in `plugins/VehicleMods/` (`-p:DeployDir=`, `-p:Deploy=false`).
 
 Rehearsing without touching the real install: `GAME_DIR=<copy of the game folder>` and `MY_GAMES=<copy of ~/My Games/over the hill>` point every target at copies (on btrfs, `cp -a --reflink=always` copies the game folder for free). The plugin DLL is reproducible (`PathMap`), so two clones build the same bytes.
 

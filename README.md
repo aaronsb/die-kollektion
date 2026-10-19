@@ -80,13 +80,17 @@ There are no release builds yet: Werkstatt builds the mod on your machine from t
 | `make status` | Compares the repo, the build and the game folder. |
 | `make all` | `extract`, `build`, `deploy`, after checking the setup is done. |
 | `make contact` | Renders every vehicle's contact sheet (needs Blender). |
-| `make save-add` | Adds the four trucks to your save, game closed, backing it up first. |
+| `make pack` | Builds the shareable zip of the Die Kollektion pack into `dist/` (only our own files). |
 
 The game folder is found through Steam's library list; pass `GAME_DIR="/path/to/over the hill"` if yours isn't found. Underneath, the targets run the scripts in `tools/` (`werkstatt.py` for setup, gates and deploy bookkeeping; `export_game_data.sh`; `make_glyptodon.py`, `make_megaloceros.py`, `build_vehicle.py`; `trace_icons.py`, `rasterize_icons.py`; `contact_sheet.py`) and `dotnet build` in `plugins/VehicleMods/`.
 
 Nothing taken from the game is committed here: `make extract` writes it into `extracted/`, and each vehicle's `build/` and `generated/` folders hold what is made from it; all three are gitignored.
 
 Each vehicle is one self-contained folder, `vehicles/<name>/`: its manifest `vehicle.json` (whose `kind` says whether it is novel, based on a shipped vehicle, or a patch to one), its own meshes and Blender masters, its icon, and its contact sheet (`README.md`, written by `tools/contact_sheet.py`).
+
+## How changes are reviewed
+
+Every change to a vehicle goes through a pull request, and its contact sheets are the review: GitHub shows the renders and the rig view before and after, and `make pr` writes what moved into the description. You drive it before it merges. `make prs` lists what's waiting, `make try PR=<n>` installs one, `make report V=<vehicle>` opens a Drive report about what you noticed, `make comment PR=<n> MSG="..."` leaves a quick note, `make approve PR=<n>` merges it and puts main back in the game, and `make main` returns to the known-good build without merging. Making the change is `make loop V=<vehicle>` on a branch, then `make pr`; AGENTS.md has the loop step by step.
 
 ## Documentation
 

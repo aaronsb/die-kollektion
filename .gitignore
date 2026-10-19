@@ -15,7 +15,12 @@ vehicles/mastodon/icon.svg
 vehicles/megatherium/icon.png
 vehicles/megatherium/icon.svg
 
+# The workshop loop's per-change summary (`make loop`); `make pr` puts it in the pull request
+vehicles/*/contact/CHANGES.md
+vehicles/.old-contact.json
+
 # Build output and local captures
+dist/
 plugins/*/bin/
 plugins/*/obj/
 renders/
