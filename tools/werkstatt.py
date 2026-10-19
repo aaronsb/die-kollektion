@@ -761,6 +761,15 @@ def cmd_gates(args):
     else:
         print("nearplan skip the plugin's hook-page placement and placements tests need the .NET 10 SDK; they test "
               "the plugin's source, which CI and every release already ran")
+    addon_vehicle = os.path.join(ROOT, "vehicles", "megaloceros", "build", "body_LOD0.obj")
+    if which("blender") and os.path.isfile(addon_vehicle) and os.path.isfile(os.path.join(ROOT, "extracted", "mammoth", "upgrades.json")):
+        r = run(["blender", "-b", "--factory-startup", "--python", "tests/blender/test_addon.py", "--", "megaloceros"], cwd=ROOT)
+        print(f"addon    {'ok  ' if r.returncode == 0 else 'FAIL'} the Blender add-on opens, nudges, copies and saves a vehicle")
+        if r.returncode:
+            print("\n".join(l for l in r.stdout.splitlines() if l.startswith(("FAIL", "Traceback", "  File"))))
+            failed.append("addon")
+    else:
+        print("addon    skip the Blender add-on test needs Blender, the Megaloceros built and `make extract` with upgrades.json")
     # The tests build fake game folders; the Makefile's exported folders and FORCE stay out of their way.
     test_env = {k: v for k, v in os.environ.items() if k not in ("DEPLOY_DIR", "FORCE", "GAME_DIR", "MY_GAMES")}
     test_env[IN_TESTS] = "1"
@@ -2038,12 +2047,28 @@ def cmd_loop(args):
     return 0
 
 
+def cmd_blender_addon(_args):
+    """`make blender-addon`: dist/werkstatt-blender-addon.zip, for Blender's Install from Disk. Pointing Blender's
+    script directory at blender/ in a checkout works too and keeps the add-on on that checkout's branch."""
+    import zipfile
+    src = os.path.join(ROOT, "blender", "addons", "werkstatt_addon")
+    out = os.path.join(ROOT, "dist", "werkstatt-blender-addon.zip")
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+        for name in sorted(os.listdir(src)):
+            if name.endswith(".py"):
+                z.write(os.path.join(src, name), f"werkstatt_addon/{name}")
+    print(f"Wrote {os.path.relpath(out, ROOT)}. In Blender: Edit > Preferences > Add-ons > Install from Disk, pick it, "
+          "then set the Werkstatt folder in the add-on's preferences to this checkout.")
+    return 0
+
+
 COMMANDS = {
     "start": cmd_start, "require": cmd_require, "doctor": cmd_doctor, "game-dir": cmd_game_dir, "bepinex": cmd_bepinex,
     "gates": cmd_gates, "preflight-deploy": cmd_preflight_deploy, "record-deploy": cmd_record_deploy,
     "undeploy": cmd_undeploy, "status": cmd_status,
     "compile-plugin": cmd_compile_plugin, "copy-deploy": cmd_copy_deploy, "save-add": cmd_save_add, "loop": cmd_loop,
-    "save-test": cmd_save_test, "save-real": cmd_save_real,
+    "save-test": cmd_save_test, "save-real": cmd_save_real, "blender-addon": cmd_blender_addon,
     "update": cmd_update, "launch-before": cmd_launch_before, "launch-after": cmd_launch_after, "deploy": cmd_deploy,
 }
 

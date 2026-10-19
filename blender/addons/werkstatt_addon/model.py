@@ -386,6 +386,7 @@ class Vehicle:
         self.cosmetic_root = upgrades.get("cosmeticRoot") or ""      # empty: the donor has no upgrade nodes
         self.shift, self.cut = self._sweep_parameters()
         moved = self._swept(facts)
+        self.sweep = moved          # path -> metres moved back with the rear (meshes move with their node)
         self.nodes = {}
         for n in upgrades["nodes"]:
             dz = moved.get(n["path"], 0.0)
@@ -486,6 +487,10 @@ class Vehicle:
         y = wheel.get("y", wheel["radius"])
         return [(c, (half if c[1] == "R" else -half, y, front if c[0] == "F" else rear), wheel["radius"], wheel.get("width", 0.3))
                 for c in ("FL", "FR", "RL", "RR")]
+
+    def donor_wheel_radius(self):
+        """The donor's tyre radius as modelled (the definition's "wheel"), which the wheel meshes are made for."""
+        return self.manifest.get("wheel", {}).get("radius") or 1.0
 
     def option_file(self, node):
         return os.path.join(self.extracted, node.file) if node.file else None
