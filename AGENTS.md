@@ -47,7 +47,7 @@ What a person can do today:
 How a change to a vehicle is made and shown. The Werkstatt part needs no git and no GitHub; how a change travels through this repository (branch, pull request, review, merge) is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 1. **Know what to change.** The person tells you, or reports it: the Drive report form on GitHub (`.github/ISSUE_TEMPLATE/drive-report.yml`) holds the vehicle, the build driven and what felt off.
-2. **Make the change:** a manifest value, a generator constant, a placement in `transforms`.
+2. **Make the change:** a manifest value, a generator constant, a placement in `transforms`, or an upgrade's fit in `vehicles/<name>/placements.json` (written by the Blender add-on, `docs/blender_addon.md`; format in `docs/engine.md`, "Upgrade nodes").
 3. **`make loop V=<vehicle>`** builds that vehicle, runs its gates, regenerates its contact sheet and writes `contact/CHANGES.md`: facts, points moved (with distances), checks changed and triangle counts, compared with the committed sheet (where the branch left main; the last commit on main; nothing outside a git checkout). Read the sheet's renders and rig view yourself before going on.
 4. **Show it.** The updated contact sheet and `CHANGES.md` are what the person reviews; in this repository they go into a pull request (CONTRIBUTING.md). The person may drive it (`make all`) or review from the sheets alone.
 

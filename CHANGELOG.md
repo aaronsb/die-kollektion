@@ -4,6 +4,9 @@ All notable changes to Die Kollektion Werkstatt. The format follows [Keep a Chan
 
 ## [Unreleased]
 
+### Added
+- **Placements for upgrade parts.** A vehicle's `placements.json` moves, turns or scales any upgrade node (a winch, a roof rack, a whole slot such as the roof) on that vehicle only, and can add copies of an item, such as a second keg pile in a bed, shown whenever the item is fitted. The plugin applies it to the spawned truck and to the mechanic's preview. `make extract` now also exports each donor's upgrade nodes and their meshes (`extracted/<donor>/upgrades.json`), and `make check` tests the plugin's reader against the same fixtures as the Blender add-on's model.
+
 ### Fixed
 - **Our trucks get the cosmetics already unlocked.** A reward that unlocks a cosmetic gives it to every car in the catalogue at that moment, so the trucks missed everything unlocked before they were registered (44 cosmetics on a played save). `make save-add` now gives each truck a state on every cosmetic its donor owns, and catches up when run again (needed only for cosmetics unlocked while the plugin wasn't loaded, or granted on load before the trucks register); performance upgrades, which are bought per car, are never copied. The save is written as the game writes it, one compact line; each backup gets a name of its own, is checked against the save before the save is replaced, and the one taken before the trucks were first added is never pruned.
 

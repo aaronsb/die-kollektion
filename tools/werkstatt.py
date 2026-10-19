@@ -703,6 +703,12 @@ def holes(obj, culled, gap):
 IN_TESTS = "WERKSTATT_IN_TESTS"
 
 
+# tests/placements/: the fixture both the plugin's PlacementPlan and the add-on's model must resolve to expect.json,
+# then malformed files both must refuse.
+PLACEMENT_FIXTURES = ["tests/placements/fixture.json", "tests/placements/expect.json"] + sorted(
+    os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "tests", "placements", "bad", "*.json")))
+
+
 def cmd_gates(args):
     """Every gate, or only the named vehicles' mesh gates plus the repo-wide ones (`make loop` passes one)."""
     if os.environ.get(IN_TESTS):
@@ -747,9 +753,14 @@ def cmd_gates(args):
         if r.returncode:
             print(r.stdout + r.stderr)
             failed.append("nearplan")
+        r = run(["dotnet", "run", "--project", "tools/placement-check", "-v", "quiet", "--"] + PLACEMENT_FIXTURES, cwd=ROOT)
+        print(f"placing  {'ok  ' if r.returncode == 0 else 'FAIL'} the plugin's placements reader agrees with the add-on's model")
+        if r.returncode:
+            print(r.stdout + r.stderr)
+            failed.append("placing")
     else:
-        print("nearplan skip the plugin's hook-page placement test needs the .NET 10 SDK; it tests the plugin's "
-              "source, which CI and every release already ran")
+        print("nearplan skip the plugin's hook-page placement and placements tests need the .NET 10 SDK; they test "
+              "the plugin's source, which CI and every release already ran")
     # The tests build fake game folders; the Makefile's exported folders and FORCE stay out of their way.
     test_env = {k: v for k, v in os.environ.items() if k not in ("DEPLOY_DIR", "FORCE", "GAME_DIR", "MY_GAMES")}
     test_env[IN_TESTS] = "1"
@@ -787,6 +798,9 @@ def expected_sources():
         out[f"vehicles/{name}.json"] = os.path.join(v, "vehicle.json")
         for obj in glob.glob(os.path.join(v, "build", "*.obj")):
             out[f"vehicles/{name}/{os.path.basename(obj)}"] = obj
+        placements = os.path.join(v, "placements.json")
+        if os.path.isfile(placements):
+            out[f"vehicles/{name}/placements.json"] = placements
         icon = os.path.join(v, "icon.png")
         code = manifest(v).get("codename")
         if os.path.isfile(icon) and code:

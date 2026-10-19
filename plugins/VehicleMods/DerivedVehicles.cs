@@ -262,6 +262,14 @@ static class DerivedVehicles
             if (placement.Position.HasValue) node.position = root.TransformPoint(placement.Position.Value);
             if (placement.Yaw != 0f) node.rotation = Quaternion.AngleAxis(placement.Yaw, root.up) * node.rotation;
         }
+        try
+        {
+            Placements.Apply(root, definition);
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogError($"Placements: {definition.Codename}: failed: {e}");
+        }
 
         var vehicle = root.GetComponent<VPVehicleController>();
         if (vehicle != null && definition.MaxSteerAngle > 0) vehicle.steering.maxSteerAngle = definition.MaxSteerAngle;

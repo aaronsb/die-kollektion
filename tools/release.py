@@ -108,7 +108,8 @@ def cmd_notes(args):
 def cmd_ci(_args):
     """Everything that can be checked without the game: what .github/workflows run."""
     steps = [
-        ("python tools compile", [sys.executable, "-m", "py_compile"] + sorted(glob.glob(os.path.join(ROOT, "tools", "*.py")))),
+        ("python tools compile", [sys.executable, "-m", "py_compile"] + sorted(glob.glob(os.path.join(ROOT, "tools", "*.py")))
+         + sorted(glob.glob(os.path.join(ROOT, "blender", "addons", "*", "*.py")))),
         ("versions agree", [sys.executable, "tools/release.py", "check-versions"]),
         ("game-update handling", [sys.executable, "-W", "ignore", "-m", "unittest", "discover", "-s", "tests"]),
         ("real names stay in the catalogue", [sys.executable, "tools/check_names.py"]),
@@ -116,6 +117,9 @@ def cmd_ci(_args):
         ("pack manifests", [sys.executable, "tools/pack.py", "check"]),
         ("hook-page placement", ["dotnet", "run", "--project", "tools/near-plan", "-v", "quiet", "--"]
          + sorted(glob.glob(os.path.join(ROOT, "tests", "maps", "*.maps")))),
+        ("placements reader", ["dotnet", "run", "--project", "tools/placement-check", "-v", "quiet", "--",
+                               "tests/placements/fixture.json", "tests/placements/expect.json"]
+         + sorted(os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "tests", "placements", "bad", "*.json")))),
     ]
     # The tests build fake game folders; folders exported by the Makefile and FORCE stay out of their way.
     env = {k: v for k, v in os.environ.items() if k not in ("DEPLOY_DIR", "FORCE", "GAME_DIR", "MY_GAMES")}

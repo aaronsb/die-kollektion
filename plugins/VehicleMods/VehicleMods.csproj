@@ -40,7 +40,7 @@
 
   <!-- The files a deploy copies, from each vehicle folder ../../vehicles/<name>/: its vehicle.json as
        vehicles/<name>.json, the meshes tools/build_vehicle.py wrote to build/ as vehicles/<name>/*.obj,
-       and its icon.png as icons/<Codename>.png (the codename read from vehicle.json). -->
+       its placements.json (when it has one) as vehicles/<name>/placements.json, and its icon.png as icons/<Codename>.png (the codename read from vehicle.json). -->
   <UsingTask TaskName="VehicleDeployFiles" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>
       <VehiclesDir ParameterType="System.String" Required="true" />
@@ -68,6 +68,9 @@
             if (Directory.Exists(build))
                 foreach (var obj in Directory.GetFiles(build, "*.obj"))
                     Add(obj, Path.Combine(DeployDir, "vehicles", name, Path.GetFileName(obj)));
+            var placements = Path.Combine(folder, "placements.json");
+            if (File.Exists(placements))
+                Add(placements, Path.Combine(DeployDir, "vehicles", name, "placements.json"));
             var icon = Path.Combine(folder, "icon.png");
             var codename = Regex.Match(File.ReadAllText(manifest), "\"codename\"\\s*:\\s*\"([^\"]+)\"").Groups[1].Value;
             if (File.Exists(icon) && codename.Length > 0)

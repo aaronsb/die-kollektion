@@ -41,6 +41,9 @@ sealed class VehicleDefinition
     public SpareWheel Spare { get; set; }
     /// <summary>Headlight colour and brightness for this vehicle ("headlights"), or null for the game's.</summary>
     public HeadlightSettings Headlights { get; set; }
+    /// <summary>Moves, turns and copies of prefab nodes from placements.json beside the deployed meshes
+    /// (<see cref="PlacementPlan"/>); empty when there is no file, null when it is malformed.</summary>
+    public PlacementPlan Placements { get; set; }
 
     public string MeshDirectory { get; private set; }
     public string CatalogName => Codename.ToLowerInvariant();
@@ -141,6 +144,7 @@ sealed class VehicleDefinition
                 Headlights = root.TryGetProperty("headlights", out var headlights) ? ReadHeadlights(headlights, root.GetProperty("codename").GetString()) : null,
             };
             definition.MeshDirectory = Path.Combine(directory, definition.CatalogName);
+            definition.Placements = VehicleMods.Placements.Read(definition.MeshDirectory, definition.Codename);
             definitions.Add(definition);
         }
         return definitions;
