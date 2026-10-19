@@ -16,7 +16,8 @@ Standard library only, so it runs before the Python environment exists. Usage:
     python3 tools/werkstatt.py undeploy [--deploy-dir D] [--force] remove exactly what deployed.json lists
     python3 tools/werkstatt.py status [--deploy-dir D]             repo, build and game folder side by side
     python3 tools/werkstatt.py update [--deploy-dir D]             after a game update: rebuild and reinstall the plugin
-    python3 tools/werkstatt.py launch-before | launch-after        run_werkstatt.sh's checks around a launch
+    python3 tools/werkstatt.py deploy [--deploy-dir D]             preflight, compile, copy and record (`make deploy`)
+    python3 tools/werkstatt.py launch-before | launch-after [--log F]  run_werkstatt.sh's steps around a launch
     python3 tools/werkstatt.py save-add [ItemId ...]               add our trucks to the save (backs up first)
     python3 tools/werkstatt.py loop <vehicle>                      build one vehicle, run its gates, redo its contact
                                                                    sheet, write its CHANGES.md (`make loop V=...`)
@@ -26,19 +27,28 @@ Environment: GAME_DIR (the game folder), MY_GAMES (the game's documents folder h
 name, default Player1), FORCE=1 (undeploy files that changed since the deploy).
 """
 import concurrent.futures
+import contextlib
 import datetime
+import errno
 import glob
 import hashlib
 import json
 import os
 import platform
 import re
+import shlex
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.request
 import zipfile
+
+try:
+    import fcntl
+except ImportError:  # Windows: no advisory locks; Werkstatt's launch script is Linux-only anyway
+    fcntl = None
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 APP_ID = "2929250"
@@ -51,6 +61,7 @@ LAUNCH_OPTION = '"./run_werkstatt.sh" %command%'
 # tools/run_werkstatt.sh, installed into the game folder: starts the game through run_bepinex.sh, and after a
 # game update keeps the old plugin out of that launch and rebuilds it once the game has exited.
 LAUNCH_SCRIPT = "run_werkstatt.sh"
+LAUNCH_SOURCE = os.path.join(ROOT, "tools", LAUNCH_SCRIPT)
 LAUNCH_CLICKS = "In Steam: Library → right-click Over the Hill → Properties → General → Launch Options"
 PLUGIN_SOURCE = os.path.join(ROOT, "plugins", "VehicleMods", "Plugin.cs")
 SOURCE_DLL = os.path.join(ROOT, "plugins", "VehicleMods", "bin", "Release", "net6.0", "VehicleMods.dll")
@@ -199,7 +210,7 @@ def install_hint(tool):
     if cmd:
         return f"On {name}, install it with:\n    {cmd}"
     url = INSTALL_HELP.get(tool)
-    return f"Install it with your system's package manager" + (f", or see {url}" if url else "") + "."
+    return "Install it with your system's package manager" + (f", or see {url}" if url else "") + "."
 
 
 # ---------------------------------------------------------------- small helpers
@@ -363,7 +374,7 @@ class Step:
         "python": "Install Python 3.10 or newer", "game": "Install Over the Hill", "closed": "Quit the game",
         "setup": "Install Werkstatt's Python packages", "rsvg-convert": "Install rsvg-convert",
         "potrace": "Install potrace", "dotnet": "Install the .NET SDK", "blender": "Install Blender 5 (optional)",
-        "bepinex": "Install BepInEx", "bepinex-version": "Update BepInEx", "runscript": "Finish BepInEx's setup", "cfg": "Turn off BepInEx's Unity log listener",
+        "bepinex": "Install BepInEx", "bepinex-version": "Update BepInEx", "runscript": "Finish BepInEx's setup", "launchscript": "Install Werkstatt's launch script", "cfg": "Turn off BepInEx's Unity log listener",
         "launch": "Tell Steam to start the game through BepInEx", "interop": "Start the game once",
         "extract": "Copy the parts Werkstatt needs from your game", "build": "Build the vehicles",
         "deploy": "Install the mod into the game", "update": "Rebuild the plugin for the updated game",
@@ -432,10 +443,19 @@ def steps():
                         f"The installed BepInEx is {version}; Werkstatt is tested with {pin['version']}.",
                         "Run:\n    make bepinex FORCE=1", blocking=False))
     if bep_ok and not WINDOWS:
-        out.append(Step("runscript", "The start scripts are ready", run_script_ready(game) and launch_script_ready(game),
-                        f"Steam starts the game through {LAUNCH_SCRIPT}, which starts BepInEx's run_bepinex.sh; both "
-                        "must be executable, and they must name the game and this Werkstatt folder.",
+        out.append(Step("runscript", "BepInEx's start script is ready", run_script_ready(game),
+                        "Steam starts the game through run_bepinex.sh (by way of Werkstatt's launch script); it must be "
+                        "executable and name the game.",
                         "Run:\n    make bepinex"))
+        target = launch_script_target(game)
+        uses_it = any(LAUNCH_SCRIPT in o for o in launch_options())
+        out.append(Step("launchscript", "Werkstatt's launch script is installed and points at this folder",
+                        bool(target) and os.path.realpath(target) == os.path.realpath(ROOT),
+                        (f"{LAUNCH_SCRIPT} in the game folder points at another Werkstatt folder ({target}); after a game "
+                         "update it rebuilds the plugin from there." if target else
+                         f"{LAUNCH_SCRIPT} starts the game through BepInEx and rebuilds the plugin after a game update."
+                         + (" Steam's launch option uses it, so the game won't start without it." if uses_it else "")),
+                        "Run, from this folder:\n    make bepinex", blocking=uses_it and not target))
     out.append(Step("cfg", "BepInEx's Unity log listener is off", cfg_log_listening_off(game),
                     "With it on, this game crashes at start (BepInEx/config/BepInEx.cfg: UnityLogListening = false).",
                     "Run:\n    make bepinex"))
@@ -524,7 +544,7 @@ def cmd_start(_args):
 def cmd_require(_args):
     """Stop `make all` early, with the plain next step, unless everything before building is set up."""
     before_build = ("python", "game", "closed", "setup", "rsvg-convert", "potrace", "dotnet",
-                    "bepinex", "runscript", "cfg", "launch", "interop")
+                    "bepinex", "runscript", "launchscript", "cfg", "launch", "interop")
     todo = [s for s in steps() if not s.ok and s.blocking and s.key in before_build]
     if not todo:
         return 0
@@ -712,11 +732,13 @@ def cmd_gates(args):
     else:
         print("nearplan skip the plugin's hook-page placement test needs the .NET 10 SDK; it tests the plugin's "
               "source, which CI and every release already ran")
+    # The tests build fake game folders; the Makefile's exported folders and FORCE stay out of their way.
+    test_env = {k: v for k, v in os.environ.items() if k not in ("DEPLOY_DIR", "FORCE", "GAME_DIR", "MY_GAMES")}
     for label, cmd in (("updates ", [sys.executable, "-W", "ignore", "-m", "unittest", "discover", "-s", "tests"]),
                        ("names   ", [sys.executable, "tools/check_names.py"]),
                        ("catalog ", [sys.executable, "tools/catalogue.py", "--check"]),
                        ("packs   ", [sys.executable, "tools/pack.py", "check"])):
-        r = run(cmd, cwd=ROOT)
+        r = run(cmd, cwd=ROOT, env=test_env)
         print(f"{label} {'ok  ' if r.returncode == 0 else 'FAIL'} {(r.stdout + r.stderr).strip().splitlines()[-1] if (r.stdout + r.stderr).strip() else ''}")
         if r.returncode:
             failed.append(label.strip())
@@ -823,17 +845,21 @@ def cmd_preflight_deploy(args):
         return 1
     if into_game:
         # After a game update the plugin must be compiled against the interop BepInEx regenerates on the next
-        # start; deploying before that would record the new game with a plugin built for the old one.
-        rec = deploy_record(folder)
-        if rec and rec.get("game") and game_changed(rec["game"], game_record(game, known=rec["game"])):
-            if not move_aside(game, folder, "The game has changed since the last deploy"):
-                return 1
+        # start; deploying before that would record the new game with a plugin built for the old one. Without a
+        # record (deploys before it existed) the game's code files newer than BepInEx's last start tell.
+        settle(game, folder)
+        rec = deploy_record(folder) if os.path.isdir(folder) else None
+        recorded = (rec or {}).get("game")
+        changed = game_changed(recorded, game_record(game, known=recorded)) if recorded else not game_prepared(game)
+        if rec and changed and not move_aside(game, folder, "The game has changed since the last deploy"):
+            return 1
         aside = aside_dir(folder)
+        prepared = aside_prepared(game, aside) if os.path.isdir(aside) else game_prepared(game)
+        if not prepared:
+            print("The game has changed since BepInEx last started it, so the plugin can't be built for it yet.\n"
+                  "Start the game once from Steam (it runs without Die Kollektion this time), quit, then deploy again.")
+            return 1
         if os.path.isdir(aside):
-            if not aside_prepared(game, aside):
-                print("The game has updated, and BepInEx hasn't prepared it yet, so the plugin can't be built for it.\n"
-                      "Start the game once from Steam (it runs without Die Kollektion this time), quit, then deploy again.")
-                return 1
             retire_aside(aside)
     state = deploy_state(folder)
     if state in ("current", "stale"):
@@ -855,17 +881,7 @@ def cmd_preflight_deploy(args):
 
 def cmd_compile_plugin(_args):
     """Use the release's prebuilt plugin when it fits this game; otherwise compile it with the .NET SDK."""
-    game = game_dir()
-    ready, why = prebuilt_plugin(game)
-    if ready:
-        print("Using the plugin that comes ready-made in this release (built for your version of the game).")
-        return 0
-    if dotnet_sdk_major() < 6:
-        say("The plugin has to be compiled here, and the .NET SDK isn't installed.",
-            f"Why compile: {why}.\n\n{install_hint('dotnet')}\n\nThen run the same command again.")
-        return 1
-    return subprocess.run(["dotnet", "build", "-c", "Release", "-nologo", "-v", "minimal", "-p:Deploy=false",
-                           f"-p:GameDir={game}"], cwd=os.path.join(ROOT, "plugins", "VehicleMods")).returncode
+    return compile_plugin(game_dir())
 
 
 def cmd_copy_deploy(args):
@@ -883,9 +899,8 @@ def cmd_copy_deploy(args):
     return 0
 
 
-def cmd_record_deploy(args, after_update=None):
-    """Write deployed.json: every file and its sha256, where it came from, and the game's version it was built for.
-    `after_update` marks a rebuild after a game update (rebuild_from_aside)."""
+def cmd_record_deploy(args):
+    """Write deployed.json: every file and its sha256, where it came from, and the game's version it was built for."""
     folder = deploy_dir_arg(args)
     files = listing(folder)
     sources = expected_sources()
@@ -908,9 +923,7 @@ def cmd_record_deploy(args, after_update=None):
                    "source": os.path.relpath(sources[rel], ROOT).replace(os.sep, "/") if rel in sources else None}
                   for rel, p in sorted(files.items())],
     }
-    if after_update:
-        record["afterUpdate"] = after_update
-    json.dump(record, open(os.path.join(folder, "deployed.json"), "w"), indent=1)
+    write_json(os.path.join(folder, "deployed.json"), record)
     if game and not WINDOWS and os.path.realpath(folder).startswith(os.path.realpath(game) + os.sep):
         install_launch_script(game)
     extra = sorted(set(files) - set(sources))
@@ -941,10 +954,66 @@ def cmd_undeploy(args):
 # A Steam update replaces GameAssembly.so and global-metadata.dat; BepInEx regenerates its interop from them on
 # the next start, and a plugin compiled against the old interop can hang the game at start. Each deploy records
 # these files, `run_werkstatt.sh` and `make update` compare them with the game, and on a difference the plugin
-# folder is moved aside (outside plugins/, so that launch runs stock and BepInEx regenerates the interop), then
-# rebuilt against the new interop and installed again.
+# folder is moved aside (outside plugins/, so that launch runs stock and BepInEx regenerates the interop). Once
+# BepInEx has prepared the game, the DLL is rebuilt against the new interop, put together with the vehicle files
+# from the aside folder (gated when they were deployed) in a staging folder, and renamed into place.
 GAME_FILES = {"gameAssembly": "GameAssembly.so", "globalMetadata": "*_Data/il2cpp_data/Metadata/global-metadata.dat"}
 ASIDE_NOTE = "aside.json"
+LOG_CAP = 256 * 1024
+
+
+def write_atomic(path, text, mode=0o644):
+    """Write through a temp file in the same folder and os.replace: a reader sees the old file or the new one."""
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path) or ".", prefix=f".{os.path.basename(path)}.")
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(text)
+        os.chmod(tmp, mode)
+        os.replace(tmp, path)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+        raise
+
+
+def write_json(path, data):
+    write_atomic(path, json.dumps(data, indent=1) + "\n")
+
+
+def rename_dir(src, dst):
+    """Move a folder with one rename, so it is never half moved; across filesystems (EXDEV) it refuses."""
+    try:
+        os.rename(src, dst)
+    except OSError as error:
+        if error.errno == errno.EXDEV:
+            raise RuntimeError(f"{src} and {dst} are on different filesystems") from error
+        raise
+
+
+@contextlib.contextmanager
+def werkstatt_lock(game, wait=0.0):
+    """One Werkstatt step at a time on a game folder (a launch's checks, a rebuild, `make update`, `make deploy`).
+    Yields False when another step still holds BepInEx/werkstatt.lock after `wait` seconds."""
+    if fcntl is None or not game:
+        yield True
+        return
+    path = os.path.join(game, "BepInEx", "werkstatt.lock")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "a") as f:
+        deadline = time.monotonic() + wait
+        while True:
+            try:
+                fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except OSError:
+                if time.monotonic() >= deadline:
+                    yield False
+                    return
+                time.sleep(0.5)
+        try:
+            yield True
+        finally:
+            fcntl.flock(f, fcntl.LOCK_UN)
 
 
 def game_file_paths(game):
@@ -987,23 +1056,51 @@ def game_changed(recorded, live):
     return False
 
 
-def launch_decision(deployed, record_game, live_game, aside):
+def files_touched(recorded, live):
+    """Same content, new size or time (a Steam verify rewrites files): worth saving, so the next check skips hashing."""
+    return any(((recorded.get("files") or {}).get(k) or {}).get("mtime") != ((live.get("files") or {}).get(k) or {}).get("mtime")
+               for k in GAME_FILES)
+
+
+def launch_decision(deployed, record_game, live_game, aside, prepared=True):
     """What run_werkstatt.sh does before a launch: "plain" (start the game as it is), "move-aside" (the game
-    changed since the deploy: start it without the plugin, rebuild after) or "pending" (the plugin is already
-    aside from an earlier launch or `make update`: start without it, try the rebuild after)."""
+    changed since the deploy: start it without the plugin, rebuild after) or "pending" (the plugin is aside from
+    an earlier launch or `make update`: start without it, try the rebuild after). A deploy that predates the
+    record can't be compared; then `prepared` (game_prepared) decides: BepInEx hasn't run since the game's code
+    files changed means the plugin's interop is older than the game."""
     if aside:
         return "pending"
-    if not deployed or not record_game:
+    if not deployed:
         return "plain"
+    if not record_game:
+        return "plain" if prepared else "move-aside"
     return "move-aside" if game_changed(record_game, live_game) else "plain"
 
 
 def rebuild_ready(note, live_interop, log_written, log_text):
     """BepInEx has prepared the updated game: its interop hash changed since the plugin was moved aside, or it
     started the game since then and got past interop generation (its hash may not cover what the update changed)."""
-    if live_interop and live_interop != note.get("interopHash"):
+    if note.get("interopHash") and live_interop and live_interop != note["interopHash"]:
         return True
-    return bool(log_written and log_written > note.get("movedAt", 0) and "Chainloader initialized" in log_text)
+    return bool(log_written and log_written > note.get("movedAt", float("inf")) and "Chainloader initialized" in log_text)
+
+
+def bepinex_log(game):
+    """(modification time, text) of BepInEx's log of its last start, or (None, "")."""
+    path = os.path.join(game, "BepInEx", "LogOutput.log")
+    try:
+        with open(path, errors="replace") as f:
+            return os.path.getmtime(path), f.read()
+    except OSError:
+        return None, ""
+
+
+def game_prepared(game):
+    """BepInEx has started the game since its code files last changed and got past interop generation, so the
+    interop on disk is the game's own: what a plugin may be compiled against."""
+    newest = max((os.path.getmtime(p) for p in game_file_paths(game).values() if p), default=0)
+    written, text = bepinex_log(game)
+    return bool(interop_hash(game)) and rebuild_ready({"movedAt": newest}, None, written, text)
 
 
 def aside_dir(folder):
@@ -1014,10 +1111,15 @@ def aside_dir(folder):
     return os.path.join(parent, f"{os.path.basename(folder)}.aside")
 
 
+def replaced_dir(folder):
+    return f"{aside_dir(folder)[:-len('.aside')]}.replaced-{datetime.datetime.now():%Y%m%d-%H%M%S}"
+
+
 def deploy_record(folder):
     p = os.path.join(folder, "deployed.json")
     try:
-        return json.load(open(p)) if os.path.isfile(p) else None
+        with open(p) as f:
+            return json.load(f)
     except (OSError, ValueError):
         return None
 
@@ -1036,33 +1138,46 @@ def move_aside(game, folder, why):
         stamp(f"{aside} already exists; not moving {folder} over it")
         return False
     built_for = (deploy_record(folder) or {}).get("game") or {}
-    shutil.move(folder, aside)
+    try:
+        rename_dir(folder, aside)
+    except (OSError, RuntimeError) as error:
+        stamp(f"Couldn't move the plugin aside ({error}); the game starts with it")
+        return False
     # The interop the plugin was built against: a different one on disk means BepInEx has regenerated it.
-    note = {"notes": "Written by Werkstatt when the game updated: the plugin waits here, outside plugins/, until "
-                     "`make update` or run_werkstatt.sh rebuilds it for the new game.",
-            "movedAt": datetime.datetime.now().timestamp(), "why": why,
-            "interopHash": built_for.get("interopHash") or interop_hash(game),
-            "steamBuild": built_for.get("steamBuild")}
-    json.dump(note, open(os.path.join(aside, ASIDE_NOTE), "w"), indent=1)
+    write_json(os.path.join(aside, ASIDE_NOTE), {
+        "notes": "Written by Werkstatt when the game updated: the plugin waits here, outside plugins/, until "
+                 "`make update` or run_werkstatt.sh rebuilds it for the new game.",
+        "movedAt": datetime.datetime.now().timestamp(), "why": why,
+        "interopHash": built_for.get("interopHash"), "steamBuild": built_for.get("steamBuild")})
     stamp(f"{why}: moved the plugin aside to {aside} for now")
     return True
 
 
-def aside_prepared(game, aside):
-    """BepInEx has prepared the game since the plugin was moved aside (rebuild_ready, from the aside note)."""
+def aside_note(aside):
+    """move_aside's note. Missing or unreadable (cut off before it was written), what it would say is recovered:
+    the interop from the plugin's own deployed.json, and the folder's time as the time of the move."""
     try:
-        note = json.load(open(os.path.join(aside, ASIDE_NOTE)))
+        with open(os.path.join(aside, ASIDE_NOTE)) as f:
+            note = json.load(f)
+        if isinstance(note, dict) and note.get("movedAt"):
+            return note
     except (OSError, ValueError):
-        note = {}
-    log = os.path.join(game, "BepInEx", "LogOutput.log")
-    log_written = os.path.getmtime(log) if os.path.isfile(log) else None
-    log_text = open(log, errors="replace").read() if log_written else ""
-    return rebuild_ready(note, interop_hash(game), log_written, log_text)
+        pass
+    built_for = (deploy_record(aside) or {}).get("game") or {}
+    return {"interopHash": built_for.get("interopHash"), "steamBuild": built_for.get("steamBuild"),
+            "movedAt": os.stat(aside).st_mtime}
+
+
+def aside_prepared(game, aside):
+    """BepInEx has prepared the game since the plugin was moved aside (rebuild_ready), or since the game's code
+    files last changed (game_prepared)."""
+    written, text = bepinex_log(game)
+    return rebuild_ready(aside_note(aside), interop_hash(game), written, text) or game_prepared(game)
 
 
 def retire_aside(aside):
     """Remove the old plugin folder once a new one is installed, unless it holds the player's own changes:
-    a file changed or added by hand keeps the whole folder, renamed next to it."""
+    a file changed or added by hand since the deploy keeps the whole folder, renamed next to it."""
     record = deploy_record(aside) or {}
     files = listing(aside)
     files.pop(ASIDE_NOTE, None)
@@ -1070,22 +1185,86 @@ def retire_aside(aside):
     if record and set(files) == set(recorded) and all(sha256(p) == recorded[rel] for rel, p in files.items()):
         shutil.rmtree(aside)
         return
-    kept = f"{aside[:-len('.aside')]}.replaced-{datetime.datetime.now():%Y%m%d-%H%M%S}"
-    os.rename(aside, kept)
+    kept = replaced_dir(aside[:-len(".aside")])
+    rename_dir(aside, kept)
     stamp(f"The old plugin folder held files changed or added by hand; kept it as {kept}")
 
 
-def rebuild_from_aside(game, folder):
-    """Rebuild the plugin moved aside after a game update and install it again: "rebuilt", "waiting" (BepInEx
-    hasn't prepared the updated game yet) or "failed". The new install is assembled in a staging folder and
-    renamed into place, so the game never sees half a plugin; until then the plugin stays aside."""
+def settle(game, folder):
+    """Finish what an interrupted install left: both the plugin folder and the aside folder exist when a rebuild
+    was cut off between renaming the new plugin into place and retiring the old one. A plugin that fits the game
+    is the finished rebuild, and the aside folder goes; one that doesn't is stale and leaves plugins/, so the
+    game runs without it until the rebuild."""
     aside = aside_dir(folder)
+    if not (os.path.isdir(aside) and os.path.isdir(folder)):
+        return
+    recorded = (deploy_record(folder) or {}).get("game")
+    if recorded and not game_changed(recorded, game_record(game, known=recorded)):
+        retire_aside(aside)
+        stamp("An earlier install was cut off before it finished; the installed plugin fits the game, so it stays")
+        return
+    kept = replaced_dir(folder)
+    rename_dir(folder, kept)
+    stamp(f"Both a plugin and the one waiting aside were there, and the installed one doesn't fit the game; moved it to {kept}")
+
+
+def rebuild_refusal(record):
+    """Why the automatic rebuild won't compile this checkout, or None. It replaces only the DLL and keeps the
+    deployed vehicle files, so the plugin's source must be the one that deploy was built from."""
+    deployed = (record.get("repoCommit") or "").replace("+dirty", "") or None
+    repo = checkout()
+    head = repo[0] if repo else None
+    if deployed != head:
+        return (f"the plugin was deployed from {deployed[:7] if deployed else 'a copy without git'}, "
+                f"and {ROOT} is now at {head[:7] if head else 'no commit'}")
+    if repo and git("status", "--porcelain", "--untracked-files=no", "--", "plugins/VehicleMods"):
+        return f"plugins/VehicleMods in {ROOT} has uncommitted changes"
+    return None
+
+
+def compile_plugin(game, isolated=False):
+    """The release's prebuilt plugin when it fits this game, else a compile with the .NET SDK. `isolated` leaves
+    no MSBuild or compiler server running afterwards (a rebuild after a launch must not keep processes alive)."""
+    ready, why = prebuilt_plugin(game)
+    if ready:
+        print("Using the plugin that comes ready-made in this release (built for your version of the game).")
+        return 0
+    if dotnet_sdk_major() < 6:
+        say("The plugin has to be compiled here, and the .NET SDK isn't installed.",
+            f"Why compile: {why}.\n\n{install_hint('dotnet')}\n\nThen run the same command again.")
+        return 1
+    cmd = ["dotnet", "build", "-c", "Release", "-nologo", "-v", "minimal", "-p:Deploy=false", f"-p:GameDir={game}"]
+    env = None
+    if isolated:
+        cmd += ["-nodeReuse:false", "-p:UseSharedCompilation=false"]
+        env = {**os.environ, "MSBUILDDISABLENODEREUSE": "1", "DOTNET_CLI_USE_MSBUILD_SERVER": "0"}
+    return subprocess.run(cmd, cwd=os.path.join(ROOT, "plugins", "VehicleMods"), env=env).returncode
+
+
+def rebuild_from_aside(game, folder, automatic):
+    """Rebuild the DLL of the plugin moved aside after a game update and install it again, with the vehicle files
+    from the aside folder: "rebuilt", "nothing" (no plugin aside), "waiting" (BepInEx hasn't prepared the updated
+    game yet), "redeploy" (this checkout isn't what was deployed: `make update` deploys it in full, with the gates)
+    or "failed". The new install is put together in a staging folder and renamed into place; until then the
+    plugin stays aside and the game runs stock."""
+    settle(game, folder)
+    aside = aside_dir(folder)
+    if not os.path.isdir(aside):
+        return "nothing"
     if not aside_prepared(game, aside):
         stamp("BepInEx hasn't prepared the updated game yet. Start the game once (it runs without Die Kollektion "
               "this time), quit, and the plugin is rebuilt: by run_werkstatt.sh on its own, or with `make update`")
         return "waiting"
+    record = deploy_record(aside)
+    refusal = rebuild_refusal(record) if record else "the plugin waiting aside has no deployed.json"
+    if refusal:
+        if automatic:
+            stamp(f"Not rebuilding on its own: {refusal}. Run `make update` in the Werkstatt folder; it deploys "
+                  "the checkout in full, with the gates")
+            return "failed"
+        return "redeploy"
     stamp("Rebuilding the plugin for the updated game")
-    if cmd_compile_plugin([]) != 0:
+    if compile_plugin(game, isolated=True) != 0:
         stamp(f"The plugin couldn't be built (above); it stays aside in {aside} and the game runs without it")
         return "failed"
     if game_running():
@@ -1095,17 +1274,22 @@ def rebuild_from_aside(game, folder):
         stamp(f"{folder} exists again (deployed since?); leaving the old plugin aside in {aside}")
         return "failed"
     staging = aside_dir(folder)[:-len(".aside")] + ".staging"
-    if os.path.exists(staging):
-        shutil.rmtree(staging)
-    record = deploy_record(aside) or {}
     try:
-        if cmd_copy_deploy(["--deploy-dir", staging]) != 0:
-            raise RuntimeError("copying the built files failed")
-        if cmd_record_deploy(["--deploy-dir", staging], after_update={
-                "fromBuild": (record.get("game") or {}).get("steamBuild") or note.get("steamBuild"),
-                "rebuiltAt": datetime.datetime.now().astimezone().isoformat(timespec="seconds")}) != 0:
-            raise RuntimeError("recording the deploy failed")
-        os.rename(staging, folder)
+        if os.path.exists(staging):
+            shutil.rmtree(staging)
+        shutil.copytree(aside, staging, ignore=lambda d, names: [n for n in names if d == aside and n in (ASIDE_NOTE, "deployed.json")])
+        dll = plugin_dll(game)
+        shutil.copyfile(dll, os.path.join(staging, "VehicleMods.dll"))
+        sources = {f["path"]: f.get("source") for f in record.get("files", [])}
+        write_json(os.path.join(staging, "deployed.json"), {
+            **record,
+            "plugin": "prebuilt" if dll != SOURCE_DLL else "compiled",
+            "game": game_record(game),
+            "afterUpdate": {"fromBuild": (record.get("game") or {}).get("steamBuild") or aside_note(aside).get("steamBuild"),
+                            "rebuiltAt": datetime.datetime.now().astimezone().isoformat(timespec="seconds")},
+            "files": [{"path": rel, "sha256": sha256(p), "source": sources.get(rel)} for rel, p in sorted(listing(staging).items())],
+        })
+        rename_dir(staging, folder)
     except Exception as error:
         stamp(f"Installing the rebuilt plugin failed ({error}); it stays aside in {aside}")
         shutil.rmtree(staging, ignore_errors=True)
@@ -1117,47 +1301,88 @@ def rebuild_from_aside(game, folder):
 
 def update_report(game, folder):
     """One line on whether the deployed plugin fits the game, for `make status` and `make start`:
-    (state, text) with state "current", "rebuilt", "needed" or "unknown"."""
+    (state, text) with state "current", "rebuilt", "needed" or "unknown". It reads, and changes nothing."""
     updated = steam_manifest(game).get("lastupdated", "")
     when = date_of(int(updated) if updated.isdigit() else None)
     needed = (f"the game updated on {when}; a rebuild is still needed (run `make update`, or launch once through "
               f"{LAUNCH_SCRIPT}), and until then the game runs without Die Kollektion")
-    if os.path.isdir(aside_dir(folder)):
+    rec = deploy_record(folder) if os.path.isdir(folder) else None
+    recorded = (rec or {}).get("game")
+    fits = bool(recorded) and not game_changed(recorded, game_record(game, known=recorded))
+    if os.path.isdir(aside_dir(folder)) and not fits:
         return "needed", needed
-    rec = deploy_record(folder)
     if not rec:
         return "unknown", "nothing deployed"
-    if not rec.get("game"):
+    if not recorded:
+        if not game_prepared(game):
+            return "needed", needed
         return "unknown", "not recorded (deployed before Werkstatt recorded the game's version; `make deploy` records it)"
-    if game_changed(rec["game"], game_record(game, known=rec["game"])):
+    if not fits:
         return "needed", needed
     if rec.get("afterUpdate"):
         return "rebuilt", f"the game updated on {when}; rebuilt {rec['afterUpdate'].get('rebuiltAt', '')}".rstrip()
-    return "current", f"the plugin fits this game (Steam build {rec['game'].get('steamBuild') or '?'})"
+    return "current", f"the plugin fits this game (Steam build {recorded.get('steamBuild') or '?'})"
+
+
+def shell_quote(text):
+    return "'" + text.replace("'", "'\\''") + "'"
+
+
+def launch_script_target(game):
+    """The Werkstatt folder the game's run_werkstatt.sh points at, "" when its line is empty, None when it isn't installed."""
+    path = os.path.join(game, LAUNCH_SCRIPT)
+    try:
+        with open(path) as f:
+            m = re.search(r"^WERKSTATT_DIR=(.*)$", f.read(), re.M)
+    except OSError:
+        return None
+    if not (m and os.access(path, os.X_OK)):
+        return None
+    try:
+        return (shlex.split(m.group(1)) or [""])[0]
+    except ValueError:
+        return None
 
 
 def launch_script_ready(game):
-    path = os.path.join(game, LAUNCH_SCRIPT)
-    try:
-        text = open(path).read()
-    except OSError:
-        return False
-    return os.access(path, os.X_OK) and f'WERKSTATT_DIR="{ROOT}"' in text
+    return bool(launch_script_target(game))
 
 
 def install_launch_script(game):
     """Copy tools/run_werkstatt.sh into the game folder, pointed at this Werkstatt folder."""
-    text = open(os.path.join(ROOT, "tools", LAUNCH_SCRIPT)).read()
-    text = re.sub(r'^WERKSTATT_DIR=".*"$', lambda _m: f'WERKSTATT_DIR="{ROOT}"', text, count=1, flags=re.M)
+    with open(LAUNCH_SOURCE) as f:
+        text = f.read()
+    text = re.sub(r"^WERKSTATT_DIR=.*$", lambda _m: f"WERKSTATT_DIR={shell_quote(ROOT)}", text, count=1, flags=re.M)
     path = os.path.join(game, LAUNCH_SCRIPT)
-    if not os.path.isfile(path) or open(path).read() != text:
-        open(path, "w").write(text)
-    os.chmod(path, os.stat(path).st_mode | 0o755)
+    try:
+        with open(path) as f:
+            same = f.read() == text
+    except OSError:
+        same = False
+    if not same or not os.access(path, os.X_OK):
+        write_atomic(path, text, 0o755)
     return path
 
 
+def deploy_steps(args):
+    for step in (cmd_preflight_deploy, cmd_compile_plugin, cmd_copy_deploy, cmd_record_deploy):
+        if step(args) != 0:
+            return 1
+    return 0
+
+
+def cmd_deploy(args):
+    """`make deploy` after its gates: preflight, compile, copy and record, holding the game folder's Werkstatt lock."""
+    with werkstatt_lock(game_dir()) as held:
+        if not held:
+            print("Another Werkstatt step is working on the game folder (a rebuild after a launch?). Try again in a minute.")
+            return 1
+        return deploy_steps(args)
+
+
 def cmd_update(args):
-    """`make update`: after a game update, move the plugin aside and rebuild it once BepInEx has prepared the game."""
+    """`make update`: after a game update, move the plugin aside and rebuild it once BepInEx has prepared the game.
+    When this checkout isn't what was deployed, it deploys it in full instead, with the gates."""
     game = game_dir()
     folder = deploy_dir_arg(args)
     if not game or not folder:
@@ -1166,21 +1391,33 @@ def cmd_update(args):
     if game_running():
         print("The game is running. Quit it, then run `make update`.")
         return 1
-    if not os.path.isdir(aside_dir(folder)):
-        rec = deploy_record(folder)
-        if not rec:
-            print("Nothing deployed yet. Run `make all`.")
-            return 0
-        if not rec.get("game"):
-            print("The deploy didn't record the game's version (it predates that). Run `make deploy` once; "
-                  "it records it, and `make update` can tell from then on.")
-            return 0
-        if not game_changed(rec["game"], game_record(game, known=rec["game"])):
-            print(f"The deployed plugin fits this game (Steam build {steam_build(game) or '?'}); nothing to do.")
-            return 0
-        if not move_aside(game, folder, "The game has changed since the last deploy"):
+    with werkstatt_lock(game) as held:
+        if not held:
+            print("Another Werkstatt step is working on the game folder (a rebuild after a launch?). Try again in a minute.")
             return 1
-    return {"rebuilt": 0, "waiting": 0}.get(rebuild_from_aside(game, folder), 1)
+        settle(game, folder)
+        if not os.path.isdir(aside_dir(folder)):
+            rec = deploy_record(folder)
+            if not rec:
+                print("Nothing deployed yet. Run `make all`.")
+                return 0
+            recorded = rec.get("game")
+            live = game_record(game, known=recorded) if recorded else None
+            if launch_decision(True, recorded, live, False, game_prepared(game)) == "plain":
+                print(f"The deployed plugin fits this game (Steam build {steam_build(game) or '?'}); nothing to do."
+                      if recorded else "The deploy predates Werkstatt's record of the game's version, and BepInEx has "
+                      "started the game since it last changed; nothing to do. `make deploy` records the version.")
+                return 0
+            if not move_aside(game, folder, "The game has changed since the last deploy"):
+                return 1
+        result = rebuild_from_aside(game, folder, automatic=False)
+        if result != "redeploy":
+            return 0 if result in ("rebuilt", "waiting", "nothing") else 1
+        print(f"This checkout isn't what was deployed ({rebuild_refusal(deploy_record(aside_dir(folder)) or {}) or 'no record'}); "
+              "deploying it in full, with the gates.")
+        if cmd_gates([]) != 0:
+            return 1
+        return deploy_steps(args)
 
 
 def cmd_launch_before(_args):
@@ -1188,30 +1425,62 @@ def cmd_launch_before(_args):
     launch; call launch-after once the game has exited. Any other exit also starts the game as it is."""
     game = game_dir()
     folder = default_deploy_dir(game)
-    rec = deploy_record(folder)
-    recorded = (rec or {}).get("game")
-    # Hashing only when there is a record to compare with; unchanged files keep their recorded hashes.
-    live = game_record(game, known=recorded) if recorded else {"steamBuild": steam_build(game)}
-    decision = launch_decision(rec is not None, recorded, live, os.path.isdir(aside_dir(folder)))
-    build = live["steamBuild"] or "?"
-    if decision == "plain":
-        why = ("nothing deployed" if rec is None else
-               "no game version recorded (make deploy records it)" if not recorded else "the plugin fits this game")
-        stamp(f"Launch: {why} (Steam build {build}); starting normally")
-        return 0
-    if decision == "pending":
-        stamp("Launch: the plugin is still aside after a game update; starting without it, rebuilding after the game exits")
-        return 3
-    why = f"Launch: the game updated (Steam build {recorded.get('steamBuild') or '?'} → {build}) since the last deploy"
-    return 3 if move_aside(game, folder, why) else 0
+    with werkstatt_lock(game, wait=45) as held:
+        if not held:
+            stamp("Launch: another Werkstatt step still holds the game folder; starting normally")
+            return 0
+        settle(game, folder)
+        rec = deploy_record(folder) if os.path.isdir(folder) else None
+        recorded = (rec or {}).get("game")
+        # Hashing only when there is a record to compare with; unchanged files keep their recorded hashes.
+        live = game_record(game, known=recorded) if recorded else {"steamBuild": steam_build(game)}
+        prepared = True if recorded or rec is None else game_prepared(game)
+        decision = launch_decision(rec is not None, recorded, live, os.path.isdir(aside_dir(folder)), prepared)
+        build = live["steamBuild"] or "?"
+        if decision == "plain":
+            if recorded and files_touched(recorded, live):
+                write_json(os.path.join(folder, "deployed.json"), {**rec, "game": {**recorded, "files": live["files"]}})
+            why = ("nothing deployed" if rec is None else
+                   "no game version recorded (make deploy records it)" if not recorded else "the plugin fits this game")
+            stamp(f"Launch: {why} (Steam build {build}); starting normally")
+            return 0
+        if decision == "pending":
+            stamp("Launch: the plugin is still aside after a game update; starting without it, rebuilding after the game exits")
+            return 3
+        old = (recorded or {}).get("steamBuild") or "?"
+        why = (f"Launch: the game updated (Steam build {old} → {build}) since the last deploy" if recorded else
+               "Launch: the game's code files changed since BepInEx last started it, and the deploy has no record to compare")
+        return 3 if move_aside(game, folder, why) else 0
 
 
 def cmd_launch_after(_args):
     """run_werkstatt.sh, after the game exits: rebuild and reinstall the plugin moved aside before the launch."""
     game = game_dir()
-    result = rebuild_from_aside(game, default_deploy_dir(game))
+    with werkstatt_lock(game) as held:
+        if not held:
+            stamp("After the launch: another Werkstatt step holds the game folder; the plugin stays aside for now")
+            return 1
+        result = rebuild_from_aside(game, default_deploy_dir(game), automatic=True)
     stamp(f"After the launch: {result}")
     return 0 if result != "failed" else 1
+
+
+def log_to(path):
+    """Send stdout and stderr, the subprocesses' too, to the end of `path`, first trimming it to its last LOG_CAP bytes."""
+    try:
+        if os.path.getsize(path) > LOG_CAP:
+            with open(path, "rb") as f:
+                f.seek(-LOG_CAP, os.SEEK_END)
+                tail = f.read()
+            write_atomic(path, tail[tail.find(b"\n") + 1:].decode(errors="replace"))
+    except OSError:
+        pass
+    fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os.dup2(fd, 1)
+    os.dup2(fd, 2)
+    os.close(fd)
 
 
 def cmd_status(args):
@@ -1244,6 +1513,11 @@ def cmd_status(args):
                 print(f"  installed:  {rec.get('deployedAt', '?')}")
         if game:
             print(f"Game version: {update_report(game, folder)[1]}")
+    if game and not WINDOWS:
+        target = launch_script_target(game)
+        print(f"Launch script: {'not installed (make bepinex)' if target is None else 'installed, pointing nowhere (make bepinex)' if not target else target}"
+              + (" (this checkout)" if target and os.path.realpath(target) == os.path.realpath(ROOT) else
+                 " (another checkout: after a game update it rebuilds from there)" if target else ""))
         if state in ("stale", "modified") and os.path.isfile(rec_path):
             rec = {f["path"]: f for f in json.load(open(rec_path))["files"]}
             for dest, src in sorted(expected_sources().items()):
@@ -1347,11 +1621,16 @@ COMMANDS = {
     "gates": cmd_gates, "preflight-deploy": cmd_preflight_deploy, "record-deploy": cmd_record_deploy,
     "undeploy": cmd_undeploy, "status": cmd_status,
     "compile-plugin": cmd_compile_plugin, "copy-deploy": cmd_copy_deploy, "save-add": cmd_save_add, "loop": cmd_loop,
-    "update": cmd_update, "launch-before": cmd_launch_before, "launch-after": cmd_launch_after,
+    "update": cmd_update, "launch-before": cmd_launch_before, "launch-after": cmd_launch_after, "deploy": cmd_deploy,
 }
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:
         print(__doc__)
         sys.exit(2)
-    sys.exit(COMMANDS[sys.argv[1]](sys.argv[2:]))
+    args = sys.argv[2:]
+    if "--log" in args:
+        i = args.index("--log")
+        log_to(args[i + 1])
+        del args[i:i + 2]
+    sys.exit(COMMANDS[sys.argv[1]](args))

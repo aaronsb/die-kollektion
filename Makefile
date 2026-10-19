@@ -48,10 +48,7 @@ contact: ## Render every vehicle's contact sheet (needs Blender)
 	@for v in vehicles/*/; do $(PY) tools/contact_sheet.py "$${v%/}" || exit 1; done
 
 deploy: check ## Install the mod into the game (game closed). DEPLOY_DIR=<dir> deploys elsewhere to inspect it
-	@$(WS) preflight-deploy
-	@$(WS) compile-plugin
-	@$(WS) copy-deploy
-	@$(WS) record-deploy
+	@$(WS) deploy
 
 undeploy: ## Remove exactly the files the last deploy installed (FORCE=1 if you changed them since)
 	@$(WS) undeploy

@@ -110,9 +110,11 @@ def cmd_ci(_args):
         ("hook-page placement", ["dotnet", "run", "--project", "tools/near-plan", "-v", "quiet", "--"]
          + sorted(glob.glob(os.path.join(ROOT, "tests", "maps", "*.maps")))),
     ]
+    # The tests build fake game folders; folders exported by the Makefile and FORCE stay out of their way.
+    env = {k: v for k, v in os.environ.items() if k not in ("DEPLOY_DIR", "FORCE", "GAME_DIR", "MY_GAMES")}
     failed = []
     for name, cmd in steps:
-        r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
+        r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, env=env)
         print(f"{'ok  ' if r.returncode == 0 else 'FAIL'} {name}")
         if r.returncode:
             print("     " + (r.stdout + r.stderr).strip().replace("\n", "\n     "))
