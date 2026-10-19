@@ -1,0 +1,31 @@
+name: Vehicle request
+description: A vehicle you'd like to see in the game.
+labels: [vehicle-request]
+body:
+  - type: input
+    id: vehicle
+    attributes:
+      label: Vehicle
+      description: What it is, in your own words.
+    validations:
+      required: true
+  - type: textarea
+    id: real
+    attributes:
+      label: Real vehicle data (optional)
+      description: Make, model, years, wheelbase, tyres, anything you know. In the game every vehicle gets a fictional name; the real data goes in the catalogue.
+  - type: textarea
+    id: refs
+    attributes:
+      label: References
+      description: Links to photos or drawings. Only link what's public; don't upload files you don't have the rights to.
+  - type: dropdown
+    id: build
+    attributes:
+      label: Would you build it yourself?
+      options:
+        - "Yes, with help getting started"
+        - "Yes, I can model it in Blender"
+        - "No, just requesting"
+    validations:
+      required: true

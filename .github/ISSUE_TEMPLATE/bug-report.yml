@@ -1,0 +1,45 @@
+name: Bug report
+description: Something broke while building, installing or playing.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. make all
+        2. start the game
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: status
+    attributes:
+      label: make status
+      description: Paste the output of `make status`.
+      render: text
+  - type: textarea
+    id: log
+    attributes:
+      label: Log lines
+      description: The `Dobby pages` and `Patches applied` lines from `BepInEx/LogOutput.log` in the game folder, plus any errors.
+      render: text
+  - type: input
+    id: build
+    attributes:
+      label: Game build
+      description: The build shown on the main menu (bottom left), e.g. 26.10.16_57FB763.
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: e.g. Arch Linux, Ubuntu 26.04
+    validations:
+      required: true

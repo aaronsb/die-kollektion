@@ -1,0 +1,19 @@
+name: Feature request
+description: An idea for the Werkstatt, the plugin or the tools.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you're trying to do
+      description: The goal, not the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help
+  - type: textarea
+    id: else
+    attributes:
+      label: Anything else

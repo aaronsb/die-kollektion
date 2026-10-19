@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and help
+    url: https://github.com/aaronsb/die-kollektion/discussions/categories/q-a
+    about: Getting set up, how something works, "what did you use?"
+  - name: Show what you built
+    url: https://github.com/aaronsb/die-kollektion/discussions/categories/show-and-tell
+    about: Vehicles and patches you made with the Werkstatt.
+  - name: Working with an agent
+    url: https://github.com/aaronsb/die-kollektion/blob/main/AGENTS.md
+    about: Point your AI agent at AGENTS.md and it can set things up or coach you.
+  - name: Contributing
+    url: https://github.com/aaronsb/die-kollektion/blob/main/CONTRIBUTING.md
+    about: How changes are made and reviewed here.
