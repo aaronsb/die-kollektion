@@ -6,6 +6,7 @@ import os
 import shutil
 import sys
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -86,14 +87,13 @@ class Unlock(unittest.TestCase):
         self.assertEqual(su.dumps(data), before)
         self.assertEqual((report["states"], report["parts"], report["liveries"], report["cars"]), (0, 0, 0, []))
 
-    def test_missing_counts_what_a_save_lacks_without_dlc(self):
+    def test_the_upgrade_gap_counts_stock_cars_only(self):
         data = stock_save()
-        lacking = su.missing(data, CARS, DERIVED)
-        before = su.dumps(data)
+        names = su.stock_names(CARS)
+        self.assertEqual(names, ["Donor", "Other"])
+        self.assertEqual(su.upgrade_gap(data, CARS, names), (1, 1))     # Donor's upgrade; Other offers none
         su.unlock(data, CARS, DERIVED)
-        self.assertEqual(lacking, 6)          # cosmetic, upgrade, livery on Donor and the derived truck
-        self.assertEqual(su.missing(data, CARS, DERIVED), 0)
-        self.assertNotEqual(before, su.dumps(data))
+        self.assertEqual(su.upgrade_gap(data, CARS, names), (0, 1))
 
     def test_a_count_lands_where_the_game_writes_it(self):
         data = save([{"Type": su.PLAIN_ITEM, "Data": {"ItemId": LIVERY, "InUse": True}}])
@@ -128,8 +128,7 @@ class SwapAndRestore(unittest.TestCase):
         for p in (mock.patch.object(ws, "game_running", return_value=False),
                   mock.patch.object(ws, "parts_catalogue", return_value=CARS),
                   mock.patch.object(ws, "vehicles", return_value=["v"]),
-                  mock.patch.object(ws, "manifest", return_value={"itemId": 3000000001, "donor": "Donor"}),
-                  mock.patch.object(ws, "TEST_SAVE_MISSING", 0)):      # the fixture's real save lacks only 6
+                  mock.patch.object(ws, "manifest", return_value={"itemId": 3000000001, "donor": "Donor"})):
             p.start()
             self.addCleanup(p.stop)
         self.paths = ws.test_save_paths()
@@ -138,14 +137,20 @@ class SwapAndRestore(unittest.TestCase):
         with open(path, "w") as f:
             f.write(text)
 
-    def tree(self, top):
-        """Every file under top: (relative path, content, mtime)."""
+    def tree(self, top, fresh=()):
+        """Every file under top: (relative path, content, mtime); the files in `fresh` without their mtime."""
         out = []
         for folder, _dirs, files in os.walk(top):
             for name in files:
                 path = os.path.join(folder, name)
-                out.append((os.path.relpath(path, top), open(path).read(), os.stat(path).st_mtime_ns))
+                rel = os.path.relpath(path, top)
+                out.append((rel, open(path).read(), None if rel in fresh else os.stat(path).st_mtime_ns))
         return sorted(out)
+
+    def restored(self):
+        """The real folder is back: every file exact, the save's own mtime made fresh."""
+        return self.tree(self.saves, fresh=("Player1.json",)) == [
+            (rel, text, None if rel == "Player1.json" else mtime) for rel, text, mtime in self.before]
 
     def run_quiet(self, command):
         with contextlib.redirect_stdout(io.StringIO()):
@@ -161,8 +166,8 @@ class SwapAndRestore(unittest.TestCase):
         self.assertEqual(self.tree(self.paths["parked"]), self.before)
         self.write(self.save + ".bak", "the game's backup of the test save")
         self.assertEqual(self.run_quiet(ws.cmd_save_real), 0)
-        self.assertEqual(self.tree(self.saves), self.before)          # renamed back: contents and mtimes
-        self.assertEqual(len(self.filed()), 1)                        # the played test save, kept
+        self.assertTrue(self.restored())          # renamed back: contents and mtimes
+        self.assertEqual(len([n for n in self.filed() if "-test-save-" in n]), 1)   # the played test save, kept
         self.assertIsNone(ws.test_save_status())
 
     def test_a_second_swap_refuses(self):
@@ -204,8 +209,10 @@ class SwapAndRestore(unittest.TestCase):
         self.assertEqual(self.tree(self.paths["parked"]), self.before)
         with mock.patch.dict(os.environ, {"FORCE": "1"}):
             self.assertEqual(self.run_quiet(ws.cmd_save_real), 0)
-        self.assertEqual(self.tree(self.saves), self.before)
-        filed = os.path.join(self.paths["backups"], self.filed()[0])
+        self.assertTrue(self.restored())
+        replaced_folder = [n for n in self.filed() if "-replaced-" in n]
+        self.assertEqual(len(replaced_folder), 1)                     # named for what it holds
+        filed = os.path.join(self.paths["backups"], replaced_folder[0])
         self.assertEqual([f for f in self.tree(filed) if f[0] != "test-save.json"], replaced)   # kept, with its note
 
     def test_a_played_test_save_is_still_recognised(self):
@@ -214,14 +221,14 @@ class SwapAndRestore(unittest.TestCase):
         data["Profile"]["Name"] = "played"
         self.write(self.save, su.dumps(data))
         self.assertEqual(self.run_quiet(ws.cmd_save_real), 0)
-        self.assertEqual(self.tree(self.saves), self.before)
+        self.assertTrue(self.restored())
 
     def test_a_missing_note_still_restores_and_still_blocks_a_second_swap(self):
         self.run_quiet(ws.cmd_save_test)
         os.remove(self.paths["note"])
         self.assertEqual(self.run_quiet(ws.cmd_save_test), 1)
         self.assertEqual(self.run_quiet(ws.cmd_save_real), 0)
-        self.assertEqual(self.tree(self.saves), self.before)
+        self.assertTrue(self.restored())
 
     def test_save_test_cut_off_after_parking_finishes_or_rolls_back(self):
         for finish in (ws.cmd_save_test, ws.cmd_save_real):
@@ -235,34 +242,68 @@ class SwapAndRestore(unittest.TestCase):
                 if finish is ws.cmd_save_test:
                     self.assertEqual(set(states(json.load(open(self.save)), COSMETIC)), {11, 12, 3000000001})
                     self.assertEqual(self.run_quiet(ws.cmd_save_real), 0)
-                self.assertEqual(self.tree(self.saves), self.before)
+                self.assertTrue(self.restored())
+                self.before = self.tree(self.saves)      # the restore made the save's mtime fresh
 
     def test_save_real_cut_off_between_its_renames_finishes_next_time(self):
         self.run_quiet(ws.cmd_save_test)
         real_rename = ws.rename_or_explain
         calls = []
 
-        def rename_then_die(src, dst):
+        def rename_then_die(src, dst, **kw):
             calls.append(src)
             if len(calls) == 2:
                 raise KeyboardInterrupt
-            return real_rename(src, dst)
+            return real_rename(src, dst, **kw)
         with mock.patch.object(ws, "rename_or_explain", side_effect=rename_then_die):
             with self.assertRaises(KeyboardInterrupt):
                 self.run_quiet(ws.cmd_save_real)
         self.assertFalse(os.path.exists(self.saves))
         self.assertEqual(self.tree(self.paths["parked"]), self.before)
         self.assertEqual(self.run_quiet(ws.cmd_save_real), 0)
-        self.assertEqual(self.tree(self.saves), self.before)
-        self.assertEqual(len(self.filed()), 1)
+        self.assertTrue(self.restored())
+        self.assertEqual(len([n for n in self.filed() if "-test-save-" in n]), 1)
+        self.assertEqual(len([n for n in self.filed() if "-real-" in n]), 2)     # one per run, both kept
 
     def test_two_restores_in_the_same_second_file_two_folders(self):
         with mock.patch.object(ws.time, "strftime", return_value="20261019-120000"):
             for _ in range(2):
                 self.assertEqual(self.run_quiet(ws.cmd_save_test), 0)
                 self.assertEqual(self.run_quiet(ws.cmd_save_real), 0)
-        self.assertEqual(self.filed(), ["Player1-test-save-20261019-120000", "Player1-test-save-20261019-120000-2"])
-        self.assertEqual(self.tree(self.saves), self.before)
+        self.assertEqual([n for n in self.filed() if "test-save" in n],
+                         ["Player1-test-save-20261019-120000", "Player1-test-save-20261019-120000-2"])
+        self.assertTrue(self.restored())
+
+    def test_save_real_keeps_a_copy_of_the_real_save_and_makes_it_the_newest(self):
+        self.run_quiet(ws.cmd_save_test)
+        started = time.time_ns()
+        self.assertEqual(self.run_quiet(ws.cmd_save_real), 0)
+        copies = [n for n in self.filed() if n.startswith("Player1-real-")]
+        self.assertEqual(len(copies), 1)
+        copy = os.path.join(self.paths["backups"], copies[0])
+        self.assertEqual(open(os.path.join(copy, "Player1.json")).read(), self.real)
+        self.assertEqual(open(os.path.join(copy, "Player1.json.bak")).read(), "previous")
+        self.assertEqual(open(self.save).read(), self.real)
+        self.assertGreaterEqual(os.stat(self.save).st_mtime_ns, started)
+
+    def test_a_launch_without_the_plugin_still_counts_as_the_test_save(self):
+        self.run_quiet(ws.cmd_save_test)
+        data = json.load(open(self.save))
+        for item in data["Profile"]["Inventory"]["Items"]:      # the game drops states of cars it doesn't know
+            if item["Type"] == su.SPECIFIC_ITEM:
+                item["Data"]["VehicleStates"] = [st for st in item["Data"]["VehicleStates"] if st["VehicleItemId"] != 3000000001]
+        self.write(self.save, su.dumps(data))
+        self.assertEqual(self.run_quiet(ws.cmd_save_real), 0)
+        self.assertTrue(self.restored())
+
+    def test_a_new_truck_or_a_new_stock_car_doesnt_break_the_check(self):
+        self.run_quiet(ws.cmd_save_test)
+        self.write(self.save, open(self.save).read() + " ")      # played
+        more = dict(CARS, NewCar={"itemId": 14, "parts": [{"kind": "VehicleUpgrade", "name": "Winch", "itemId": 105, "dlc": 0}]})
+        with mock.patch.object(ws, "parts_catalogue", return_value=more), \
+             mock.patch.object(ws, "manifest", return_value={"itemId": 3000000009, "donor": "Donor"}):
+            self.assertEqual(self.run_quiet(ws.cmd_save_real), 0)
+        self.assertTrue(self.restored())
 
     def test_save_add_refuses_while_a_test_save_is_in_place(self):
         self.run_quiet(ws.cmd_save_test)

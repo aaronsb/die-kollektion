@@ -40,23 +40,28 @@ def set_owned(entry, id_key):
     entry.update(rest)
 
 
-def missing(save, cars, derived):
-    """How many part ownerships the save lacks, DLC parts left out (the game drops those it isn't entitled to).
-    About 0 means the save is already a test save; a real save lacks thousands. Reads only."""
+def stock_names(cars):
+    """The stock cars in the catalogue; [CatalogExcluded] cars (owned copies show in the garage through the plugin)
+    still get parts, but they aren't counted or added."""
+    return sorted(name for name in cars if "[CatalogExcluded]" not in name)
+
+
+def upgrade_gap(save, cars, names):
+    """(missing, total): performance-upgrade ownerships the named stock cars lack. Upgrades cost money and are bought
+    one car at a time, so a played save lacks most; a test save owns them all. Our trucks are left out, so a launch
+    without the plugin (which drops their states) or a new truck folder doesn't change it. Reads only."""
     items = save["Profile"]["Inventory"]["Items"]
     specific = {i["Data"]["ItemId"]: i["Data"] for i in items if i["Type"] == SPECIFIC_ITEM}
-    plain = {i["Data"]["ItemId"]: i["Data"] for i in items if i["Type"] == PLAIN_ITEM}
-    count = 0
-    for vehicle, parts in offers(cars, derived).items():
-        for part in parts:
-            if part["dlc"]:
+    missing = total = 0
+    for name in names:
+        car = cars.get(name)
+        for part in (car or {}).get("parts", []):
+            if part["kind"] != "VehicleUpgrade" or part["dlc"]:
                 continue
-            if part["kind"] == "Livery":
-                count += not owned(plain.get(part["itemId"], {}))
-            else:
-                states = specific.get(part["itemId"], {}).get("VehicleStates", [])
-                count += not any(s["VehicleItemId"] == vehicle and owned(s) for s in states)
-    return count
+            total += 1
+            states = specific.get(part["itemId"], {}).get("VehicleStates", [])
+            missing += not any(s["VehicleItemId"] == car["itemId"] and owned(s) for s in states)
+    return missing, total
 
 
 def unlock(save, cars, derived, own_cars=True):
