@@ -19,6 +19,8 @@ Standard library only, so it runs before the Python environment exists. Usage:
     python3 tools/werkstatt.py deploy [--deploy-dir D]             preflight, compile, copy and record (`make deploy`)
     python3 tools/werkstatt.py launch-before | launch-after [--log F]  run_werkstatt.sh's steps around a launch
     python3 tools/werkstatt.py save-add [ItemId ...]               add our trucks to the save (backs up first)
+    python3 tools/werkstatt.py save-test | save-real               swap in a test save where every car owns every part
+                                                                   (the real one kept aside), and put the real one back
     python3 tools/werkstatt.py loop <vehicle>                      build one vehicle, run its gates, redo its contact
                                                                    sheet, write its CHANGES.md (`make loop V=...`)
 
@@ -977,7 +979,7 @@ def write_atomic(path, text, mode=0o644):
     """Write through a temp file in the same folder and os.replace: a reader sees the old file or the new one."""
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path) or ".", prefix=f".{os.path.basename(path)}.")
     try:
-        with os.fdopen(fd, "w") as f:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(text)
         os.chmod(tmp, mode)
         os.replace(tmp, path)
@@ -1550,6 +1552,9 @@ def cmd_status(args):
                 p = os.path.join(folder, dest)
                 if not os.path.isfile(p) or sha256(p) != f["sha256"]:
                     print(f"  changed in the game folder: {dest}")
+    since = test_save_status()
+    if since:
+        print(f"Test save:    in place since {since} (`make save-real` puts your own save back)")
     for v in vehicles():
         body = os.path.join(v, "build", "body_LOD0.obj")
         built = os.path.isfile(body)
@@ -1576,6 +1581,129 @@ def cmd_save_add(args):
     ids = [a for a in args if a.isdigit()] or [str(i) for i in ITEM_IDS.values()]
     r = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "add_vehicle_to_save.py"), save] + ids)
     return r.returncode
+
+
+def save_profile():
+    """(profile name, Saves folder, its save file); the Makefile exports PROFILE even when unset."""
+    profile = os.environ.get("PROFILE") or "Player1"
+    saves = os.path.join(my_games(), "Saves")
+    return profile, saves, os.path.join(saves, profile + ".json")
+
+
+def test_save_dir():
+    """Where `make save-test` keeps the real save while the test save is in place: beside Saves/, which Steam Cloud
+    syncs, not in it."""
+    return os.path.join(my_games(), "DieKollektion", "test-save")
+
+
+def parts_catalogue():
+    """extracted/parts.json, written from the player's own bundles (tools/export_parts.py) when missing."""
+    path = os.path.join(ROOT, "extracted", "parts.json")
+    if not os.path.isfile(path):
+        game = game_dir()
+        aa = os.path.join(game or "", f"{GAME_FOLDER}_Data", "StreamingAssets", "aa", "StandaloneWindows64" if WINDOWS else "StandaloneLinux64")
+        bundles = [b for pattern in ("scriptableobjects_assets_all_*.bundle", "cars_assets_all_*.bundle", "*_monoscripts_*.bundle")
+                   for b in glob.glob(os.path.join(aa, pattern))]
+        py = VENV_PY if os.path.isfile(VENV_PY) else None
+        if len(bundles) != 3 or not py:
+            return None
+        if subprocess.run([py, "-I", os.path.join(ROOT, "tools", "export_parts.py"), path] + bundles).returncode:
+            return None
+    return json.load(open(path))["cars"]
+
+
+def cmd_save_test(_args):
+    """`make save-test`: put a copy of the save in which every car owns every part it offers in place of the real
+    save, which waits in test_save_dir() until `make save-real`."""
+    if game_running():
+        print("The game is running. Quit it first: the game overwrites the save when it quits.")
+        return 1
+    import save_unlock
+    profile, saves, save = save_profile()
+    stash = test_save_dir()
+    note = os.path.join(stash, "test-save.json")
+    if os.path.isfile(note):
+        print(f"A test save is already in place (since {json.load(open(note))['createdAt']}). "
+              "`make save-real` puts your own save back.")
+        return 1
+    if not os.path.isfile(save):
+        print(f"No save at {save}. Start the game once and play past the start, then quit and try again.")
+        return 1
+    cars = parts_catalogue()
+    if not cars:
+        print("Couldn't read the game's parts list (extracted/parts.json). Run `make setup` and `make extract`, then try again.")
+        return 1
+    derived = {}
+    for v in vehicles():
+        m = manifest(v)
+        if m.get("itemId") and m.get("donor") in cars:
+            derived[m["itemId"]] = m["donor"]
+    with open(save, encoding="utf-8") as f:
+        data = json.load(f)
+    report = save_unlock.unlock(data, cars, derived)
+    os.makedirs(stash, exist_ok=True)
+    kept = []
+    for name in (profile + ".json", profile + ".json.bak"):
+        if os.path.isfile(os.path.join(saves, name)):
+            shutil.copy2(os.path.join(saves, name), os.path.join(stash, name))
+            kept.append(name)
+    write_json(note, {"profile": profile, "createdAt": datetime.datetime.now().isoformat(timespec="seconds"),
+                      "kept": kept, "realSha256": sha256(save)})
+    write_atomic(save, save_unlock.dumps(data))
+    print(f"Test save in place: every car owns every part it offers ({report['states']} part ownerships added on "
+          f"{len(save_unlock.offers(cars, derived))} vehicles, {report['parts']} parts new to the save, "
+          f"{report['liveries']} liveries; {report['dlc']} of the parts need a DLC and stay only if you own it).")
+    if report["cars"]:
+        print(f"Cars added to your garage for comparison: {len(report['cars'])}.")
+    print(f"Your own save is kept in {stash}; nothing you do in the test save reaches it.\n"
+          "Steam Cloud syncs the Saves folder, so the test save syncs too until `make save-real` puts yours back.\n"
+          "In the game: the mechanic, pick a truck, Cosmetics; each part previews on the truck before you fit it.\n"
+          "Done testing? Quit the game and run `make save-real`.")
+    return 0
+
+
+def cmd_save_real(_args):
+    """`make save-real`: put the real save back in place of the test save; the test save goes to the backups."""
+    if game_running():
+        print("The game is running. Quit it first: the game overwrites the save when it quits.")
+        return 1
+    stash = test_save_dir()
+    note = os.path.join(stash, "test-save.json")
+    if not os.path.isfile(note):
+        print("No test save in place; your save is your own.")
+        return 0
+    info = json.load(open(note))
+    profile, saves, save = save_profile()
+    if info["profile"] != profile:
+        print(f"The test save replaced profile {info['profile']}; run with PROFILE={info['profile']}.")
+        return 1
+    backups = os.path.join(my_games(), "DieKollektion", "backups")
+    os.makedirs(backups, exist_ok=True)
+    played = os.path.join(backups, f"{profile}-test-save-{time.strftime('%Y%m%d-%H%M%S')}.json")
+    if os.path.isfile(save):
+        shutil.copy2(save, played)
+    for name in (profile + ".json", profile + ".json.bak"):
+        kept, live = os.path.join(stash, name), os.path.join(saves, name)
+        if name in info["kept"]:
+            tmp = live + ".werkstatt-tmp"
+            shutil.copy2(kept, tmp)
+            os.replace(tmp, live)
+        elif os.path.isfile(live):
+            os.remove(live)     # a backup the game made of the test save
+    restored = sha256(save) == info["realSha256"]
+    for name in info["kept"]:
+        os.remove(os.path.join(stash, name))
+    os.remove(note)
+    print(f"Your own save is back ({'checked' if restored else 'CHECK FAILED: compare with ' + backups}). "
+          f"The test save as you left it: {played}")
+    return 0 if restored else 1
+
+
+def test_save_status():
+    note = os.path.join(test_save_dir(), "test-save.json")
+    if not os.path.isfile(note):
+        return None
+    return json.load(open(note))["createdAt"]
 
 
 def compared_with():
@@ -1640,6 +1768,7 @@ COMMANDS = {
     "gates": cmd_gates, "preflight-deploy": cmd_preflight_deploy, "record-deploy": cmd_record_deploy,
     "undeploy": cmd_undeploy, "status": cmd_status,
     "compile-plugin": cmd_compile_plugin, "copy-deploy": cmd_copy_deploy, "save-add": cmd_save_add, "loop": cmd_loop,
+    "save-test": cmd_save_test, "save-real": cmd_save_real,
     "update": cmd_update, "launch-before": cmd_launch_before, "launch-after": cmd_launch_after, "deploy": cmd_deploy,
 }
 

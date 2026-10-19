@@ -4,7 +4,8 @@
 # (extracted/merchant/), the atlas maps and stock icon (extracted/textures/, extracted/icons/), and the
 # Mammoth prefab's node facts for contact sheets (extracted/mammoth/nodes.json), and for every other stock
 # car a vehicle folder names as its donor (a patch such as vehicles/dingding/), that car's body, colliders,
-# node facts and atlas maps (tools/export_donor.py).
+# node facts and atlas maps (tools/export_donor.py); and every car's parts list, for `make save-test`
+# (extracted/parts.json, tools/export_parts.py).
 # Nothing under extracted/ is ever committed. Needs a Python with UnityPy (PYTHON, default .venv/bin/python).
 # Usage: tools/export_game_data.sh [<game folder>]   (default: GAME_DIR, else Steam's default library)
 set -e
@@ -35,6 +36,7 @@ cd "$root"
 "$py" -I tools/export_images.py "$cars" extracted/textures Mammoth_masks Mammoth_skin00 Mammoth_AO
 "$py" -I tools/export_images.py "$objects" extracted/icons Mammoth_Icon
 "$py" -I tools/export_node_facts.py "$cars" Car_Mammoth extracted/mammoth/nodes.json
+"$py" -I tools/export_parts.py extracted/parts.json "$objects" "$cars" "$aa"/*_monoscripts_*.bundle
 for donor in $("$py" -I -c 'import glob, json; print(" ".join(sorted({json.load(open(p))["donor"] for p in glob.glob("vehicles/*/vehicle.json")} - {"Mammoth"})))'); do
     "$py" -I tools/export_donor.py "$cars" "$donor" "extracted/$(echo "$donor" | tr '[:upper:]' '[:lower:]')"
     # The donor's wheel and tyre, for renders (tools/nexus_images.py); the plugin uses the car's own in game.
