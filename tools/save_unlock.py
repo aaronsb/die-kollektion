@@ -9,7 +9,7 @@ the save says that car owns (`InventoryUtility.IsOwned(item, vehicleItemId)`):
 - a livery is an `InventoryItem` with a `Count`.
 Parts come from each car's `CarInfo.UpgradesLists` (extracted/parts.json, tools/export_parts.py); a derived
 vehicle offers its donor's list, since the plugin clones the donor's CarInfo. Parts that need a DLC are added
-too: the game's own entitlement check removes them on load when the DLC isn't owned.
+too; how the game treats one when the DLC isn't owned (hidden, removed on load, or shown) hasn't been checked.
 """
 import json
 
@@ -32,7 +32,8 @@ def owned(entry):
 
 
 def set_owned(entry, id_key, count=1):
-    """Count `count`, written where the game writes it: after the id, before InUse."""
+    """Count `count`, written where the game writes it: right after the id (states in the save carry only the id and
+    Count; any other key keeps its place after them)."""
     rest = {k: v for k, v in entry.items() if k not in (id_key, "Count")}
     head = {id_key: entry[id_key], "Count": count}
     entry.clear()

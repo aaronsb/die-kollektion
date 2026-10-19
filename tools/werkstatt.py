@@ -1575,13 +1575,6 @@ def cmd_status(args):
 
 
 def cmd_save_add(args):
-    # The parts list (slow on its first run: it reads the game's bundles) comes before the check for a running game.
-    cars = parts_catalogue()
-    if game_running():
-        print("The game is running. Quit it first: the game overwrites the save when it quits.")
-        return 1
-    if save_add_blocked():
-        return 1
     # The Makefile exports PROFILE even when it is unset, so an empty value means the default.
     profile = os.environ.get("PROFILE") or "Player1"
     saves = os.path.join(my_games(), "Saves")
@@ -1592,13 +1585,20 @@ def cmd_save_add(args):
                                        if others else
                                        " Start the game once and play past the start, then quit and try again."))
         return 1
+    # The parts list (slow on its first run: it reads the game's bundles) comes before the check for a running game.
+    cars = parts_catalogue()
+    if game_running():
+        print("The game is running. Quit it first: the game overwrites the save when it quits.")
+        return 1
+    if save_add_blocked():
+        return 1
     print(f"Adding the trucks to {save} (backed up first if anything changes).", flush=True)
     ids = [a for a in args if a.isdigit()] or [str(i) for i in ITEM_IDS.values()]
     cmd = [sys.executable, os.path.join(ROOT, "tools", "add_vehicle_to_save.py"), save] + ids
-    if cars:
+    if cars is not None:
         # Each truck also gets a state on every cosmetic its donor owns: cosmetics unlocked before it was registered
         # miss it (the game writes one state per car in the catalogue when a reward unlocks a cosmetic).
-        cmd += ["--parts", os.path.join(ROOT, "extracted", "parts.json")]
+        cmd += ["--parts", PARTS_PATH]
         for m in map(manifest, vehicles()):
             if m.get("itemId") and m.get("donor") in cars:
                 cmd += ["--truck", f"{m['itemId']}:{m['donor']}:{m.get('codename', m['itemId'])}"]
@@ -1626,10 +1626,22 @@ def test_save_paths():
             "note": os.path.join(folder, "test-save.json"), "backups": os.path.join(base, "backups", "test-save")}
 
 
+PARTS_PATH = os.path.join(ROOT, "extracted", "parts.json")
+
+
+def read_parts(path=PARTS_PATH):
+    """parts.json's cars, or None when it is missing, truncated or not the shape export_parts writes."""
+    try:
+        cars = json.load(open(path, encoding="utf-8"))["cars"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return cars if isinstance(cars, dict) and cars else None
+
+
 def parts_catalogue():
-    """extracted/parts.json, written from the player's own bundles (tools/export_parts.py) when missing."""
-    path = os.path.join(ROOT, "extracted", "parts.json")
-    if not os.path.isfile(path):
+    """extracted/parts.json, written from the player's own bundles (tools/export_parts.py) when missing or unreadable."""
+    path = PARTS_PATH
+    if read_parts(path) is None:
         game = game_dir()
         aa = os.path.join(game or "", f"{GAME_FOLDER}_Data", "StreamingAssets", "aa", "StandaloneWindows64" if WINDOWS else "StandaloneLinux64")
         bundles = [b for pattern in ("scriptableobjects_assets_all_*.bundle", "cars_assets_all_*.bundle", "*_monoscripts_*.bundle")
@@ -1639,7 +1651,7 @@ def parts_catalogue():
             return None
         if subprocess.run([py, "-I", os.path.join(ROOT, "tools", "export_parts.py"), path] + bundles).returncode:
             return None
-    return json.load(open(path))["cars"]
+    return read_parts(path)
 
 
 # A save whose stock cars lack under this share of their upgrades is taken for a test save (save_unlock.upgrade_gap):

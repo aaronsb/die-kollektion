@@ -160,6 +160,79 @@ class Command(unittest.TestCase):
         self.assertEqual(len(os.listdir(os.path.join(self.tmp, "DieKollektion", "backups"))), 1)
 
 
+class Backups(unittest.TestCase):
+    """Each write backs up to a name of its own, checks it against the save, and keeps the pre-trucks original."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="werkstatt-backup-")
+        self.addCleanup(shutil.rmtree, self.tmp)
+        os.makedirs(os.path.join(self.tmp, "Saves"))
+        self.save = os.path.join(self.tmp, "Saves", "Player1.json")
+        self.backups = os.path.join(self.tmp, "DieKollektion", "backups")
+        with open(self.save, "w", encoding="utf-8") as f:
+            f.write(su.dumps(fixture()))
+
+    def quiet(self, *args, **kw):
+        with mock.patch("sys.stdout"):
+            return av.write(*args, **kw)
+
+    def test_two_writes_in_the_same_second_keep_both_backups(self):
+        with mock.patch.object(av.time, "strftime", return_value="20261019-120000"):
+            first = open(self.save, "rb").read()
+            self.quiet(self.save, fixture())
+            second = open(self.save, "rb").read()
+            self.quiet(self.save, fixture())
+        names = sorted(os.listdir(self.backups))
+        self.assertEqual(names, ["Player1-20261019-120000-2.json", "Player1-20261019-120000.json"])
+        self.assertEqual(open(os.path.join(self.backups, names[1]), "rb").read(), first)
+        self.assertEqual(open(os.path.join(self.backups, names[0]), "rb").read(), second)
+
+    def test_a_backup_that_doesnt_match_leaves_the_save_alone(self):
+        before = open(self.save, "rb").read()
+        real = av.sha256
+        with mock.patch.object(av, "sha256", side_effect=lambda p: "0" * 64 if "backups" in p else real(p)):
+            with self.assertRaises(SystemExit):
+                self.quiet(self.save, {"changed": True})
+        self.assertEqual(open(self.save, "rb").read(), before)
+        self.assertEqual([n for n in os.listdir(os.path.join(self.tmp, "Saves")) if n.startswith(".werkstatt-")], [])
+
+    def test_the_first_add_keeps_an_original_out_of_the_prune(self):
+        self.quiet(self.save, fixture(), original=True)
+        for n in range(av.KEEP + 3):
+            with mock.patch.object(av.time, "strftime", return_value=f"20261020-1200{n:02d}"):
+                self.quiet(self.save, fixture())
+        names = os.listdir(self.backups)
+        self.assertEqual(len([n for n in names if "-original-" in n]), 1)
+        self.assertEqual(len([n for n in names if "-original-" not in n]), av.KEEP)
+
+    def test_the_tool_marks_the_original_only_when_the_trucks_are_new(self):
+        save = fixture()
+        save["Profile"]["Inventory"]["Items"] = [i for i in save["Profile"]["Inventory"]["Items"] if i["Data"]["ItemId"] != TRUCK]
+        with open(self.save, "w", encoding="utf-8") as f:
+            f.write(su.dumps(save))
+        tool = [sys.executable, os.path.join(ROOT, "tools", "add_vehicle_to_save.py"), self.save, str(TRUCK)]
+        subprocess.run(tool, capture_output=True, check=True)
+        subprocess.run(tool + [str(LATER)], capture_output=True, check=True)
+        names = sorted(os.listdir(self.backups))
+        self.assertEqual(len(names), 2)
+        self.assertEqual(len([n for n in names if "-original-" in n]), 1)
+
+
+class Catalogue(unittest.TestCase):
+    """A truncated or malformed parts.json counts as missing."""
+
+    def test_unreadable_parts_lists(self):
+        tmp = tempfile.mkdtemp(prefix="werkstatt-parts-")
+        self.addCleanup(shutil.rmtree, tmp)
+        path = os.path.join(tmp, "parts.json")
+        for text in ('{"cars": {"Mamm', '[]', '{"cars": {}}', '{"other": 1}'):
+            open(path, "w").write(text)
+            self.assertIsNone(ws.read_parts(path), text)
+        json.dump({"cars": CARS}, open(path, "w"))
+        self.assertEqual(ws.read_parts(path), CARS)
+        self.assertIsNone(ws.read_parts(os.path.join(tmp, "missing.json")))
+
+
 class SaveAdd(unittest.TestCase):
     """werkstatt.py save-add hands the trucks and the parts list to the tool, or says why it can't."""
 
@@ -187,6 +260,14 @@ class SaveAdd(unittest.TestCase):
         cmd = self.run_save_add(None)
         self.assertNotIn("--parts", cmd)
         self.assertNotIn("--truck", cmd)
+
+    def test_no_save_means_no_slow_extraction(self):
+        tmp = tempfile.mkdtemp(prefix="werkstatt-nosave-")
+        self.addCleanup(shutil.rmtree, tmp)
+        with mock.patch.dict(os.environ, {"MY_GAMES": tmp, "PROFILE": ""}), \
+             mock.patch.object(ws, "parts_catalogue") as catalogue, mock.patch("sys.stdout"):
+            self.assertEqual(ws.cmd_save_add([]), 1)
+        catalogue.assert_not_called()
 
 
 if __name__ == "__main__":
