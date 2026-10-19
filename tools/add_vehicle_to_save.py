@@ -33,7 +33,7 @@ backups = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(path))), 
 os.makedirs(backups, exist_ok=True)
 backup = os.path.join(backups, f"{profile}-{time.strftime('%Y%m%d-%H%M%S')}.json")
 shutil.copy2(path, backup)
-for old in sorted(glob.glob(os.path.join(backups, f"{profile}-*.json")))[:-KEEP]:
+for old in sorted(glob.glob(os.path.join(backups, f"{profile}-[0-9]*.json")))[:-KEEP]:
     os.remove(old)
 print(f"Backed up the save to {backup}")
 

@@ -7,7 +7,7 @@ GAME_DIR ?= $(shell python3 tools/werkstatt.py game-dir 2>/dev/null)
 export GAME_DIR MY_GAMES DEPLOY_DIR FORCE BEPINEX_ARCHIVE PROFILE VERSION DRY_RUN
 
 .DEFAULT_GOAL := start
-.PHONY: start help doctor setup bepinex extract build check contact loop pack deploy undeploy update status save-add all release nexus-images
+.PHONY: start help doctor setup bepinex extract build check contact loop pack deploy undeploy update status save-add save-test save-real all release nexus-images
 
 start: ## The next setup step, in plain words. Run it again after each step.
 	@$(WS) start
@@ -61,6 +61,12 @@ status: ## Compare the repo, the build and the game folder
 
 save-add: ## Put the four trucks in your save (game closed; backs the save up first). IDS="..." for some
 	@$(WS) save-add $(IDS)
+
+save-test: ## Swap in a test save where every car owns every part, to preview them in the garage (game closed)
+	@$(WS) save-test
+
+save-real: ## Put your own save back after save-test (game closed)
+	@$(WS) save-real
 
 all: ## Everything after setup: extract, build, check, deploy
 	@$(WS) require

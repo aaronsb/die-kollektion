@@ -46,6 +46,16 @@ The mechanic's truck (`r1_canada` scene bundle, scale 100, offset (0, −0.071, 
 - `suspensionAnchor` is read as a fraction measured up from full extension (Unity's convention); driving bears this out.
 - Toggling `VPVehicleController` off and on breaks the vehicle.
 
+## Saves and part ownership
+
+- The save (`~/My Games/over the hill/Saves/<profile>.json`, one compact JSON line, `Header.Version` 11) keeps no "unlocked" flag for parts. The garage offers what the save says a car owns (`InventoryUtility.IsOwned(item, vehicleItemId)`; `IsAvailableToBuy` and the merchant's `lockSprite` cover the rest):
+  - a cosmetic or performance upgrade is a `VehicleSpecificItem` with one `VehicleStates` entry `{"VehicleItemId", "Count", "InUse"}` per car that owns it (`InUse` = fitted);
+  - a livery is an `InventoryItem` with a `Count` (an entry without one, Count 0, isn't owned).
+- Cosmetics cost nothing (`Price` 0 on all 197); rewards unlock them, and an unlock writes a state for every car in the catalogue at that moment. The 16 performance upgrades cost money and are bought per car.
+- A derived vehicle offers its donor's parts: the plugin clones the donor's `CarInfo`, and the clone keeps its `UpgradesLists` reference (Mammoth: 183 cosmetics, 16 upgrades, 10 liveries).
+- So a truck registered after some cosmetics were unlocked doesn't own those: in the user's save (2026-10-19) 44 cosmetics carry states for the 21 stock catalogue cars only, while the Kayak, unlocked after our trucks existed, carries all four of theirs. `make save-test` gives every car every part for testing; it swaps the whole `Saves/` folder, since `FogOfWar/` and `Animals/` hold progress too.
+- Each car's parts list is `CarInfo.UpgradesLists.Parts`; `tools/export_parts.py` writes them all to `extracted/parts.json` (23 cars, 459 parts in the 2026-10-19 build; 34 cosmetics need a DLC, and the game's entitlement check drops those on load when the DLC isn't owned).
+
 ## Lights
 
 - Each car prefab has a `LightsController` on `Lights` with five light groups (`LightsController.TurnableLights`: a `Config`, its `Lights` and lens flares). All 23 car prefabs point each group at the same shared `CarLightConfig` asset in the cars bundle (read with UnityPy, 2026-10-19 build):

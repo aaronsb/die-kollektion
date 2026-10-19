@@ -19,6 +19,8 @@ Standard library only, so it runs before the Python environment exists. Usage:
     python3 tools/werkstatt.py deploy [--deploy-dir D]             preflight, compile, copy and record (`make deploy`)
     python3 tools/werkstatt.py launch-before | launch-after [--log F]  run_werkstatt.sh's steps around a launch
     python3 tools/werkstatt.py save-add [ItemId ...]               add our trucks to the save (backs up first)
+    python3 tools/werkstatt.py save-test | save-real               swap in a test save where every car owns every part
+                                                                   (the real one kept aside), and put the real one back
     python3 tools/werkstatt.py loop <vehicle>                      build one vehicle, run its gates, redo its contact
                                                                    sheet, write its CHANGES.md (`make loop V=...`)
 
@@ -509,23 +511,28 @@ def steps():
                      "modified": "Installed files were changed by hand since the last deploy."}.get(dep, ""),
                     "Run:\n    make deploy FORCE=1\n(FORCE=1 replaces the files you changed by hand; `make status` lists them.)"
                     if dep == "modified" else "Run:\n    make deploy"))
+    test_save = test_save_status()
+    if test_save:
+        out.append(Step("testsave", "A test save is in place", False, test_save[0].upper() + test_save[1:] + ".",
+                        "When you are done testing, quit the game and run:\n    make save-real", blocking=False))
     return out
 
 
 def cmd_start(_args):
     all_steps = steps()
-    done = [s for s in all_steps if s.ok]
+    setup_steps = [s for s in all_steps if s.key != "testsave"]
+    done = [s for s in setup_steps if s.ok]
     todo = [s for s in all_steps if not s.ok and s.blocking]
-    print(f"Werkstatt setup: {len(done)} of {len(all_steps)} checks done.\n")
+    print(f"Werkstatt setup: {len(done)} of {len(setup_steps)} checks done.\n")
     if not todo:
         say("Everything is ready.",
             "Start Over the Hill from Steam. The Die Kollektion trucks are at the merchant.\n"
             "Optional: put all four in your garage without buying them (game closed):\n    make save-add\n"
             "Before you play with them for long, back up your save folder: " + os.path.join(my_games(), "Saves"))
         for s in all_steps:
-            if s.key == "update":
+            if s.key in ("update", "testsave"):
                 print(f"\n{s.what}")
-        optional = [s for s in all_steps if not s.ok and not s.blocking]
+        optional = [s for s in all_steps if not s.ok and not s.blocking and s.key != "testsave"]
         for s in optional:
             print(f"\n(Optional) {s.title}: {s.what}")
         return 0
@@ -556,6 +563,9 @@ def cmd_require(_args):
 
 def cmd_doctor(_args):
     for s in steps():
+        if s.key == "testsave":
+            print(f"[note] {s.what}")
+            continue
         mark = "ok  " if s.ok else ("MISS" if s.blocking else "warn")
         print(f"[{mark}] {s.title}")
         if not s.ok:
@@ -977,7 +987,7 @@ def write_atomic(path, text, mode=0o644):
     """Write through a temp file in the same folder and os.replace: a reader sees the old file or the new one."""
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path) or ".", prefix=f".{os.path.basename(path)}.")
     try:
-        with os.fdopen(fd, "w") as f:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(text)
         os.chmod(tmp, mode)
         os.replace(tmp, path)
@@ -1441,6 +1451,9 @@ def cmd_launch_before(_args):
     # With the plugin aside a stock launch is safe, and the rebuild checks for a running game before its rename,
     # so a launch during a rebuild doesn't wait for it (Steam would show the game running with no window).
     waiting_aside = os.path.isdir(aside_dir(folder)) and not os.path.isdir(folder)
+    test_save = test_save_status()
+    if test_save:
+        stamp(f"Launch: {test_save}")      # on every launch path, like the lock's own notes
     with werkstatt_lock(game, wait=0 if waiting_aside else 5) as held:
         if not held:
             if waiting_aside:
@@ -1550,6 +1563,9 @@ def cmd_status(args):
                 p = os.path.join(folder, dest)
                 if not os.path.isfile(p) or sha256(p) != f["sha256"]:
                     print(f"  changed in the game folder: {dest}")
+    test_save = test_save_status()
+    if test_save:
+        print(f"Test save:    {test_save}")
     for v in vehicles():
         body = os.path.join(v, "build", "body_LOD0.obj")
         built = os.path.isfile(body)
@@ -1561,6 +1577,8 @@ def cmd_status(args):
 def cmd_save_add(args):
     if game_running():
         print("The game is running. Quit it first: the game overwrites the save when it quits.")
+        return 1
+    if save_add_blocked():
         return 1
     # The Makefile exports PROFILE even when it is unset, so an empty value means the default.
     profile = os.environ.get("PROFILE") or "Player1"
@@ -1576,6 +1594,330 @@ def cmd_save_add(args):
     ids = [a for a in args if a.isdigit()] or [str(i) for i in ITEM_IDS.values()]
     r = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "add_vehicle_to_save.py"), save] + ids)
     return r.returncode
+
+
+def save_profile():
+    """(profile name, Saves folder, its save file); the Makefile exports PROFILE even when unset."""
+    profile = os.environ.get("PROFILE") or "Player1"
+    saves = os.path.join(my_games(), "Saves")
+    return profile, saves, os.path.join(saves, profile + ".json")
+
+
+def test_save_paths():
+    """`make save-test` swaps the whole Saves/ folder (save, its .bak, FogOfWar/, Animals/) by renames on one
+    filesystem: the real folder is parked beside it, never copied over or deleted."""
+    base = os.path.join(my_games(), "DieKollektion")
+    folder = os.path.join(base, "test-save")
+    return {"saves": os.path.join(my_games(), "Saves"), "folder": folder,
+            "parked": os.path.join(folder, "Saves"), "building": os.path.join(folder, "Saves.building"),
+            "note": os.path.join(folder, "test-save.json"), "backups": os.path.join(base, "backups", "test-save")}
+
+
+def parts_catalogue():
+    """extracted/parts.json, written from the player's own bundles (tools/export_parts.py) when missing."""
+    path = os.path.join(ROOT, "extracted", "parts.json")
+    if not os.path.isfile(path):
+        game = game_dir()
+        aa = os.path.join(game or "", f"{GAME_FOLDER}_Data", "StreamingAssets", "aa", "StandaloneWindows64" if WINDOWS else "StandaloneLinux64")
+        bundles = [b for pattern in ("scriptableobjects_assets_all_*.bundle", "cars_assets_all_*.bundle", "*_monoscripts_*.bundle")
+                   for b in glob.glob(os.path.join(aa, pattern))]
+        py = VENV_PY if os.path.isfile(VENV_PY) else None
+        if len(bundles) != 3 or not py:
+            return None
+        if subprocess.run([py, "-I", os.path.join(ROOT, "tools", "export_parts.py"), path] + bundles).returncode:
+            return None
+    return json.load(open(path))["cars"]
+
+
+# A save whose stock cars lack under this share of their upgrades is taken for a test save (save_unlock.upgrade_gap):
+# against the parked real save at save-real, against all of them at save-test.
+TEST_SAVE_SHARE = 0.1
+STEAM_WAIT = "After quitting the game, wait until Steam has finished syncing before `make save-test` or `make save-real`."
+STEAM_CLOUD_BEFORE = ("Steam Cloud: launch the game once on this machine before `make save-test`, so your local save "
+                      "is current. While the test save is in place, don't play on another machine (Steam would "
+                      "download the test save there), and if Steam reports a conflict, keep the local files. "
+                      + STEAM_WAIT)
+STEAM_CLOUD_AFTER = ("Steam Cloud uploads your own save on the next launch; if Steam reports a conflict, keep the "
+                     "local files.")
+
+
+def fsync_tree(path):
+    """Flush a folder's files and the folder itself to disk."""
+    for top, _dirs, files in os.walk(path):
+        for name in files + ["."]:
+            fsync_file(os.path.join(top, name))
+
+
+def fsync_file(path):
+    fd = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def write_note(paths, note):
+    """The test save's note, on disk before the step it describes."""
+    os.makedirs(paths["folder"], exist_ok=True)
+    write_json(paths["note"], note)
+    fsync_file(paths["note"])
+    fsync_file(paths["folder"])
+
+
+def read_note(paths):
+    try:
+        with open(paths["note"]) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
+def test_save_state(paths):
+    """Where a test save stands, from the folders themselves (the note may be missing or behind):
+    "none", "in place" (real folder parked, a Saves/ in use), "half" (real folder parked, no Saves/: a swap was
+    cut off). A note left by a run that never parked anything is cleared along with its staging copy."""
+    parked, live = os.path.isdir(paths["parked"]), os.path.isdir(paths["saves"])
+    if not parked:
+        if os.path.isdir(paths["building"]) and live:
+            shutil.rmtree(paths["building"])     # a copy of the live folder, never the only one
+        if os.path.isfile(paths["note"]) and live:
+            os.remove(paths["note"])
+        return "none"
+    return "in place" if live else "half"
+
+
+def rename_or_explain(src, dst, first=True):
+    """os.rename, or a plain reason (another filesystem, a permission) and False; the folder is never half moved.
+    `first`: no earlier step of this command moved anything, so nothing changed."""
+    try:
+        os.rename(src, dst)
+        return True
+    except OSError as error:
+        why = "they are on different filesystems" if error.errno == errno.EXDEV else error.strerror
+        print(f"Couldn't move {src} to {dst}: {why}." + (" Nothing changed." if first else ""))
+        return False
+
+
+def unique_folder(folder, stem):
+    """folder/stem, or folder/stem-2, -3...: a name nothing holds yet."""
+    path, n = os.path.join(folder, stem), 1
+    while os.path.exists(path):
+        n += 1
+        path = os.path.join(folder, f"{stem}-{n}")
+    return path
+
+
+def looks_like_test_save(save, cars, names, reference=None):
+    """True when the save's stock cars own nearly all their upgrades: under TEST_SAVE_SHARE of what `reference`
+    (the parked real save) lacks, or of all of them without one."""
+    import save_unlock
+    missing, total = save_unlock.upgrade_gap(save, cars, names)
+    if reference is not None:
+        ref_missing = save_unlock.upgrade_gap(reference, cars, names)[0]
+        if ref_missing:
+            return missing < TEST_SAVE_SHARE * ref_missing
+    return total > 0 and missing < TEST_SAVE_SHARE * total
+
+
+def load_save(path):
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def cmd_save_test(_args):
+    """`make save-test`: park the real Saves/ folder and put a copy in its place in which every car owns every part
+    it offers. A swap cut off earlier (real folder parked, no Saves/) is finished."""
+    import save_unlock
+    paths = test_save_paths()
+    profile, saves, save = save_profile()
+    cars = parts_catalogue()     # the slow part, before any check that a swap relies on
+    if not cars:
+        print("Couldn't read the game's parts list (extracted/parts.json). Run `make setup` and `make extract`, then try again.")
+        return 1
+    derived = {m["itemId"]: m["donor"] for m in map(manifest, vehicles()) if m.get("itemId") and m.get("donor") in cars}
+    if game_running():
+        print("The game is running. Quit it first: the game overwrites the save when it quits.")
+        return 1
+    if test_save_state(paths) != "none":
+        return _finish_or_refuse(paths, profile)
+    source = os.path.join(saves, profile + ".json")
+    if not os.path.isfile(source):
+        print(f"No save at {source}. Start the game once and play past the start, then quit and try again.")
+        return 1
+    data = load_save(source)
+    names = save_unlock.stock_names(cars)
+    if looks_like_test_save(data, cars, names):
+        print(f"{source} already looks like a test save (every car owns every part), so it isn't parked as your own. "
+              f"If a test save is in place, `make save-real` puts yours back.")
+        return 1
+    report = save_unlock.unlock(data, cars, derived)
+    text = save_unlock.dumps(data)
+    building = paths["building"]
+    if os.path.isdir(building):
+        shutil.rmtree(building)
+    os.makedirs(paths["folder"], exist_ok=True)
+    shutil.copytree(saves, building)
+    write_atomic(os.path.join(building, profile + ".json"), text)
+    if hashlib.sha256(text.encode("utf-8")).hexdigest() != sha256(os.path.join(building, profile + ".json")):
+        print("The test save didn't read back as written; nothing changed.")
+        shutil.rmtree(building)
+        return 1
+    fsync_tree(building)
+    note = {"state": "parking", "profile": profile, "createdAt": datetime.datetime.now().isoformat(timespec="seconds"),
+            "realSha256": sha256(source), "testSha256": sha256(os.path.join(building, profile + ".json")),
+            "cars": names, "trucks": {str(k): v for k, v in derived.items()}}
+    write_note(paths, note)
+    running = game_running()
+    if running or not rename_or_explain(saves, paths["parked"]):
+        if running:
+            print("The game started; nothing changed.")
+        shutil.rmtree(building)
+        os.remove(paths["note"])
+        return 1
+    if sha256(os.path.join(paths["parked"], profile + ".json")) != note["realSha256"]:
+        print(f"Warning: your parked save at {paths['parked']} doesn't match what was read; it is kept as it is.")
+    write_note(paths, {**note, "state": "parked"})
+    result = _land_test_save(paths, profile)
+    if result == 0:
+        print(f"Test save in place: every car owns every part it offers ({report['states']} part ownerships added on "
+              f"{len(save_unlock.offers(cars, derived))} vehicles, {report['parts']} parts new to the save, "
+              f"{report['liveries']} liveries; {report['dlc']} parts need a DLC and stay only if you own it).")
+        if report["cars"]:
+            print(f"Cars added to your garage for comparison: {len(report['cars'])}.")
+        print(f"Your own Saves folder (save, fog of war, animal photos) is parked, untouched, in {paths['parked']}.\n"
+              f"{STEAM_CLOUD_BEFORE}\n"
+              "In the game: the mechanic, pick a truck, Cosmetics; each part previews on the truck before you fit it.\n"
+              "Done testing? Quit the game and run `make save-real`.")
+    return result
+
+
+def _land_test_save(paths, profile):
+    """Rename the built test folder into Saves/; the real folder is already parked."""
+    if game_running():
+        print(f"The game started before the test save was in place. Your own Saves folder is parked in {paths['parked']}; "
+              "quit the game, then `make save-real` puts it back (or `make save-test` finishes the swap).")
+        return 1
+    if not rename_or_explain(paths["building"], paths["saves"], first=False):
+        print(f"Your own Saves folder is parked in {paths['parked']}; `make save-real` puts it back.")
+        return 1
+    note = read_note(paths) or {"profile": profile}
+    write_note(paths, {**note, "state": "built"})
+    return 0
+
+
+def _finish_or_refuse(paths, profile):
+    """A swap cut off with the real folder parked and no Saves/: finish it when the built copy is there."""
+    if test_save_state(paths) == "in place":
+        note = read_note(paths) or {}
+        print(f"A test save is already in place{' (since ' + note['createdAt'] + ')' if note.get('createdAt') else ''}. "
+              "`make save-real` puts your own save back.")
+        return 1
+    if os.path.isdir(paths["building"]) and os.path.isfile(os.path.join(paths["building"], profile + ".json")):
+        print("Finishing a test-save swap that was cut off.")
+        return _land_test_save(paths, profile)
+    note = read_note(paths) or {}
+    if note.get("state") == "filed":
+        print(f"`make save-real` was cut off after filing the test save. Your own Saves folder is parked in "
+              f"{paths['parked']}; `make save-real` finishes putting it back.")
+    else:
+        print(f"A test-save swap was cut off before the test save was built. Your own Saves folder is parked in "
+              f"{paths['parked']}; `make save-real` puts it back.")
+    return 1
+
+
+def save_add_blocked():
+    """True (and says so) while a test save is in place or half swapped: edits would land in the test save."""
+    paths = test_save_paths()
+    state = test_save_state(paths)
+    if state == "none":
+        return False
+    print(f"A test save is {'in place' if state == 'in place' else 'half swapped in'}; your own save is parked in "
+          f"{paths['parked']}. `make save-real` puts it back first.")
+    return True
+
+
+def cmd_save_real(_args):
+    """`make save-real`: copy the parked real save aside, file the Saves/ folder in place under backups/test-save/
+    and rename the parked real one back. Refuses when the save in place doesn't look like the test save (FORCE=1
+    restores anyway, filing it as a replaced save)."""
+    paths = test_save_paths()
+    state = test_save_state(paths)
+    if state == "none":
+        print("No test save in place; your save is your own.")
+        return 0
+    note = read_note(paths) or {}
+    profile = note.get("profile") or save_profile()[0]
+    live_save = os.path.join(paths["saves"], profile + ".json")
+    parked_save = os.path.join(paths["parked"], profile + ".json")
+    force = os.environ.get("FORCE") == "1"
+    is_test = True
+    if state == "in place":
+        is_test = os.path.isfile(live_save) and sha256(live_save) == note.get("testSha256")
+        if not is_test and os.path.isfile(live_save):
+            cars = parts_catalogue()
+            if cars:
+                names = [n for n in note.get("cars") or [] if n in cars] or [n for n in cars if "[CatalogExcluded]" not in n]
+                reference = load_save(parked_save) if os.path.isfile(parked_save) else None
+                is_test = looks_like_test_save(load_save(live_save), cars, names, reference)
+        if not is_test and not force:
+            print(f"The save in place ({live_save}) doesn't look like the test save: Steam Cloud, a manual restore "
+                  f"or a launch without the plugin may have changed it. Nothing changed. Your own Saves folder is "
+                  f"parked in {paths['parked']}; FORCE=1 files the one in place under {paths['backups']} as replaced "
+                  f"and restores yours anyway.")
+            return 1
+    if game_running():
+        print("The game is running. Quit it first: the game overwrites the save when it quits.")
+        return 1
+    stamp_now = time.strftime('%Y%m%d-%H%M%S')
+    os.makedirs(paths["backups"], exist_ok=True)
+    # A copy of the real save outside Saves/ (which Steam Cloud syncs), made before anything moves.
+    real_copy = unique_folder(paths["backups"], f"{profile}-real-{stamp_now}")
+    os.makedirs(real_copy)
+    for name in (profile + ".json", profile + ".json.bak"):
+        if os.path.isfile(os.path.join(paths["parked"], name)):
+            shutil.copy2(os.path.join(paths["parked"], name), os.path.join(real_copy, name))
+    fsync_tree(real_copy)
+    filed = None
+    if state == "in place":
+        filed = unique_folder(paths["backups"], f"{profile}-{'test-save' if is_test else 'replaced'}-{stamp_now}")
+        if not rename_or_explain(paths["saves"], filed):
+            return 1
+        write_note(paths, {**note, "state": "filed", "filed": filed})
+    if not rename_or_explain(paths["parked"], paths["saves"], first=not filed):
+        print(f"Your own Saves folder is still parked in {paths['parked']} (and copied to {real_copy}); "
+              "run `make save-real` again.")
+        return 1
+    real = os.path.join(paths["saves"], profile + ".json")
+    if os.path.isfile(real):
+        os.utime(real)       # newer than any test save in the cloud, so Steam keeps it; the content is unchanged
+    if os.path.isfile(paths["note"]):
+        if filed:
+            os.replace(paths["note"], os.path.join(filed, "test-save.json"))
+        else:
+            os.remove(paths["note"])
+    if os.path.isdir(paths["building"]):
+        shutil.rmtree(paths["building"])     # an unused copy from a swap that was cut off
+    exact = note.get("realSha256") is None or (os.path.isfile(real) and sha256(real) == note["realSha256"])
+    print("Your own Saves folder is back, as it was" + ("" if exact else " (its save differs from the one parked; it is the folder that was parked)") + ".")
+    print(f"A copy of your save is also kept in {real_copy}.")
+    if filed:
+        print(f"The test save as you left it: {filed}" if is_test else
+              f"The save that was in place instead of the test save: {filed}")
+    print(STEAM_CLOUD_AFTER)
+    return 0
+
+
+def test_save_status():
+    """None, or a line for status, start and the launch log while a test save is in place."""
+    paths = test_save_paths()
+    if not os.path.isdir(paths["parked"]):
+        return None
+    note = read_note(paths) or {}
+    profile = note.get("profile") or save_profile()[0]
+    live = os.path.join(paths["saves"], profile + ".json")
+    played = ("untouched" if os.path.isfile(live) and sha256(live) == note.get("testSha256") else
+              "half swapped in" if not os.path.isdir(paths["saves"]) else "played")
+    return f"a test save is in place since {note.get('createdAt', '?')} ({played}); `make save-real` puts your own save back"
 
 
 def compared_with():
@@ -1640,6 +1982,7 @@ COMMANDS = {
     "gates": cmd_gates, "preflight-deploy": cmd_preflight_deploy, "record-deploy": cmd_record_deploy,
     "undeploy": cmd_undeploy, "status": cmd_status,
     "compile-plugin": cmd_compile_plugin, "copy-deploy": cmd_copy_deploy, "save-add": cmd_save_add, "loop": cmd_loop,
+    "save-test": cmd_save_test, "save-real": cmd_save_real,
     "update": cmd_update, "launch-before": cmd_launch_before, "launch-after": cmd_launch_after, "deploy": cmd_deploy,
 }
 
