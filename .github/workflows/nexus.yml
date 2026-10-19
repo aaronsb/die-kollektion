@@ -20,8 +20,10 @@ permissions:
   contents: read
   actions: read
 
+# One upload at a time across all tags, so a second release's preflight sees the first one's version
+# (two runs at once could both plan an upload and archive the newer version).
 concurrency:
-  group: nexus-${{ github.event.release.tag_name || inputs.tag }}
+  group: nexus
   cancel-in-progress: false
 
 env:
