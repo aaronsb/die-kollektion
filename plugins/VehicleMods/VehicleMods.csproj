@@ -81,11 +81,12 @@
     </Task>
   </UsingTask>
 
-  <!-- Deploys the DLL and the vehicle files above to BepInEx/plugins/VehicleMods/ (or -p:DeployDir=<dir>).
+  <!-- Deploys the DLL and the vehicle files above to BepInEx/VehicleMods/ (or -p:DeployDir=<dir>), outside plugins/:
+       Die Kollektion's loader (plugins/Loader, installed by `make deploy`) starts it from there.
        Pass -p:Deploy=false to compile without deploying. -->
   <Target Name="Deploy" AfterTargets="Build" Condition="'$(Deploy)' != 'false'">
     <PropertyGroup>
-      <DeployDir Condition="'$(DeployDir)' == ''">$(BepInExDir)/plugins/VehicleMods</DeployDir>
+      <DeployDir Condition="'$(DeployDir)' == ''">$(BepInExDir)/VehicleMods</DeployDir>
     </PropertyGroup>
     <VehicleDeployFiles VehiclesDir="$(MSBuildProjectDirectory)/../../vehicles" DeployDir="$(DeployDir)">
       <Output TaskParameter="Files" ItemName="VehicleFiles" />
