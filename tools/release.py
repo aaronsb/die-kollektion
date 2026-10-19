@@ -103,6 +103,7 @@ def cmd_ci(_args):
     steps = [
         ("python tools compile", [sys.executable, "-m", "py_compile"] + sorted(glob.glob(os.path.join(ROOT, "tools", "*.py")))),
         ("versions agree", [sys.executable, "tools/release.py", "check-versions"]),
+        ("game-update handling", [sys.executable, "-W", "ignore", "-m", "unittest", "discover", "-s", "tests"]),
         ("real names stay in the catalogue", [sys.executable, "tools/check_names.py"]),
         ("the catalogue is current", [sys.executable, "tools/catalogue.py", "--check"]),
         ("pack manifests", [sys.executable, "tools/pack.py", "check"]),
@@ -149,7 +150,7 @@ def cmd_build(args):
         print(f"{tag} already exists.")
         return 1
     game = ws.game_dir()
-    if not game or not ws.game_fingerprint(game):
+    if not game or not ws.interop_hash(game):
         print("A release compiles the plugin against BepInEx's interop for the installed game; run `make start` "
               "until BepInEx has prepared the game.")
         return 1
@@ -171,7 +172,7 @@ def cmd_build(args):
         "version": version,
         "sha256": sha256(ws.SOURCE_DLL),
         "builtFrom": head,
-        "builtAgainst": {"gameAssemblyHash": ws.game_fingerprint(game), "steamBuild": ws.steam_build(game),
+        "builtAgainst": {"gameAssemblyHash": ws.interop_hash(game), "steamBuild": ws.steam_build(game),
                          "bepinex": ws.bepinex_installed_version(game)},
     }
 

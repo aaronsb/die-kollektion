@@ -7,7 +7,7 @@ GAME_DIR ?= $(shell python3 tools/werkstatt.py game-dir 2>/dev/null)
 export GAME_DIR MY_GAMES DEPLOY_DIR FORCE BEPINEX_ARCHIVE PROFILE VERSION DRY_RUN
 
 .DEFAULT_GOAL := start
-.PHONY: start help doctor setup bepinex extract build check contact loop pack deploy undeploy status save-add all release nexus-images
+.PHONY: start help doctor setup bepinex extract build check contact loop pack deploy undeploy update status save-add all release nexus-images
 
 start: ## The next setup step, in plain words. Run it again after each step.
 	@$(WS) start
@@ -40,7 +40,7 @@ build: ## Build every vehicle's meshes and icons from vehicles/
 	$(PY) tools/trace_icons.py
 	$(PY) -I tools/rasterize_icons.py
 
-check: ## Run every gate (holes, slivers, names, catalogue, hook-page placement); fails if any does
+check: ## Run every gate (holes, slivers, game-update handling, names, catalogue, hook-page placement); fails if any does
 	@$(WS) gates
 
 contact: ## Render every vehicle's contact sheet (needs Blender)
@@ -55,6 +55,9 @@ deploy: check ## Install the mod into the game (game closed). DEPLOY_DIR=<dir> d
 
 undeploy: ## Remove exactly the files the last deploy installed (FORCE=1 if you changed them since)
 	@$(WS) undeploy
+
+update: ## After a game update (game closed): rebuild the plugin for it and install it again
+	@$(WS) update
 
 status: ## Compare the repo, the build and the game folder
 	@$(WS) status
