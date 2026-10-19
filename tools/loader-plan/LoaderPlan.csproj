@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Offline check of Die Kollektion's loader: runs the same LoaderCore the loader runs over fake game folders, with
+       a stub dotnet. `make check` runs it (`scenarios`); `sources` and `references` serve the Python tests. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../plugins/Loader/LoaderCore.cs" />
+  </ItemGroup>
+</Project>
