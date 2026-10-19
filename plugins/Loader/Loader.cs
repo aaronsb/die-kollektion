@@ -2,7 +2,9 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using BepInEx;
+using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
 
 namespace DieKollektion.Loader;
@@ -19,6 +21,9 @@ public class Loader : BasePlugin
     /// <summary>AppDomain data the real plugin's main-menu line reads: the Steam build it was rebuilt for this launch.</summary>
     public const string RebuiltForKey = "DieKollektion.RebuiltFor";
 
+    [DllImport("libc", EntryPoint = "_exit")]
+    static extern void Exit(int status);
+
     public override void Load()
     {
         var bepinex = Paths.BepInExRootPath;
@@ -29,52 +34,45 @@ public class Loader : BasePlugin
             try { File.AppendAllText(launchLog, $"{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss} Loader: {message}\n"); }
             catch (Exception) { }
         }
-
-        LoaderCore.Result result;
-        try
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var myGames = Environment.GetEnvironmentVariable("MY_GAMES") is { Length: > 0 } custom ? custom : Path.Combine(home, "My Games", "over the hill");
+        var setup = new LoaderCore.Setup
         {
-            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            result = LoaderCore.Prepare(new LoaderCore.Setup
+            GameDir = Paths.GameRootPath,
+            BepInExDir = bepinex,
+            PluginsDir = Paths.PluginPath,
+            PluginDir = Path.Combine(bepinex, "VehicleMods"),
+            SavesDir = Path.Combine(myGames, "Saves"),
+            Log = Note,
+            Ui = new DesktopUi(),
+        };
+
+        var result = LoaderCore.Prepare(setup);
+        if (result.Outcome == LoaderCore.Outcome.Load)
+        {
+            try
             {
-                GameDir = Paths.GameRootPath,
-                BepInExDir = bepinex,
-                PluginDir = Path.Combine(bepinex, "VehicleMods"),
-                SaveFile = Path.Combine(home, "My Games", "over the hill", "Saves", "Player1.json"),
-                Log = Note,
-                Ui = new DesktopUi(),
-            });
-        }
-        catch (Exception e)
-        {
-            Log.LogError($"Die Kollektion's loader failed, so the plugin isn't loaded: {e}");
-            return;
-        }
-
-        switch (result.Outcome)
-        {
-            case LoaderCore.Outcome.Quit:
-                Note($"Closing the game: {result.Message}");
-                Environment.Exit(0);
+                if (result.RebuiltFor != null)
+                    AppDomain.CurrentDomain.SetData(RebuiltForKey, result.RebuiltFor);
+                var type = Assembly.LoadFrom(result.Dll).GetType("VehicleMods.Plugin", true);
+                var plugin = (BasePlugin)Activator.CreateInstance(type);
+                Note($"Starting {type.GetCustomAttribute<BepInPlugin>()?.Name ?? type.FullName} ({result.Message})");
+                plugin.Load();
                 return;
-            case LoaderCore.Outcome.Stock:
-                Note($"Not loading Die Kollektion: {result.Message}");
-                return;
+            }
+            catch (Exception e)
+            {
+                Log.LogError(e.ToString());
+                result = LoaderCore.CantStart(setup, $"starting the plugin failed ({e.GetType().Name}: {e.Message})");
+            }
         }
-
-        try
+        if (result.Outcome == LoaderCore.Outcome.Quit)
         {
-            if (result.RebuiltFor != null)
-                AppDomain.CurrentDomain.SetData(RebuiltForKey, result.RebuiltFor);
-            var assembly = Assembly.LoadFrom(result.Dll);
-            var type = assembly.GetTypes().First(t => typeof(BasePlugin).IsAssignableFrom(t) && !t.IsAbstract
-                                                     && t.GetCustomAttribute<BepInPlugin>() != null);
-            var plugin = (BasePlugin)Activator.CreateInstance(type);
-            Note($"Starting {type.GetCustomAttribute<BepInPlugin>().Name} ({result.Message})");
-            plugin.Load();
-        }
-        catch (Exception e)
-        {
-            Log.LogError($"Starting Die Kollektion failed: {e}");
+            // Out at once, before the save is read: no managed shutdown or destructors while Unity's threads run.
+            Note($"Closing the game: {result.Message}");
+            foreach (var listener in Logger.Listeners.OfType<DiskLogListener>().ToList())
+                listener.Dispose();
+            Exit(0);
         }
     }
 }

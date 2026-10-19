@@ -38,13 +38,13 @@ class Decisions(unittest.TestCase):
 class Sources(unittest.TestCase):
     def test_the_sources_hash_matches_the_loaders(self):
         """The loader rebuilds only while LoaderCore.SourcesHash equals what deploy recorded (plugin_sources_hash)."""
-        if ws.dotnet_sdk_major() < 10:
-            self.skipTest("tools/loader-plan needs the .NET 10 SDK")
+        if ws.dotnet_sdk_major() < 6:
+            self.skipTest("tools/loader-plan needs a .NET SDK")
         project = os.path.join(ROOT, "plugins", "VehicleMods")
-        r = subprocess.run(["dotnet", "run", "--project", "tools/loader-plan", "-v", "quiet", "--", "sources", project],
+        r = subprocess.run(["dotnet", "run", "--project", "tools/loader-plan", "-v", "quiet", "--", "sources", project, ROOT],
                            cwd=ROOT, capture_output=True, text=True, timeout=300)
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertEqual(r.stdout.strip(), ws.plugin_sources_hash(project))
+        self.assertEqual(r.stdout.strip(), ws.plugin_sources_hash(project, ROOT))
 
     def test_the_hash_follows_sources_only(self):
         tmp = tempfile.mkdtemp(prefix="werkstatt-sources-")
@@ -58,6 +58,13 @@ class Sources(unittest.TestCase):
         self.assertEqual(ws.plugin_sources_hash(tmp), before)
         open(os.path.join(tmp, "HalfDone.cs"), "w").write("class H {")
         self.assertNotEqual(ws.plugin_sources_hash(tmp), before)
+        # MSBuild reads Directory.Build.* and global.json from the project's parents too.
+        project = os.path.join(tmp, "plugins", "VehicleMods")
+        os.makedirs(project)
+        open(os.path.join(project, "Plugin.cs"), "w").write("class P {}")
+        alone = ws.plugin_sources_hash(project, tmp)
+        open(os.path.join(tmp, "Directory.Build.props"), "w").write("<Project/>")
+        self.assertNotEqual(ws.plugin_sources_hash(project, tmp), alone)
 
 
 class FakeGame(unittest.TestCase):
@@ -197,6 +204,14 @@ class FakeGame(unittest.TestCase):
         self.deploy()
         self.update_game()
         self.deploy()
+        self.assertEqual(ws.deploy_state(self.folder), "current")
+
+    def test_a_failed_compile_leaves_the_install_as_it_was(self):
+        self.deploy()
+        before = sorted(ws.listing(self.folder))
+        with mock.patch.object(ws, "compile_plugin", return_value=1):
+            self.assertEqual(self.quiet(ws.cmd_deploy, []), 1)
+        self.assertEqual(sorted(ws.listing(self.folder)), before)
         self.assertEqual(ws.deploy_state(self.folder), "current")
 
     def test_undeploy_removes_the_loader_too(self):

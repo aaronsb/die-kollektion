@@ -3,7 +3,10 @@
        a stub dotnet. `make check` runs it (`scenarios`); `sources` and `references` serve the Python tests. -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
+    <!-- Runs on any installed .NET 6 or newer: `make deploy` checks the loader's references with it. -->
+    <RollForward>LatestMajor</RollForward>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
   </PropertyGroup>

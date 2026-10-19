@@ -18,8 +18,6 @@
   <ItemGroup>
     <Reference Include="$(BepInExDir)/core/BepInEx.Core.dll" Private="false" />
     <Reference Include="$(BepInExDir)/core/BepInEx.Unity.IL2CPP.dll" Private="false" />
-    <!-- BepInEx's own (core/), needed only to read BasePlugin's signatures; never game interop. -->
-    <Reference Include="$(BepInExDir)/core/Il2CppInterop.Runtime.dll" Private="false" />
   </ItemGroup>
 
 </Project>

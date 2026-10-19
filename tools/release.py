@@ -180,6 +180,9 @@ def cmd_build(args):
         if subprocess.run(["dotnet", "build", "-c", "Release", "-nologo", "-v", "minimal", "-p:Deploy=false",
                            f"-p:GameDir={game}"], cwd=os.path.join(ROOT, "plugins", project)).returncode:
             return 1
+    if not ws.loader_references_ok(ws.LOADER_SOURCE_DLL):
+        print("The loader references game interop; nothing released.")
+        return 1
     head = sh("git", "rev-parse", "HEAD").stdout.strip()
     info = {
         "notes": "The Werkstatt plugin compiled by `make release`. `make deploy` installs it instead of compiling "

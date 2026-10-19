@@ -377,19 +377,29 @@ def loader_path(folder):
     return os.path.join(os.path.dirname(folder), "plugins", LOADER_NAME)
 
 
-def plugin_sources_hash(project=os.path.join(ROOT, "plugins", "VehicleMods")):
+def plugin_sources_hash(project=os.path.join(ROOT, "plugins", "VehicleMods"), root=ROOT):
     """The plugin's sources as deployed, the same as the loader's LoaderCore.SourcesHash: SHA-256 over every .cs and
-    .csproj under the project (bin/ and obj/ excluded), each as its relative path, a NUL, its bytes and a NUL, in
+    .csproj under the project (bin/ and obj/ excluded) and the MSBuild inputs (Directory.Build.*, global.json) in it
+    and its parents up to `root`, each as its path relative to the project, a NUL, its bytes and a NUL, in ordinal
     path order. The loader rebuilds from the checkout only while this still matches."""
-    rels = []
-    for dirpath, dirs, names in os.walk(project):
+    project = os.path.abspath(project)
+    rels = set()
+    for dirpath, _dirs, names in os.walk(project):
         for n in names:
             rel = os.path.relpath(os.path.join(dirpath, n), project).replace(os.sep, "/")
             if rel.endswith((".cs", ".csproj")) and not rel.startswith(("bin/", "obj/")):
-                rels.append(rel)
+                rels.add(rel)
+    d, top = project, os.path.abspath(root)
+    while True:
+        for name in ("Directory.Build.props", "Directory.Build.targets", "global.json"):
+            if os.path.isfile(os.path.join(d, name)):
+                rels.add(os.path.relpath(os.path.join(d, name), project).replace(os.sep, "/"))
+        if d == top or os.path.dirname(d) == d:
+            break
+        d = os.path.dirname(d)
     h = hashlib.sha256()
     for rel in sorted(rels, key=lambda r: r.encode()):
-        with open(os.path.join(project, *rel.split("/")), "rb") as f:
+        with open(os.path.normpath(os.path.join(project, rel)), "rb") as f:
             h.update(rel.encode() + b"\0" + f.read() + b"\0")
     return h.hexdigest()
 
@@ -946,10 +956,6 @@ def cmd_preflight_deploy(args):
     if into_game and game_running():
         print("The game is running. Quit it, then deploy.")
         return 1
-    if not os.path.isfile(os.path.join(game, "BepInEx", "interop", "Assembly-CSharp.dll")):
-        print("BepInEx hasn't prepared the game yet (no BepInEx/interop/), so the plugin can't be compiled.\n"
-              "Run `make start` and follow it.")
-        return 1
     if into_game:
         # Installs from before the loader kept the plugin in plugins/; it moves next to plugins/, where the loader
         # starts it. A folder left aside by that version's update handling goes too (retire_aside keeps hand changes).
@@ -980,15 +986,29 @@ def cmd_preflight_deploy(args):
     return 0
 
 
+def loader_references_ok(dll):
+    """The loader may reference BepInEx's own assemblies only (tools/loader-plan): game interop would let a game update break it."""
+    r = run(["dotnet", "run", "--project", "tools/loader-plan", "-v", "quiet", "--", "references", dll], cwd=ROOT)
+    print(f"loader references: {r.stdout.strip() or r.stderr.strip()}")
+    return r.returncode == 0
+
+
 def cmd_compile_plugin(_args):
-    """Use the release's prebuilt plugin and loader when they fit; otherwise compile them with the .NET SDK."""
+    """Use the release's prebuilt plugin and loader when they fit; otherwise compile them with the .NET SDK. Runs
+    before anything in the game folder is touched, so a failed build leaves the install as it was."""
     game = game_dir()
+    if not game or not os.path.isfile(os.path.join(game, "BepInEx", "interop", "Assembly-CSharp.dll")):
+        print("BepInEx hasn't prepared the game yet (no BepInEx/interop/), so the plugin can't be compiled.\n"
+              "Run `make start` and follow it.")
+        return 1
     if compile_plugin(game) != 0:
         return 1
     if loader_dll() != LOADER_SOURCE_DLL:
         return 0
-    return subprocess.run(["dotnet", "build", "-c", "Release", "-nologo", "-v", "minimal", f"-p:GameDir={game}"],
-                          cwd=os.path.join(ROOT, "plugins", "Loader")).returncode
+    if subprocess.run(["dotnet", "build", "-c", "Release", "-nologo", "-v", "minimal", f"-p:GameDir={game}"],
+                      cwd=os.path.join(ROOT, "plugins", "Loader")).returncode:
+        return 1
+    return 0 if loader_references_ok(LOADER_SOURCE_DLL) else 1
 
 
 def remove_retired(folder, sources):
@@ -1024,18 +1044,13 @@ def cmd_copy_deploy(args):
         print(f"The loader isn't built ({loader_dll()}); run `make deploy` again.")
         return 1
     remove_retired(folder, sources)
-    for dest, src in sorted(sources.items()):
-        target = os.path.join(folder, *dest.split("/"))
+    # Each file lands whole (a temp file renamed over it): the loader may read the folder at the next start.
+    copies = [(src, os.path.join(folder, *dest.split("/"))) for dest, src in sorted(sources.items())]
+    for src, target in copies + [(loader_dll(), loader_path(folder))]:
         os.makedirs(os.path.dirname(target), exist_ok=True)
-        shutil.copyfile(src, target)
-    loader = loader_path(folder)
-    os.makedirs(os.path.dirname(loader), exist_ok=True)
-    with open(loader_dll(), "rb") as f:
-        data = f.read()
-    tmp = loader + ".werkstatt-tmp"
-    with open(tmp, "wb") as f:
-        f.write(data)
-    os.replace(tmp, loader)
+        tmp = target + ".werkstatt-tmp"
+        shutil.copyfile(src, tmp)
+        os.replace(tmp, target)
     return 0
 
 
@@ -1360,7 +1375,7 @@ def install_launch_script(game):
 
 
 def deploy_steps(args):
-    for step in (cmd_preflight_deploy, cmd_compile_plugin, cmd_copy_deploy, cmd_record_deploy):
+    for step in (cmd_compile_plugin, cmd_preflight_deploy, cmd_copy_deploy, cmd_record_deploy):
         if step(args) != 0:
             return 1
     return 0

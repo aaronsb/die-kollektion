@@ -53,7 +53,7 @@ deploy: check ## Install the mod into the game (game closed). DEPLOY_DIR=<dir> d
 undeploy: ## Remove exactly the files the last deploy installed (FORCE=1 if you changed them since)
 	@$(WS) undeploy
 
-update: ## After a game update (game closed): rebuild the plugin for it and install it again
+update: ## Deploy this checkout in full, with the gates (the loader rebuilds the plugin by itself after a game update)
 	@$(WS) update
 
 status: ## Compare the repo, the build and the game folder
