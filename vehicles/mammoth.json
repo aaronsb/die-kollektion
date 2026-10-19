@@ -1,0 +1,323 @@
+{
+  "codename": "Mammoth",
+  "patch": true,
+  "listing": {
+    "family": "Mammoth",
+    "variant": "stock, patched",
+    "real": {
+      "make": "",
+      "model": "",
+      "series": "",
+      "variant": "",
+      "years": "",
+      "description": "",
+      "basis": "A patch on the game's stock Mammoth: portal axles, coil springs, side-exit exhaust and more steering lock."
+    }
+  },
+  "donor": "Mammoth",
+  "donorAxleZ": {
+    "front": 1.22,
+    "rear": -1.31
+  },
+  "wheelbase": 2.53,
+  "track": 1.8,
+  "maxSteerAngle": 37.8,
+  "bodyCut": [],
+  "meshes": {
+    "Axles/SuspensionRigidFront/SuspensionRigidMesh_LOD0": {
+      "file": "suspension_front_LOD0.obj",
+      "stretch": false,
+      "ops": [
+        {
+          "op": "portalAxle",
+          "lift": 0.2,
+          "tubeScale": 2.0,
+          "diffScale": 1.5,
+          "diffOffset": 0.12,
+          "housingSegments": 24
+        },
+        {
+          "op": "coilSprings",
+          "height": 0.3,
+          "sides": 12,
+          "segmentsPerTurn": 16
+        }
+      ]
+    },
+    "Axles/SuspensionRigidFront/SuspensionRigidMesh_LOD1": {
+      "file": "suspension_front_LOD1.obj",
+      "stretch": false,
+      "ops": [
+        {
+          "op": "portalAxle",
+          "lift": 0.2,
+          "tubeScale": 2.0,
+          "diffScale": 1.5,
+          "diffOffset": 0.12,
+          "housingSegments": 16
+        },
+        {
+          "op": "coilSprings",
+          "height": 0.3,
+          "sides": 8,
+          "segmentsPerTurn": 10
+        }
+      ]
+    },
+    "Axles/SuspensionRigidFront/SuspensionRigidMesh_LOD2": {
+      "file": "suspension_front_LOD2.obj",
+      "stretch": false,
+      "ops": [
+        {
+          "op": "portalAxle",
+          "lift": 0.2,
+          "tubeScale": 2.0,
+          "diffScale": 1.5,
+          "diffOffset": 0.12,
+          "housingSegments": 12
+        },
+        {
+          "op": "coilSprings",
+          "height": 0.3,
+          "sides": 6,
+          "segmentsPerTurn": 8
+        }
+      ]
+    },
+    "Axles/SuspensionRigidFront/SuspensionRigidMesh_LOD3": {
+      "file": "suspension_front_LOD3.obj",
+      "stretch": false,
+      "ops": [
+        {
+          "op": "portalAxle",
+          "lift": 0.2,
+          "tubeScale": 2.0,
+          "diffScale": 1.5,
+          "diffOffset": 0.12,
+          "housingSegments": 8
+        },
+        {
+          "op": "coilSprings",
+          "height": 0.3,
+          "sides": 4,
+          "segmentsPerTurn": 6
+        }
+      ]
+    },
+    "Axles/SuspensionRigidRear/SuspensionRigidMesh_LOD0": {
+      "file": "suspension_rear_LOD0.obj",
+      "stretch": false,
+      "ops": [
+        {
+          "op": "portalAxle",
+          "lift": 0.2,
+          "tubeScale": 2.0,
+          "diffScale": 1.5,
+          "diffOffset": -0.12,
+          "housingSegments": 24
+        },
+        {
+          "op": "coilSprings",
+          "height": 0.3,
+          "sides": 12,
+          "segmentsPerTurn": 16
+        }
+      ]
+    },
+    "Axles/SuspensionRigidRear/SuspensionRigidMesh_LOD1": {
+      "file": "suspension_rear_LOD1.obj",
+      "stretch": false,
+      "ops": [
+        {
+          "op": "portalAxle",
+          "lift": 0.2,
+          "tubeScale": 2.0,
+          "diffScale": 1.5,
+          "diffOffset": -0.12,
+          "housingSegments": 16
+        },
+        {
+          "op": "coilSprings",
+          "height": 0.3,
+          "sides": 8,
+          "segmentsPerTurn": 10
+        }
+      ]
+    },
+    "Axles/SuspensionRigidRear/SuspensionRigidMesh_LOD2": {
+      "file": "suspension_rear_LOD2.obj",
+      "stretch": false,
+      "ops": [
+        {
+          "op": "portalAxle",
+          "lift": 0.2,
+          "tubeScale": 2.0,
+          "diffScale": 1.5,
+          "diffOffset": -0.12,
+          "housingSegments": 12
+        },
+        {
+          "op": "coilSprings",
+          "height": 0.3,
+          "sides": 6,
+          "segmentsPerTurn": 8
+        }
+      ]
+    },
+    "Axles/SuspensionRigidRear/SuspensionRigidMesh_LOD3": {
+      "file": "suspension_rear_LOD3.obj",
+      "stretch": false,
+      "ops": [
+        {
+          "op": "portalAxle",
+          "lift": 0.2,
+          "tubeScale": 2.0,
+          "diffScale": 1.5,
+          "diffOffset": -0.12,
+          "housingSegments": 8
+        },
+        {
+          "op": "coilSprings",
+          "height": 0.3,
+          "sides": 4,
+          "segmentsPerTurn": 6
+        }
+      ]
+    },
+    "Parts/Mammoth/Mammoth_body_LOD0": {
+      "file": "body_LOD0.obj",
+      "ops": [
+        {
+          "op": "relocatePiece",
+          "select": {
+            "x": [
+              0.3,
+              0.7
+            ],
+            "y": [
+              0.4,
+              1.0
+            ],
+            "z": [
+              -2.3,
+              -1.4
+            ],
+            "minVertices": 8
+          },
+          "rotateY": -90,
+          "anchorTo": [
+            0.56,
+            0.72,
+            -0.735
+          ]
+        }
+      ],
+      "stretch": false
+    },
+    "Parts/Mammoth/Mammoth_body_LOD1": {
+      "file": "body_LOD1.obj",
+      "ops": [
+        {
+          "op": "relocatePiece",
+          "select": {
+            "x": [
+              0.3,
+              0.7
+            ],
+            "y": [
+              0.4,
+              1.0
+            ],
+            "z": [
+              -2.3,
+              -1.4
+            ],
+            "minVertices": 8
+          },
+          "rotateY": -90,
+          "anchorTo": [
+            0.56,
+            0.72,
+            -0.735
+          ]
+        }
+      ],
+      "stretch": false
+    },
+    "Parts/Mammoth/Mammoth_body_LOD2": {
+      "file": "body_LOD2.obj",
+      "ops": [
+        {
+          "op": "relocatePiece",
+          "select": {
+            "x": [
+              0.3,
+              0.7
+            ],
+            "y": [
+              0.4,
+              1.0
+            ],
+            "z": [
+              -2.3,
+              -1.4
+            ],
+            "minVertices": 8
+          },
+          "rotateY": -90,
+          "anchorTo": [
+            0.56,
+            0.72,
+            -0.735
+          ]
+        }
+      ],
+      "stretch": false
+    },
+    "Parts/Mammoth/Mammoth_body_LOD3": {
+      "file": "body_LOD3.obj",
+      "ops": [
+        {
+          "op": "relocatePiece",
+          "select": {
+            "x": [
+              0.3,
+              0.7
+            ],
+            "y": [
+              0.4,
+              1.0
+            ],
+            "z": [
+              -2.3,
+              -1.4
+            ],
+            "minVertices": 8
+          },
+          "rotateY": -90,
+          "anchorTo": [
+            0.56,
+            0.72,
+            -0.735
+          ]
+        }
+      ],
+      "stretch": false
+    }
+  },
+  "wheel": {
+    "radius": 0.52,
+    "width": 0.4,
+    "y": 0.45
+  },
+  "transforms": {
+    "Effects/VehicleParticles/ExhaustParticlesManager": {
+      "position": [
+        -1.089,
+        0.587,
+        -0.635
+      ],
+      "yaw": 90
+    }
+  }
+}

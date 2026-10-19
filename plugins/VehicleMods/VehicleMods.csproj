@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>VehicleMods</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <!-- The game folder: pass -p:GameDir=<path> or set GameDir in the environment when the game
+         isn't in Steam's default library. -->
+    <GameDir Condition="'$(GameDir)' == '' And $([MSBuild]::IsOSPlatform('Windows'))">C:\Program Files (x86)\Steam\steamapps\common\over the hill</GameDir>
+    <GameDir Condition="'$(GameDir)' == ''">$(HOME)/.local/share/Steam/steamapps/common/over the hill</GameDir>
+    <BepInExDir>$(GameDir)/BepInEx</BepInExDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="$(BepInExDir)/core/BepInEx.Core.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/core/BepInEx.Unity.IL2CPP.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/core/Il2CppInterop.Runtime.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/core/0Harmony.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/interop/Assembly-CSharp.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/interop/Il2Cppmscorlib.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/interop/UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/interop/UnityEngine.PhysicsModule.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/interop/UnityEngine.ImageConversionModule.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/interop/Unity.Addressables.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/interop/Unity.ResourceManager.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/interop/Sirenix.Serialization.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/interop/Fusion.Runtime.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/interop/Funselektor.FunCore.Runtime.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/interop/Unity.Localization.dll" Private="false" />
+  </ItemGroup>
+
+  <!-- Deploys to BepInEx/plugins/VehicleMods/: the DLL, vehicle definitions from ../../vehicles,
+       the meshes tools/build_vehicle.py wrote to ./vehicles/<codename>/, and the vehicle-select
+       icons tools/make_icons.py wrote to ../../icons.
+       Pass -p:Deploy=false to compile without deploying. -->
+  <Target Name="Deploy" AfterTargets="Build" Condition="'$(Deploy)' != 'false'">
+    <PropertyGroup>
+      <DeployDir>$(BepInExDir)/plugins/VehicleMods</DeployDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <Definitions Include="$(MSBuildProjectDirectory)/../../vehicles/*.json" />
+      <BuiltMeshes Include="$(MSBuildProjectDirectory)/vehicles/**/*.obj" />
+      <Icons Include="$(MSBuildProjectDirectory)/../../icons/*.png" />
+    </ItemGroup>
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DeployDir)" />
+    <Copy SourceFiles="@(Definitions)" DestinationFolder="$(DeployDir)/vehicles" />
+    <Copy SourceFiles="@(BuiltMeshes)" DestinationFolder="$(DeployDir)/vehicles/%(RecursiveDir)" />
+    <Copy SourceFiles="@(Icons)" DestinationFolder="$(DeployDir)/icons" />
+  </Target>
+
+</Project>

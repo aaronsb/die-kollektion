@@ -1,0 +1,24 @@
+# Tooling and environments
+.venv/
+__pycache__/
+*.blend1
+
+# Game data, extracted locally from the player's own install; never committed
+meshes/mammoth/
+meshes/merchant/
+meshes/glyptodon/spare_raw/
+data/
+
+# Generated from game data (see README "Building from source")
+meshes/glyptodon/spare_preview*.obj
+meshes/glyptodon/megaloceros_boxes_LOD*.obj
+icons/Mastodon.png
+icons/Megatherium.png
+icons/src/Mastodon.svg
+icons/src/Megatherium.svg
+
+# Build output
+plugins/*/bin/
+plugins/*/obj/
+plugins/VehicleMods/vehicles/
+renders/

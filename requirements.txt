@@ -1,0 +1,6 @@
+# Python tools: extraction from your own install (UnityPy), icons and gates (Pillow, numpy, scipy).
+# Blender (5.x) runs the cab, preview and icon-render scripts; rsvg-convert rasterises icons.
+UnityPy==1.25.4
+Pillow>=12
+numpy>=2
+scipy>=1.14

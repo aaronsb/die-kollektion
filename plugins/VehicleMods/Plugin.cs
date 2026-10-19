@@ -1,0 +1,168 @@
+using System;
+using System.IO;
+using System.Reflection;
+using System.Threading;
+using BepInEx;
+using BepInEx.Logging;
+using BepInEx.Unity.IL2CPP;
+using FunCore.Managers;
+using HarmonyLib;
+using Il2CppInterop.Runtime;
+using UnityEngine;
+
+namespace VehicleMods;
+
+/// <summary>Die Kollektion: adds vehicles to Over the Hill, the shipped-but-hidden cars and trucks derived from stock ones.</summary>
+/// <remarks>
+/// Constraints on this game (Unity 6000.0.75, Il2CppInterop with a substitute Class::Init):
+/// class injection crashes the game, so no injected MonoBehaviours or managed delegates;
+/// patching in Load crashes the render thread; patching from a background thread races
+/// whatever the main thread is running. So a background thread patches one rarely-called
+/// main-thread method once boot has loaded Addressables, and everything else happens on the
+/// main thread when the game first calls it.
+/// </remarks>
+[BepInPlugin("local.overthehill.vehiclemods", "Die Kollektion", "0.4.0")]
+public class Plugin : BasePlugin
+{
+    internal static ManualLogSource Logger;
+    static readonly Harmony harmony = new("local.overthehill.vehiclemods");
+
+    const string BootMarker = "[AddressablesPreLoader] Addressables finished loading";
+    static readonly TimeSpan BootTimeout = TimeSpan.FromSeconds(60);
+    // Managed work on this thread while Unity sets up the swap chain (about 1 s after Load)
+    // crashed the main thread in roughly a third of launches, so the thread stays idle first.
+    static readonly TimeSpan StartupQuiet = TimeSpan.FromSeconds(2);
+
+    public override void Load()
+    {
+        Logger = Log;
+        var unityLog = UnityLogPath();
+        new Thread(() => PatchEntryWhenBooted(unityLog)) { IsBackground = true, Name = "VehicleMods.Entry" }.Start();
+    }
+
+    // Load touches no IL2CPP types; Unity's Linux player log path is fixed.
+    static string UnityLogPath()
+    {
+        var config = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
+        if (string.IsNullOrEmpty(config))
+            config = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config");
+        return Path.Combine(config, "unity3d", "Funselektor", "over the hill", "Player.log");
+    }
+
+    // An exception escaping this thread aborts the game, so every failure is caught and logged.
+    static void PatchEntryWhenBooted(string unityLog)
+    {
+        try
+        {
+            Thread.Sleep(StartupQuiet);
+            if (!WaitForLogLine(unityLog, BootMarker, BootTimeout))
+                Logger.LogWarning($"No '{BootMarker}' in {unityLog} after {BootTimeout.TotalSeconds}s; patching anyway");
+            IL2CPP.il2cpp_thread_attach(IL2CPP.il2cpp_domain_get());
+            try
+            {
+                DobbyNearPages.Install();
+            }
+            catch (Exception e)
+            {
+                Logger.LogError($"Dobby pages failed: {e}");
+            }
+            harmony.CreateClassProcessor(typeof(MainThreadEntry)).Patch();
+            Logger.LogInfo("Entry patch applied");
+        }
+        catch (Exception e)
+        {
+            Logger.LogError($"Entry patch failed: {e}");
+        }
+    }
+
+    /// <summary>Applies every [HarmonyPatch] class except the entry patch, each independently.</summary>
+    internal static void ApplyPatches()
+    {
+        int applied = 0, failed = 0;
+        foreach (var type in Assembly.GetExecutingAssembly().GetTypes())
+        {
+            if (type == typeof(MainThreadEntry) || type.GetCustomAttribute<HarmonyPatch>() == null) continue;
+            try
+            {
+                harmony.CreateClassProcessor(type).Patch();
+                applied++;
+            }
+            catch (Exception e)
+            {
+                failed++;
+                Logger.LogError($"Patch {type.FullName} failed: {e}");
+            }
+        }
+        Logger.LogInfo($"Patches applied: {applied}, failed: {failed}");
+    }
+
+    // Polls without allocating: one open stream, one reused buffer, a byte-wise match. The
+    // marker's first byte occurs nowhere else in it, so a mismatch restarts the match cleanly.
+    static bool WaitForLogLine(string path, string marker, TimeSpan timeout)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        var pattern = System.Text.Encoding.ASCII.GetBytes(marker);
+        var buffer = new byte[64 * 1024];
+        int matched = 0;
+        FileStream stream = null;
+        try
+        {
+            while (DateTime.UtcNow < deadline)
+            {
+                if (stream == null && File.Exists(path))
+                    stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                int read;
+                while (stream != null && (read = stream.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    for (int i = 0; i < read; i++)
+                    {
+                        matched = buffer[i] == pattern[matched] ? matched + 1 : buffer[i] == pattern[0] ? 1 : 0;
+                        if (matched == pattern.Length) return true;
+                    }
+                }
+                Thread.Sleep(50);
+            }
+            return false;
+        }
+        finally
+        {
+            stream?.Dispose();
+        }
+    }
+}
+
+/// <summary>The first game-state transition after boot runs the mod's setup on the main thread.</summary>
+[HarmonyPatch(typeof(GameStateManager), nameof(GameStateManager.Transition))]
+static class MainThreadEntry
+{
+    static bool done;
+
+    static void Prefix()
+    {
+        if (done)
+        {
+            try
+            {
+                DerivedVehicles.LogRestPoses();
+            }
+            catch (Exception e)
+            {
+                Plugin.Logger.LogError($"Rest pose log failed: {e}");
+            }
+            return;
+        }
+        var catalog = PlayerInventoryManager.InventoryItemsCatalog;
+        if (catalog == null) return;
+        done = true;
+        try
+        {
+            Plugin.ApplyPatches();
+            DobbyNearPages.LogUsage();
+            Catalog.Register(catalog, Time.frameCount);
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogError($"Setup failed: {e}");
+        }
+    }
+}
