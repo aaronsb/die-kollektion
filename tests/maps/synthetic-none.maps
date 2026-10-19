@@ -1,0 +1,4 @@
+# expect: None (fail-safe control: no gap, no CoreLib reservation, so no hooks)
+7f0050000000-7f0050100000 r--p 00000000 00:00 0 /game/GameAssembly.so
+7f0050100000-7f0056000000 r-xp 00000000 00:00 0 /game/GameAssembly.so
+7f0056000000-7f0056800000 rw-p 00000000 00:00 0 /game/GameAssembly.so

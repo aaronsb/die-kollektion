@@ -25,3 +25,5 @@ plugins/*/bin/
 plugins/*/obj/
 renders/
 logs/
+tools/near-plan/bin/
+tools/near-plan/obj/
