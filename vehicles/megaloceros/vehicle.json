@@ -168,6 +168,13 @@
         0.88,
         -3.785
       ]
+    },
+    "Parts/Mammoth_CosmeticParts/Visual/Rear": {
+      "position": [
+        0.0,
+        0.903,
+        -3.667
+      ]
     }
   },
   "meshes": {

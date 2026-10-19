@@ -669,14 +669,14 @@
    "unity": [
     0.0,
     1.4275,
-    -2.509
+    -2.82
    ],
    "obj": [
     -0.0,
     1.4275,
-    -2.509
+    -2.82
    ],
-   "surface_distance": 0.187
+   "surface_distance": 0.008
   },
   {
    "id": "RB",
@@ -3753,8 +3753,8 @@
    {
     "id": "RS",
     "check": "upgrade-slot pivot no further from the body than on the stock donor (+15 cm)",
-    "value": "18.7 cm (stock 0.8 cm)",
-    "pass": false
+    "value": "0.8 cm (stock 0.8 cm)",
+    "pass": true
    },
    {
     "id": "RB",
