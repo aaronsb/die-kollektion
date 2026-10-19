@@ -83,7 +83,7 @@ There are no release builds yet: Werkstatt builds the mod on your machine from t
    - install a few programs with your system's package manager (it prints the command for your system);
    - run `make setup` (Werkstatt's Python packages);
    - run `make bepinex`: it downloads BepInEx, the mod loader (33 MB, from the official build server, after asking you), checks it against the pinned checksum, installs it into the game folder and sets it up;
-   - tell Steam to start the game through Werkstatt's launch script: Library → right-click Over the Hill → Properties → General → Launch Options, and paste `"./run_werkstatt.sh" %command%`. It starts BepInEx; after a game update it starts the game once without the mod and rebuilds the plugin for the new version when you quit;
+   - tell Steam to start the game through Werkstatt's launch script, which `make bepinex` has just put in the game folder: Library → right-click Over the Hill → Properties → General → Launch Options, and paste `"./run_werkstatt.sh" %command%`. It starts BepInEx; after a game update it starts the game once without the mod and, when you quit, rebuilds the plugin for the new version. Already set up with `"./run_bepinex.sh" %command%`? Run `make deploy` first (it installs the script), then change the option;
    - start the game once from Steam and quit at the main menu. BepInEx uses this first start (slow, once) to prepare files the Werkstatt plugin is compiled against, which is why the mod can only be built after it;
    - run `make all`: it copies the parts it needs from your game, builds the trucks, checks them and installs the mod (about a minute).
 5. Start the game. The trucks are at the merchant. Optional, with the game closed: `make save-add` puts all four in your garage.
@@ -108,7 +108,7 @@ There are no release builds yet: Werkstatt builds the mod on your machine from t
 | `make deploy` | With the game closed: runs the gates, compiles the plugin and installs it with the vehicles into `BepInEx/plugins/VehicleMods/`, recording every file in `deployed.json`. An older install not made this way is moved aside, next to `plugins/`. `DEPLOY_DIR=<dir>` installs somewhere else to inspect it. |
 | `make undeploy` | Removes exactly what `deployed.json` lists (`FORCE=1` if you changed those files since; `make deploy` needs it too then). |
 | `make save-add` | With the game closed, puts the four trucks in your save (`PROFILE=<name>` for another profile). |
-| `make update` | After a game update, with the game closed: rebuilds the plugin for the new version and installs it again (the launch script does this on its own). |
+| `make update` | After a game update, with the game closed: rebuilds the plugin for the new version and installs it again (the launch script does this on its own). When this checkout isn't the one deployed, it deploys it in full, with the gates. |
 | `make status` | Compares the repo, the build and the game folder, and says whether the plugin fits the game's version. |
 | `make all` | `extract`, `build`, `deploy`, after checking the setup is done. |
 | `make contact` | Renders every vehicle's contact sheet (needs Blender). |
