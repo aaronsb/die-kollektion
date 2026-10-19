@@ -34,6 +34,8 @@ extract: ## Copy the game parts the build needs from your install into extracted
 build: ## Build every vehicle's meshes and icons from vehicles/
 	$(PY) tools/make_glyptodon.py
 	$(PY) tools/make_megaloceros.py
+	@for v in vehicles/*/vehicle.json; do g=$$($(PY) -I -c 'import json, sys; print(json.load(open(sys.argv[1])).get("generator", ""))' "$$v"); \
+		if [ -n "$$g" ]; then echo "generate $$v ($$g)"; $(PY) "$$g" "$$v" || exit 1; fi; done
 	@for v in vehicles/*/vehicle.json; do echo "build $$v"; $(PY) tools/build_vehicle.py "$$v" || exit 1; done
 	$(PY) tools/trace_icons.py
 	$(PY) -I tools/rasterize_icons.py
@@ -42,7 +44,7 @@ check: ## Run every gate (holes, slivers, names, catalogue); fails if any does
 	@$(WS) gates
 
 contact: ## Render every vehicle's contact sheet (needs Blender)
-	$(PY) tools/composite_atlas.py Mammoth
+	@for d in $$($(PY) -I -c 'import glob, json; print(" ".join(sorted({json.load(open(p))["donor"] for p in glob.glob("vehicles/*/vehicle.json")})))'); do $(PY) tools/composite_atlas.py $$d || exit 1; done
 	@for v in vehicles/*/; do $(PY) tools/contact_sheet.py "$${v%/}" || exit 1; done
 
 deploy: check ## Install the mod into the game (game closed). DEPLOY_DIR=<dir> deploys elsewhere to inspect it

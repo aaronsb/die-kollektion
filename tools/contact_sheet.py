@@ -187,7 +187,7 @@ def surface_samples(v, tris):
 
 # ---------------------------------------------------------------- analysis
 
-def run_holes(path, marks=None):
+def run_holes(path, marks=None, fail_culled=HOLE_ARGS["fail_culled"], fail_gap=HOLE_ARGS["fail_gap"]):
     obj, v, tris, owner = check_holes.load(path)
     top = v[tris].reshape(-1, 3)[:, 1].max()
     n_open, nonmanifold, loops = check_holes.topology(v, tris, 0.05)
@@ -200,7 +200,7 @@ def run_holes(path, marks=None):
                "triangles": len(g["faces"])} for g in sorted(groups, key=lambda g: -g["area"])]
     gap_list = [{"area_cm2": round(float(a), 1), "at": [round(float(c), 3) for c in p],
                  "region": check_holes.region(p, p, top), "views": len(views)} for a, p, views in sorted(gaps, key=lambda g: -g[0])]
-    failing = sum(c["area_cm2"] >= HOLE_ARGS["fail_culled"] for c in culled) + sum(g["area_cm2"] >= HOLE_ARGS["fail_gap"] for g in gap_list)
+    failing = sum(c["area_cm2"] >= fail_culled for c in culled) + sum(g["area_cm2"] >= fail_gap for g in gap_list)
     return {"file": os.path.relpath(path, ROOT), "triangles": int(len(tris)), "open_edges": int(n_open),
             "open_loops": len(loops), "nonmanifold_edges": int(nonmanifold), "culled": culled, "gaps": gap_list,
             "fail": failing > 0, "failing_findings": int(failing)}
@@ -410,13 +410,17 @@ def build_sheet(vdir, args):
     wheels = wheels_of(manifest, final)
     ground_y = min(w["center"][1] - w["radius"] for w in wheels)
 
-    analysis = {"thresholds": dict(HOLE_ARGS, sliver_length_m=1.5, sliver_area_m2=0.01)}
+    # The same thresholds `make check` uses: a vehicle's "gates" block may declare a known exception.
+    gates = manifest.get("gates", {})
+    analysis = {"thresholds": dict(HOLE_ARGS, fail_culled=gates.get("failCulledCm2", HOLE_ARGS["fail_culled"]),
+                                   fail_gap=gates.get("failGapCm2", HOLE_ARGS["fail_gap"]), sliver_length_m=1.5, sliver_area_m2=0.01)}
     marks = os.path.join(vdir, "build", "contact", "marks_LOD0.obj")
     os.makedirs(os.path.dirname(marks), exist_ok=True)
     if args.no_holes:
         analysis["holes"] = []
     else:
-        analysis["holes"] = [run_holes(meshes[f"body_LOD{lod}"]["file"], marks if lod == 0 else None) for lod in range(4)]
+        analysis["holes"] = [run_holes(meshes[f"body_LOD{lod}"]["file"], marks if lod == 0 else None,
+                                       analysis["thresholds"]["fail_culled"], analysis["thresholds"]["fail_gap"]) for lod in range(4)]
     used = sorted({e["file"] for e in meshes.values() if e["file"]} | {p for p in needed if os.path.exists(p)})
     analysis["slivers"] = slivers_of(used)
     analysis["triangles"] = {key: tris_of(e["file"])[1] for key, e in meshes.items() if e["file"]}

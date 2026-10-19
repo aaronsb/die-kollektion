@@ -40,7 +40,7 @@ What a person can do today:
 - Set up from scratch and install our four trucks and the Mammoth patch: `make start`, repeated (Commands).
 - Tweak the Mammoth patch: edit `vehicles/mammoth/vehicle.json` (`maxSteerAngle`, `track`, `wheel`, `transforms`, and a `suspension` block shaped like the trucks', which the Mammoth patch hasn't used yet, so check it in-game), rebuild, deploy.
 - Tweak one of our trucks: for the Glyptodon family, change the constants in `tools/make_glyptodon.py` / `make_megaloceros.py` (they regenerate the manifest); for the Mastodon and Megatherium, edit their manifests directly.
-- A patch on a stock car other than the Mammoth means a new manifest shaped like `vehicles/mammoth/vehicle.json` with that car as `donor`. That path is untested: say so, keep the change small, and have the person check it in-game and read the logs with you.
+- A patch on another stock car: copy `vehicles/dingding/` (the canary, a golf bag on The Ding's roof) and set `codename`, `donor` and `base.car` to that car's internal name (the CarInfo name, e.g. `Protector`, `Trailrat`), with its `donorAxleZ`, `wheelbase` and `track` from `extracted/<car>/nodes.json` (`Axles/WheelMeshes/FL` and `RL`). `make extract` then pulls that car's parts (`tools/export_donor.py`). The canary is the first patch on a car other than the Mammoth and is unconfirmed in game until the person has driven it: say so, keep the change small, and read the logs with them.
 
 ## The workshop loop
 

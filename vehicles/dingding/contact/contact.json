@@ -1,0 +1,1348 @@
+{
+ "generator": "Die Kollektion Werkstatt, tools/contact_sheet.py (prototype of `kollektion contact`)",
+ "view": {
+  "elevation": 35.264,
+  "ortho_scale": 7.4,
+  "target": [
+   0.0,
+   1.0,
+   -0.6
+  ],
+  "tile": [
+   560,
+   420
+  ],
+  "corners": [
+   "front_left",
+   "front_right",
+   "rear_left",
+   "rear_right"
+  ]
+ },
+ "facts": {
+  "codename": "DingDing",
+  "displayName": "DingDing",
+  "kind": "patch",
+  "base": {
+   "car": "DingDing"
+  },
+  "donor": "DingDing",
+  "itemId": null,
+  "listing": {
+   "family": "Ding",
+   "variant": "stock, with a golf bag on the roof"
+  },
+  "dimensions_m": {
+   "length": 3.974,
+   "width": 2.046,
+   "height": 2.544,
+   "wheelbase": 2.294,
+   "track": 1.43,
+   "ground_clearance_prefab_pose": 0.465
+  },
+  "chassis": {
+   "wheelbase": 2.294,
+   "track": 1.43,
+   "bodyCut": []
+  },
+  "layout": {
+   "donorWheelbase": 2.294,
+   "shift": -0.0,
+   "transformCut": null
+  },
+  "meshes": {
+   "body_LOD0": {
+    "node": "Parts/DingDing/DingDing_body_LOD0",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/dingding/build/body_LOD0.obj"
+   },
+   "body_LOD1": {
+    "node": "Parts/DingDing/DingDing_body_LOD1",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/dingding/build/body_LOD1.obj"
+   },
+   "body_LOD2": {
+    "node": "Parts/DingDing/DingDing_body_LOD2",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/dingding/build/body_LOD2.obj"
+   },
+   "body_LOD3": {
+    "node": "Parts/DingDing/DingDing_body_LOD3",
+    "origin": "built",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "vehicles/dingding/build/body_LOD3.obj"
+   },
+   "axle_front_LOD0": {
+    "node": "Axles/SuspensionRigidFront/SuspensionRigidMesh_LOD0",
+    "origin": "stock",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "extracted/dingding/Axles__SuspensionRigidFront__SuspensionRigidMesh_LOD0.obj"
+   },
+   "axle_rear_LOD0": {
+    "node": "Axles/SuspensionRigidRear/SuspensionRigidMesh_LOD0",
+    "origin": "stock",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "extracted/dingding/Axles__SuspensionRigidRear__SuspensionRigidMesh_LOD0.obj"
+   },
+   "collider_top": {
+    "node": "Collider/Top",
+    "origin": "stock",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "extracted/dingding/Collider__Top.obj"
+   },
+   "collider_base": {
+    "node": "Collider/Base",
+    "origin": "stock",
+    "offset": [
+     -0.0,
+     0.0,
+     0.0
+    ],
+    "file": "extracted/dingding/Collider__Base.obj"
+   }
+  },
+  "pieces_lod0": 431
+ },
+ "points": [
+  {
+   "id": "HFL",
+   "name": "Axles/WheelColliders/WheelFL",
+   "category": "hub",
+   "unity": [
+    -0.715,
+    0.34,
+    1.265
+   ],
+   "obj": [
+    0.715,
+    0.34,
+    1.265
+   ]
+  },
+  {
+   "id": "HFR",
+   "name": "Axles/WheelColliders/WheelFR",
+   "category": "hub",
+   "unity": [
+    0.715,
+    0.34,
+    1.265
+   ],
+   "obj": [
+    -0.715,
+    0.34,
+    1.265
+   ]
+  },
+  {
+   "id": "HRL",
+   "name": "Axles/WheelColliders/WheelRL",
+   "category": "hub",
+   "unity": [
+    -0.715,
+    0.34,
+    -1.029
+   ],
+   "obj": [
+    0.715,
+    0.34,
+    -1.029
+   ]
+  },
+  {
+   "id": "HRR",
+   "name": "Axles/WheelColliders/WheelRR",
+   "category": "hub",
+   "unity": [
+    0.715,
+    0.34,
+    -1.029
+   ],
+   "obj": [
+    -0.715,
+    0.34,
+    -1.029
+   ]
+  },
+  {
+   "id": "COM",
+   "name": "CoM",
+   "category": "com",
+   "unity": [
+    0.0,
+    0.4,
+    0.069
+   ],
+   "obj": [
+    -0.0,
+    0.4,
+    0.069
+   ]
+  },
+  {
+   "id": "WF",
+   "name": "Winch/WinchAttachPoints/Front",
+   "category": "winch",
+   "unity": [
+    0.0,
+    0.537,
+    1.98
+   ],
+   "obj": [
+    -0.0,
+    0.537,
+    1.98
+   ],
+   "surface_distance": 0.007
+  },
+  {
+   "id": "WB",
+   "name": "Winch/WinchAttachPoints/Rear",
+   "category": "winch",
+   "unity": [
+    0.0,
+    0.619,
+    -1.84
+   ],
+   "obj": [
+    -0.0,
+    0.619,
+    -1.84
+   ],
+   "surface_distance": 0.018
+  },
+  {
+   "id": "WL",
+   "name": "Winch/WinchAttachPoints/Left",
+   "category": "winch",
+   "unity": [
+    -0.887,
+    0.514,
+    0.0
+   ],
+   "obj": [
+    0.887,
+    0.514,
+    0.0
+   ],
+   "surface_distance": 0.031
+  },
+  {
+   "id": "WR",
+   "name": "Winch/WinchAttachPoints/Right",
+   "category": "winch",
+   "unity": [
+    0.887,
+    0.514,
+    0.0
+   ],
+   "obj": [
+    -0.887,
+    0.514,
+    0.0
+   ],
+   "surface_distance": 0.031
+  },
+  {
+   "id": "D1",
+   "name": "WaterDetector/BackCarSubmerged",
+   "category": "water",
+   "unity": [
+    0.0,
+    1.989,
+    -1.517
+   ],
+   "obj": [
+    -0.0,
+    1.989,
+    -1.517
+   ]
+  },
+  {
+   "id": "D2",
+   "name": "WaterDetector/EngineAirIntakeWaterDetector_1",
+   "category": "water",
+   "unity": [
+    0.0,
+    1.0386,
+    0.496
+   ],
+   "obj": [
+    -0.0,
+    1.0386,
+    0.496
+   ]
+  },
+  {
+   "id": "D3",
+   "name": "WaterDetector/EngineAirIntakeWaterDetector_2",
+   "category": "water",
+   "unity": [
+    0.0,
+    1.43,
+    0.431
+   ],
+   "obj": [
+    -0.0,
+    1.43,
+    0.431
+   ]
+  },
+  {
+   "id": "D4",
+   "name": "WaterDetector/EngineAirIntakeWaterDetector_3",
+   "category": "water",
+   "unity": [
+    0.0,
+    1.975,
+    0.394
+   ],
+   "obj": [
+    -0.0,
+    1.975,
+    0.394
+   ]
+  },
+  {
+   "id": "D5",
+   "name": "WaterDetector/FrontCarSubmerged",
+   "category": "water",
+   "unity": [
+    0.0,
+    1.969,
+    0.16
+   ],
+   "obj": [
+    -0.0,
+    1.969,
+    0.16
+   ]
+  },
+  {
+   "id": "D6",
+   "name": "WaterDetector/IsTouchingWaterDetector",
+   "category": "water",
+   "unity": [
+    0.0,
+    0.029,
+    0.15
+   ],
+   "obj": [
+    -0.0,
+    0.029,
+    0.15
+   ]
+  },
+  {
+   "id": "D7",
+   "name": "WaterDetector/TiresFullySubmergedWaterDetector",
+   "category": "water",
+   "unity": [
+    0.0,
+    0.1644,
+    0.15
+   ],
+   "obj": [
+    -0.0,
+    0.1644,
+    0.15
+   ]
+  },
+  {
+   "id": "L1",
+   "name": "Lights/LeftBrakingBrakelight",
+   "category": "light",
+   "unity": [
+    -0.591,
+    0.583,
+    -1.879
+   ],
+   "obj": [
+    0.591,
+    0.583,
+    -1.879
+   ],
+   "surface_distance": 0.031
+  },
+  {
+   "id": "L2",
+   "name": "Lights/LeftHeadlight",
+   "category": "light",
+   "unity": [
+    -0.38,
+    0.879,
+    1.824
+   ],
+   "obj": [
+    0.38,
+    0.879,
+    1.824
+   ],
+   "surface_distance": 0.019
+  },
+  {
+   "id": "L3",
+   "name": "Lights/LeftPositionBrakelight",
+   "category": "light",
+   "unity": [
+    -0.591,
+    0.583,
+    -1.879
+   ],
+   "obj": [
+    0.591,
+    0.583,
+    -1.879
+   ],
+   "surface_distance": 0.031
+  },
+  {
+   "id": "L4",
+   "name": "Lights/LeftReverselight",
+   "category": "light",
+   "unity": [
+    -0.522,
+    0.584,
+    -1.879
+   ],
+   "obj": [
+    0.522,
+    0.584,
+    -1.879
+   ],
+   "surface_distance": 0.027
+  },
+  {
+   "id": "L5",
+   "name": "Lights/RightBrakingBrakelight",
+   "category": "light",
+   "unity": [
+    0.591,
+    0.583,
+    -1.879
+   ],
+   "obj": [
+    -0.591,
+    0.583,
+    -1.879
+   ],
+   "surface_distance": 0.031
+  },
+  {
+   "id": "L6",
+   "name": "Lights/RightHeadlight",
+   "category": "light",
+   "unity": [
+    0.38,
+    0.879,
+    1.824
+   ],
+   "obj": [
+    -0.38,
+    0.879,
+    1.824
+   ],
+   "surface_distance": 0.019
+  },
+  {
+   "id": "L7",
+   "name": "Lights/RightPositionBrakelight",
+   "category": "light",
+   "unity": [
+    0.591,
+    0.583,
+    -1.879
+   ],
+   "obj": [
+    -0.591,
+    0.583,
+    -1.879
+   ],
+   "surface_distance": 0.031
+  },
+  {
+   "id": "L8",
+   "name": "Lights/RightReverselight",
+   "category": "light",
+   "unity": [
+    0.522,
+    0.584,
+    -1.879
+   ],
+   "obj": [
+    -0.522,
+    0.584,
+    -1.879
+   ],
+   "surface_distance": 0.027
+  },
+  {
+   "id": "EX",
+   "name": "Effects/VehicleParticles/ExhaustParticlesManager",
+   "category": "exhaust",
+   "unity": [
+    0.676,
+    0.508,
+    -1.835
+   ],
+   "obj": [
+    -0.676,
+    0.508,
+    -1.835
+   ],
+   "surface_distance": 0.02
+  }
+ ],
+ "colliders": {
+  "collider_hulls": 2,
+  "stock_reference": true
+ },
+ "analysis": {
+  "thresholds": {
+   "pixel": 0.005,
+   "close": 0.02,
+   "min_area": 2.0,
+   "fail_culled": 90,
+   "fail_gap": 20.0,
+   "sliver_length_m": 1.5,
+   "sliver_area_m2": 0.01
+  },
+  "holes": [
+   {
+    "file": "vehicles/dingding/build/body_LOD0.obj",
+    "triangles": 2876,
+    "open_edges": 214,
+    "open_loops": 40,
+    "nonmanifold_edges": 0,
+    "culled": [],
+    "gaps": [
+     {
+      "area_cm2": 4.8,
+      "at": [
+       -0.554,
+       0.558,
+       -1.584
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.8,
+      "at": [
+       0.915,
+       1.367,
+       0.285
+      ],
+      "region": "body left",
+      "views": 3
+     },
+     {
+      "area_cm2": 4.5,
+      "at": [
+       -0.916,
+       1.365,
+       0.284
+      ],
+      "region": "body right",
+      "views": 2
+     },
+     {
+      "area_cm2": 3.2,
+      "at": [
+       -0.218,
+       0.562,
+       -1.771
+      ],
+      "region": "lower centre",
+      "views": 1
+     },
+     {
+      "area_cm2": 3.2,
+      "at": [
+       0.211,
+       0.606,
+       -1.889
+      ],
+      "region": "lower centre",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       -0.234,
+       0.578,
+       -1.872
+      ],
+      "region": "lower centre",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.184,
+       0.563,
+       -1.977
+      ],
+      "region": "lower centre",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -0.19,
+       0.563,
+       -1.967
+      ],
+      "region": "lower centre",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -0.794,
+       0.642,
+       -1.77
+      ],
+      "region": "lower right",
+      "views": 1
+     }
+    ],
+    "fail": false,
+    "failing_findings": 0
+   },
+   {
+    "file": "vehicles/dingding/build/body_LOD1.obj",
+    "triangles": 2459,
+    "open_edges": 211,
+    "open_loops": 40,
+    "nonmanifold_edges": 0,
+    "culled": [],
+    "gaps": [
+     {
+      "area_cm2": 5.0,
+      "at": [
+       -0.201,
+       0.559,
+       -1.786
+      ],
+      "region": "lower centre",
+      "views": 2
+     },
+     {
+      "area_cm2": 4.8,
+      "at": [
+       0.915,
+       1.367,
+       0.285
+      ],
+      "region": "body left",
+      "views": 3
+     },
+     {
+      "area_cm2": 4.5,
+      "at": [
+       -0.916,
+       1.365,
+       0.284
+      ],
+      "region": "body right",
+      "views": 2
+     },
+     {
+      "area_cm2": 3.2,
+      "at": [
+       0.211,
+       0.606,
+       -1.889
+      ],
+      "region": "lower centre",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       -0.234,
+       0.578,
+       -1.872
+      ],
+      "region": "lower centre",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.184,
+       0.563,
+       -1.977
+      ],
+      "region": "lower centre",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -0.19,
+       0.563,
+       -1.967
+      ],
+      "region": "lower centre",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -0.794,
+       0.642,
+       -1.77
+      ],
+      "region": "lower right",
+      "views": 1
+     }
+    ],
+    "fail": false,
+    "failing_findings": 0
+   },
+   {
+    "file": "vehicles/dingding/build/body_LOD2.obj",
+    "triangles": 1048,
+    "open_edges": 134,
+    "open_loops": 38,
+    "nonmanifold_edges": 0,
+    "culled": [],
+    "gaps": [
+     {
+      "area_cm2": 5.5,
+      "at": [
+       -0.557,
+       0.56,
+       -1.577
+      ],
+      "region": "lower right",
+      "views": 2
+     },
+     {
+      "area_cm2": 3.2,
+      "at": [
+       0.165,
+       0.548,
+       -1.879
+      ],
+      "region": "lower centre",
+      "views": 2
+     },
+     {
+      "area_cm2": 2.5,
+      "at": [
+       -0.218,
+       0.581,
+       -1.917
+      ],
+      "region": "lower centre",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       -0.604,
+       0.554,
+       -1.687
+      ],
+      "region": "lower right",
+      "views": 1
+     }
+    ],
+    "fail": false,
+    "failing_findings": 0
+   },
+   {
+    "file": "vehicles/dingding/build/body_LOD3.obj",
+    "triangles": 285,
+    "open_edges": 57,
+    "open_loops": 19,
+    "nonmanifold_edges": 0,
+    "culled": [
+     {
+      "area_cm2": 85.5,
+      "lo": [
+       -0.328,
+       0.447,
+       1.885
+      ],
+      "hi": [
+       0.325,
+       0.614,
+       1.986
+      ],
+      "region": "lower centre",
+      "triangles": 3
+     },
+     {
+      "area_cm2": 22.8,
+      "lo": [
+       -0.293,
+       0.452,
+       1.34
+      ],
+      "hi": [
+       -0.191,
+       0.614,
+       1.885
+      ],
+      "region": "lower centre",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 21.0,
+      "lo": [
+       0.152,
+       0.447,
+       1.34
+      ],
+      "hi": [
+       0.205,
+       0.614,
+       1.986
+      ],
+      "region": "lower centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 11.8,
+      "lo": [
+       -0.256,
+       0.452,
+       1.34
+      ],
+      "hi": [
+       -0.191,
+       0.614,
+       1.885
+      ],
+      "region": "lower centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 10.8,
+      "lo": [
+       0.205,
+       0.539,
+       -1.976
+      ],
+      "hi": [
+       0.452,
+       0.691,
+       -1.835
+      ],
+      "region": "lower left",
+      "triangles": 4
+     },
+     {
+      "area_cm2": 3.5,
+      "lo": [
+       0.0,
+       0.647,
+       -1.815
+      ],
+      "hi": [
+       0.828,
+       0.831,
+       -1.789
+      ],
+      "region": "lower left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 3.2,
+      "lo": [
+       -0.891,
+       1.907,
+       -0.433
+      ],
+      "hi": [
+       -0.797,
+       1.956,
+       0.345
+      ],
+      "region": "greenhouse right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 3.2,
+      "lo": [
+       -0.849,
+       0.647,
+       -1.802
+      ],
+      "hi": [
+       -0.423,
+       1.135,
+       -1.744
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "lo": [
+       -0.848,
+       1.786,
+       -1.744
+      ],
+      "hi": [
+       0.832,
+       1.939,
+       -1.72
+      ],
+      "region": "greenhouse centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.5,
+      "lo": [
+       -0.452,
+       0.539,
+       -1.976
+      ],
+      "hi": [
+       -0.32,
+       0.691,
+       -1.835
+      ],
+      "region": "lower right",
+      "triangles": 2
+     },
+     {
+      "area_cm2": 2.5,
+      "lo": [
+       -0.463,
+       0.459,
+       -1.433
+      ],
+      "hi": [
+       0.463,
+       0.635,
+       -0.601
+      ],
+      "region": "lower centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "lo": [
+       -0.958,
+       1.295,
+       0.281
+      ],
+      "hi": [
+       -0.804,
+       1.436,
+       0.316
+      ],
+      "region": "body right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "lo": [
+       0.803,
+       1.295,
+       0.281
+      ],
+      "hi": [
+       0.958,
+       1.436,
+       0.315
+      ],
+      "region": "body left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "lo": [
+       0.742,
+       1.907,
+       -1.422
+      ],
+      "hi": [
+       0.894,
+       1.994,
+       0.369
+      ],
+      "region": "greenhouse left",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 1.5,
+      "lo": [
+       -0.848,
+       1.927,
+       -1.725
+      ],
+      "hi": [
+       0.832,
+       2.036,
+       -1.684
+      ],
+      "region": "greenhouse centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 1.5,
+      "lo": [
+       -0.876,
+       0.528,
+       -1.323
+      ],
+      "hi": [
+       -0.463,
+       0.789,
+       -0.591
+      ],
+      "region": "lower right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 1.2,
+      "lo": [
+       -0.848,
+       1.385,
+       -1.799
+      ],
+      "hi": [
+       -0.528,
+       1.939,
+       -1.72
+      ],
+      "region": "greenhouse right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 0.8,
+      "lo": [
+       -0.848,
+       1.786,
+       -1.764
+      ],
+      "hi": [
+       0.003,
+       1.939,
+       -1.72
+      ],
+      "region": "greenhouse right",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 0.8,
+      "lo": [
+       -0.848,
+       1.939,
+       -1.72
+      ],
+      "hi": [
+       0.774,
+       2.062,
+       -1.479
+      ],
+      "region": "greenhouse centre",
+      "triangles": 1
+     },
+     {
+      "area_cm2": 0.5,
+      "lo": [
+       -0.891,
+       1.379,
+       -0.433
+      ],
+      "hi": [
+       -0.797,
+       1.917,
+       0.338
+      ],
+      "region": "greenhouse right",
+      "triangles": 1
+     }
+    ],
+    "gaps": [
+     {
+      "area_cm2": 13.2,
+      "at": [
+       -0.527,
+       0.708,
+       -1.804
+      ],
+      "region": "lower right",
+      "views": 2
+     },
+     {
+      "area_cm2": 6.5,
+      "at": [
+       -0.478,
+       0.702,
+       -1.802
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 4.2,
+      "at": [
+       -0.576,
+       0.692,
+       -1.799
+      ],
+      "region": "lower right",
+      "views": 4
+     },
+     {
+      "area_cm2": 4.2,
+      "at": [
+       0.595,
+       0.561,
+       1.875
+      ],
+      "region": "lower left",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.2,
+      "at": [
+       0.206,
+       0.656,
+       -1.836
+      ],
+      "region": "lower centre",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -0.682,
+       0.616,
+       -1.76
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       -0.746,
+       0.638,
+       -1.796
+      ],
+      "region": "lower right",
+      "views": 1
+     },
+     {
+      "area_cm2": 2.0,
+      "at": [
+       0.935,
+       1.419,
+       0.276
+      ],
+      "region": "body left",
+      "views": 1
+     }
+    ],
+    "fail": false,
+    "failing_findings": 0
+   }
+  ],
+  "slivers": [
+   {
+    "file": "extracted/dingding/Axles__SuspensionRigidFront__SuspensionRigidMesh_LOD0.obj",
+    "slivers": 0
+   },
+   {
+    "file": "extracted/dingding/Axles__SuspensionRigidRear__SuspensionRigidMesh_LOD0.obj",
+    "slivers": 0
+   },
+   {
+    "file": "extracted/dingding/Collider__Base.obj",
+    "slivers": 0
+   },
+   {
+    "file": "extracted/dingding/Collider__Top.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/dingding/build/body_LOD0.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/dingding/build/body_LOD1.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/dingding/build/body_LOD2.obj",
+    "slivers": 0
+   },
+   {
+    "file": "vehicles/dingding/build/body_LOD3.obj",
+    "slivers": 0
+   }
+  ],
+  "triangles": {
+   "body_LOD0": 2876,
+   "body_LOD1": 2459,
+   "body_LOD2": 1048,
+   "body_LOD3": 285,
+   "axle_front_LOD0": 700,
+   "axle_rear_LOD0": 700,
+   "collider_top": 20,
+   "collider_base": 24
+  },
+  "attach_points": [
+   {
+    "id": "HFL",
+    "check": "wheel mesh on its collider; tyre clear of the body above the hub (prefab pose)",
+    "value": "mesh offset 0.0 cm, clearance +4.6 cm",
+    "pass": true
+   },
+   {
+    "id": "HFR",
+    "check": "wheel mesh on its collider; tyre clear of the body above the hub (prefab pose)",
+    "value": "mesh offset 0.0 cm, clearance +4.6 cm",
+    "pass": true
+   },
+   {
+    "id": "HRL",
+    "check": "wheel mesh on its collider; tyre clear of the body above the hub (prefab pose)",
+    "value": "mesh offset 0.0 cm, clearance +20.0 cm",
+    "pass": true
+   },
+   {
+    "id": "HRR",
+    "check": "wheel mesh on its collider; tyre clear of the body above the hub (prefab pose)",
+    "value": "mesh offset 0.0 cm, clearance +12.3 cm",
+    "pass": true
+   },
+   {
+    "id": "COM",
+    "check": "centre of mass between the wheels (inside track and wheelbase, above the ground)",
+    "value": "x -0.00, y 0.40, z +0.07 m; -0.14 m from the collider bottom",
+    "pass": true
+   },
+   {
+    "id": "COL",
+    "check": "colliders (convex hulls) cover the LOD0 body no worse than the stock donor's: share of vertices over 10 cm outside within 5 points, worst within 10 cm",
+    "value": "14.9% over 10 cm outside, worst 33 cm (stock 10.8%, worst 23 cm)",
+    "pass": false
+   },
+   {
+    "id": "WF",
+    "check": "winch point within 15 cm of a body or axle surface",
+    "value": "0.7 cm",
+    "pass": true
+   },
+   {
+    "id": "WB",
+    "check": "winch point within 15 cm of a body or axle surface",
+    "value": "1.8 cm",
+    "pass": true
+   },
+   {
+    "id": "WL",
+    "check": "winch point within 15 cm of a body or axle surface",
+    "value": "3.1 cm",
+    "pass": true
+   },
+   {
+    "id": "WR",
+    "check": "winch point within 15 cm of a body or axle surface",
+    "value": "3.1 cm",
+    "pass": true
+   },
+   {
+    "id": "L1",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "3.1 cm",
+    "pass": true
+   },
+   {
+    "id": "L2",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "1.9 cm",
+    "pass": true
+   },
+   {
+    "id": "L3",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "3.1 cm",
+    "pass": true
+   },
+   {
+    "id": "L4",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "2.7 cm",
+    "pass": true
+   },
+   {
+    "id": "L5",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "3.1 cm",
+    "pass": true
+   },
+   {
+    "id": "L6",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "1.9 cm",
+    "pass": true
+   },
+   {
+    "id": "L7",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "3.1 cm",
+    "pass": true
+   },
+   {
+    "id": "L8",
+    "check": "light point within 10 cm of a body or axle surface",
+    "value": "2.7 cm",
+    "pass": true
+   },
+   {
+    "id": "EX",
+    "check": "exhaust point within 15 cm of a body or axle surface",
+    "value": "2.0 cm",
+    "pass": true
+   }
+  ]
+ },
+ "images": {
+  "iso": "contact/iso.png",
+  "rig": "contact/rig.png",
+  "gaps": "contact/gaps.png"
+ }
+}

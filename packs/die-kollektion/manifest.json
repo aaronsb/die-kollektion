@@ -29,7 +29,9 @@
   ],
   "patches": [
     {"path": "vehicles/mammoth", "car": "Mammoth",
-     "notes": "Portal axles, coil springs, side-exit exhaust and more steering lock on the stock Mammoth."}
+     "notes": "Portal axles, coil springs, side-exit exhaust and more steering lock on the stock Mammoth."},
+    {"path": "vehicles/dingding", "car": "DingDing",
+     "notes": "The canary: a golf bag strapped to the roof of The Ding, a starter vehicle."}
   ],
   "liveries": []
 }

@@ -1,6 +1,6 @@
 # Die Kollektion (pack)
 
-The example set of vehicle packs for Die Kollektion Werkstatt: four trucks built on the game's Mammoth, and a patch for the stock Mammoth itself. [`manifest.json`](manifest.json) lists them and puts the trucks in one group, "Die Kollektion".
+The example set of vehicle packs for Die Kollektion Werkstatt: four trucks built on the game's Mammoth, a patch for the stock Mammoth itself, and the canary: a golf bag strapped to the roof of The Ding. [`manifest.json`](manifest.json) lists them and puts the trucks in one group, "Die Kollektion".
 
 Each vehicle's folder opens on its contact sheet: four isometric renders, a rig view with colliders and attach points, and the checks.
 
@@ -11,6 +11,7 @@ Each vehicle's folder opens on its contact sheet: four isometric renders, a rig 
 | Das Mastodon | new vehicle, based on the Mammoth and the mechanic's truck | [vehicles/mastodon](../../vehicles/mastodon) |
 | Das Megatherium | new vehicle, based on the Mammoth | [vehicles/megatherium](../../vehicles/megatherium) |
 | Das Mammoth | patch on the stock car | [vehicles/mammoth](../../vehicles/mammoth) |
+| The Ding | patch on the stock car: the canary, a golf bag on the roof | [vehicles/dingding](../../vehicles/dingding) |
 
 ## Installing it
 
