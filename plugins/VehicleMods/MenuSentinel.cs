@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using BepInEx;
 using HarmonyLib;
@@ -17,9 +18,13 @@ static class MenuSentinel
 {
     const string Marker = "Die Kollektion";
     const string Amber = "#FFB000";
+    // ASCII: the game's font may lack the middle dot.
+    const string Separator = " | ";
     const int RecheckFrames = 30;
 
-    internal static int VehiclesDefined, VehiclesRegistered, PatchesDefined, PatchesApplied, HooksFailed;
+    // PatchesApplied counts patch definitions whose stock car was found and registered for reshaping; the reshape
+    // itself happens at each spawn, so the line says "registered" rather than claiming the patch took effect.
+    internal static int VehiclesDefined, VehiclesRegistered, VehiclesWithDonorLooks, PatchesDefined, PatchesApplied, HooksFailed;
     internal static bool SetupFailed;
 
     static string statusLine;
@@ -27,15 +32,24 @@ static class MenuSentinel
 
     static string Version => typeof(Plugin).GetCustomAttribute<BepInPlugin>().Version.ToString();
 
-    /// <summary>The status line, built once from the setup's counts (TMP rich text).</summary>
-    internal static string Line()
+    /// <summary>The status text from the setup's counts, and whether anything is short.</summary>
+    internal static (string Text, bool Incomplete) Status()
     {
-        var line = $"{Marker} {Version} · {Count(VehiclesRegistered, VehiclesDefined, "vehicle", "vehicles")}";
-        if (PatchesDefined > 0) line += $" · {Count(PatchesApplied, PatchesDefined, "patch", "patches")}";
-        if (HooksFailed > 0) line += $" · {Count(HooksFailed, HooksFailed, "game hook", "game hooks")} failed";
-        if (SetupFailed) line += " · setup failed";
-        var incomplete = SetupFailed || HooksFailed > 0 || VehiclesRegistered < VehiclesDefined || PatchesApplied < PatchesDefined;
-        return incomplete ? $"<color={Amber}>{line} · see BepInEx/LogOutput.log</color>" : line;
+        var parts = new List<string> { $"{Marker} {Version}" };
+        if (VehiclesDefined + PatchesDefined == 0)
+            parts.Add("no vehicles found");
+        else if (PatchesDefined == 0)
+            parts.Add($"{Count(VehiclesRegistered, VehiclesDefined, "vehicle", "vehicles")} registered");
+        else
+            parts.Add($"{Count(VehiclesRegistered, VehiclesDefined, "vehicle", "vehicles")}, {Count(PatchesApplied, PatchesDefined, "patch", "patches")} registered");
+        if (VehiclesWithDonorLooks > 0)
+            parts.Add($"{Count(VehiclesWithDonorLooks, VehiclesWithDonorLooks, "vehicle", "vehicles")} with the donor's name or icon");
+        if (HooksFailed > 0) parts.Add($"{Count(HooksFailed, HooksFailed, "game hook", "game hooks")} failed");
+        if (SetupFailed) parts.Add("setup failed");
+        var incomplete = SetupFailed || HooksFailed > 0 || VehiclesWithDonorLooks > 0 || VehiclesDefined + PatchesDefined == 0
+            || VehiclesRegistered < VehiclesDefined || PatchesApplied < PatchesDefined;
+        if (incomplete) parts.Add("see BepInEx/LogOutput.log");
+        return (string.Join(Separator, parts), incomplete);
     }
 
     static string Count(int done, int defined, string one, string many) =>
@@ -61,10 +75,12 @@ static class MenuSentinel
                 {
                     if (statusLine == null)
                     {
-                        statusLine = Line();
-                        Plugin.Logger.LogInfo($"Main menu: {statusLine}");
+                        var (status, incomplete) = Status();
+                        // Without rich text the tag would show as text.
+                        statusLine = incomplete && label.richText ? $"<color={Amber}>{status}</color>" : status;
+                        Plugin.Logger.LogInfo($"Main menu: {status} (label enabled {label.isActiveAndEnabled}, active in hierarchy {label.gameObject.activeInHierarchy})");
                     }
-                    label.text = text.Length == 0 ? statusLine : $"{text} · {statusLine}";
+                    label.text = text.Length == 0 ? statusLine : text + Separator + statusLine;
                 }
                 nextCheck = Time.frameCount + RecheckFrames;
             }

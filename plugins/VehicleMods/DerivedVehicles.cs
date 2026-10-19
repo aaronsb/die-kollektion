@@ -66,12 +66,14 @@ static class DerivedVehicles
             car.carColliderBoundsCenter = new Vector3(center.x, center.y, center.z - lengthening / 2);
             // A copy, so the donor keeps its own; the suspension lift upgrade reads its base travel here.
             if (definition.Suspension != null || definition.Tyre != null) car.suspensionSetup = WithOverrides(donor.suspensionSetup, definition);
+            var keptDonors = false;
             try
             {
                 LocalizedText.Apply(car, definition.DisplayName, definition.Description);
             }
             catch (Exception e)
             {
+                keptDonors = true;
                 Plugin.Logger.LogError($"{definition.Codename}: localized text failed, keeping {definition.Donor}'s: {e}");
             }
             try
@@ -80,8 +82,10 @@ static class DerivedVehicles
             }
             catch (Exception e)
             {
+                keptDonors = true;
                 Plugin.Logger.LogError($"{definition.Codename}: icon failed, keeping {definition.Donor}'s: {e}");
             }
+            if (keptDonors) MenuSentinel.VehiclesWithDonorLooks++;
             if (Catalog.Add(catalog, car, definition.CatalogName)) MenuSentinel.VehiclesRegistered++;
             entries.Add(new Entry { Definition = definition, CarInfo = car });
         }
