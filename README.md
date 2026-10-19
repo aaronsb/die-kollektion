@@ -9,19 +9,21 @@ A vehicle mod system for *Over the Hill*: it adds new vehicles to the game's mer
 - **Over the Hill** on Steam, the native Linux build. Windows support is planned (the cross-platform CLI and plugin build are in the design), not ready yet.
 - **A Linux machine** (Arch, Debian/Ubuntu or Fedora; `make start` prints the install command for yours) with:
   - **Python 3.10 or newer**, for the build tools;
-  - **the .NET SDK 6 or newer**, to compile the plugin;
   - **rsvg-convert** (`librsvg`) and **potrace**, to draw the vehicle icons;
-  - **Blender 5** (optional), only for contact-sheet renders and editing the cab models;
-  - **make**, plus **git** or nothing at all: GitHub's **Code → Download ZIP** works too.
+  - **make**.
+- **The download:** the [latest release](https://github.com/aaronsb/die-kollektion/releases/latest) zip, which carries the plugin ready-built, so you need nothing more. Building from source instead (git clone or **Code → Download ZIP**) also needs **the .NET SDK 6 or newer** to compile the plugin; after a game update the release zip compiles it too, so keep the SDK at hand then.
+- **Blender 5** is optional: only for contact-sheet renders and editing the cab models.
 - **About 1 GB of free disk**: the mod loader (BepInEx) in the game folder, Python packages and build output.
 
 ## Get it running
 
+Download `die-kollektion-werkstatt-<version>.zip` from the [latest release](https://github.com/aaronsb/die-kollektion/releases/latest), unzip it, and in that folder run:
+
 ```sh
-git clone https://github.com/aaronsb/die-kollektion
-cd die-kollektion
 make start
 ```
+
+Or from source: `git clone https://github.com/aaronsb/die-kollektion && cd die-kollektion && make start`.
 
 `make start` checks everything and prints one next step: install a missing program, `make setup`, `make bepinex` (the mod loader), the Steam launch option, starting the game once, then `make all`, which builds the trucks and installs the mod. Run `make start` again after each step until it says everything is ready. Each step is explained in [Setup in detail](#setup-in-detail).
 
