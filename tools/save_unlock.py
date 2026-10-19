@@ -27,6 +27,38 @@ def offers(cars, derived):
     return result
 
 
+def owned(entry):
+    return entry.get("Count", 0) >= 1
+
+
+def set_owned(entry, id_key):
+    """Count 1, written where the game writes it: after the id, before InUse."""
+    rest = {k: v for k, v in entry.items() if k not in (id_key, "Count")}
+    head = {id_key: entry[id_key], "Count": 1}
+    entry.clear()
+    entry.update(head)
+    entry.update(rest)
+
+
+def missing(save, cars, derived):
+    """How many part ownerships the save lacks, DLC parts left out (the game drops those it isn't entitled to).
+    About 0 means the save is already a test save; a real save lacks thousands. Reads only."""
+    items = save["Profile"]["Inventory"]["Items"]
+    specific = {i["Data"]["ItemId"]: i["Data"] for i in items if i["Type"] == SPECIFIC_ITEM}
+    plain = {i["Data"]["ItemId"]: i["Data"] for i in items if i["Type"] == PLAIN_ITEM}
+    count = 0
+    for vehicle, parts in offers(cars, derived).items():
+        for part in parts:
+            if part["dlc"]:
+                continue
+            if part["kind"] == "Livery":
+                count += not owned(plain.get(part["itemId"], {}))
+            else:
+                states = specific.get(part["itemId"], {}).get("VehicleStates", [])
+                count += not any(s["VehicleItemId"] == vehicle and owned(s) for s in states)
+    return count
+
+
 def unlock(save, cars, derived, own_cars=True):
     """Make every car own every part it offers, in place; returns a report of what changed.
     `cars`: parts.json's "cars"; `derived`: {vehicle ItemId: donor CarInfo name}. With `own_cars`, every stock car
@@ -59,8 +91,8 @@ def unlock(save, cars, derived, own_cars=True):
                     data = plain[item_id] = {"ItemId": item_id, "Count": 1}
                     items.append({"Type": PLAIN_ITEM, "Data": data})
                     report["liveries"] += 1
-                elif data.get("Count", 0) < 1:
-                    data["Count"] = 1
+                elif not owned(data):
+                    set_owned(data, "ItemId")
                     report["liveries"] += 1
                 continue
             data = specific.get(item_id)
@@ -72,8 +104,8 @@ def unlock(save, cars, derived, own_cars=True):
             if state is None:
                 data["VehicleStates"].append({"VehicleItemId": vehicle, "Count": 1})
                 report["states"] += 1
-            elif state.get("Count", 0) < 1:
-                state["Count"] = 1
+            elif not owned(state):
+                set_owned(state, "VehicleItemId")
                 report["states"] += 1
     report["dlc"] = len(dlc)
     return report
