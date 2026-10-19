@@ -17,7 +17,7 @@ A vehicle mod system for *Over the Hill*: it adds new vehicles to the game's mer
 
 ## Get it running
 
-Download `die-kollektion-werkstatt-<version>.zip` from the [latest release](https://github.com/aaronsb/die-kollektion/releases/latest), unzip it, and in that folder run:
+Download `die-kollektion-werkstatt-<version>.zip` from the [latest release](https://github.com/aaronsb/die-kollektion/releases/latest) (the same zip is on [Nexus Mods](https://www.nexusmods.com/overthehill/mods/51)), unzip it, and in that folder run:
 
 ```sh
 make start
