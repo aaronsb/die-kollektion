@@ -6,6 +6,7 @@ All notable changes to Die Kollektion Werkstatt. The format follows [Keep a Chan
 
 ### Added
 - **A status line on the main menu.** The game's build label ends with `Die Kollektion <version> | 4 vehicles, 2 patches registered` when the mod loaded and everything registered; the line turns amber, says what's short and points at `BepInEx/LogOutput.log` when a vehicle, patch or game hook failed, a truck kept its donor's name or icon, or no vehicles were found. No line means the game is running stock. It sits at the bottom of the main menu; if a working install shows no line, the log's `Main menu:` line reports whether the label was active.
+- **Update-safe launches.** The Steam launch option is now `"./run_werkstatt.sh" %command%`: Werkstatt's launch script starts BepInEx as before, and when the game has updated since the last deploy it starts the game once without the plugin (a plugin built for the old version hung the game at start), then rebuilds the plugin for the new version in the background after you quit and installs it again. What it did is in `BepInEx/werkstatt-launch.log`. `make update` does the same by hand; `make status` and `make start` say whether the plugin fits the game's version. Each deploy records that version in `deployed.json`.
 
 ## [0.5.0] - 2026-10-19
 

@@ -48,7 +48,8 @@ The mechanic's truck (`r1_canada` scene bundle, scale 100, offset (0, −0.071, 
 
 ## BepInEx
 
-- BepInEx 6.0.0-be.789 IL2CPP linux-x64, extracted into the game folder. Steam launch options: `"./run_bepinex.sh" %command%`.
+- BepInEx 6.0.0-be.789 IL2CPP linux-x64, extracted into the game folder. Steam launch options: `"./run_werkstatt.sh" %command%`, Werkstatt's launch script, which starts `run_bepinex.sh` with the same arguments.
+- **After a game update** a plugin compiled against the old interop hangs the game at start: BepInEx's log stops at `Chainloader initialized` (Steam build 26047935, 2026-10-19; rebuilding against the regenerated interop fixed it). Each deploy records the game's `GameAssembly.so` and `global-metadata.dat` (size, time, sha256), its Steam build and BepInEx's interop hash in `deployed.json`. `run_werkstatt.sh` compares them before each launch; when the code files differ it moves `plugins/VehicleMods/` to `BepInEx/VehicleMods.aside/`, so that launch runs stock and BepInEx regenerates its interop. After the game exits it rebuilds the plugin in the background (once the interop hash has changed, or BepInEx's log shows it got past `Chainloader initialized` since), assembles the install in `BepInEx/VehicleMods.staging/` and renames it into place; a failed build leaves the plugin aside and the game stock. Its log is `BepInEx/werkstatt-launch.log`. `make update` does the same by hand, and `make deploy` refuses to build for an updated game until BepInEx has prepared it.
 - `UnityLogListening = false` in `BepInEx/config/BepInEx.cfg` is required (see below).
 
 ## What crashes this game
