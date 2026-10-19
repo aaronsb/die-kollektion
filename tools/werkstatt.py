@@ -689,8 +689,15 @@ def holes(obj, culled, gap):
     return obj, r.returncode, last
 
 
+# Set for the gates' own test run: a test that reaches cmd_gates gets a refusal instead of a nested run of the tests.
+IN_TESTS = "WERKSTATT_IN_TESTS"
+
+
 def cmd_gates(args):
     """Every gate, or only the named vehicles' mesh gates plus the repo-wide ones (`make loop` passes one)."""
+    if os.environ.get(IN_TESTS):
+        print("Gates refused: a test reached the real gates (they run the tests, which would run them again).")
+        return 1
     py = VENV_PY if os.path.isfile(VENV_PY) else sys.executable
     chosen = [v for v in vehicles() if not args or os.path.basename(v) in args]
     failed = []
@@ -735,6 +742,7 @@ def cmd_gates(args):
               "source, which CI and every release already ran")
     # The tests build fake game folders; the Makefile's exported folders and FORCE stay out of their way.
     test_env = {k: v for k, v in os.environ.items() if k not in ("DEPLOY_DIR", "FORCE", "GAME_DIR", "MY_GAMES")}
+    test_env[IN_TESTS] = "1"
     for label, cmd in (("updates ", [sys.executable, "-W", "ignore", "-m", "unittest", "discover", "-s", "tests"]),
                        ("names   ", [sys.executable, "tools/check_names.py"]),
                        ("catalog ", [sys.executable, "tools/catalogue.py", "--check"]),

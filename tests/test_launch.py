@@ -2,6 +2,8 @@
 
 Run: python3 -m unittest discover -s tests (part of `make check` and `python3 tools/release.py ci`).
 """
+import contextlib
+import io
 import json
 import os
 import shutil
@@ -86,7 +88,11 @@ class FakeGame(unittest.TestCase):
                   mock.patch.object(ws, "expected_sources",
                                     side_effect=lambda: {"VehicleMods.dll": self.dll, "vehicles/glyptodon.json": self.vehicle}),
                   mock.patch.object(ws, "plugin_dll", side_effect=lambda game=None: self.dll),
-                  mock.patch.object(ws, "compile_plugin", return_value=0)):
+                  mock.patch.object(ws, "compile_plugin", return_value=0),
+                  # The real checkout's state (a dirty plugins/VehicleMods) must not steer these tests, and no test
+                  # may run the real gates: they run these tests again.
+                  mock.patch.object(ws, "rebuild_refusal", return_value=None),
+                  mock.patch.object(ws, "cmd_gates", side_effect=AssertionError("a test reached the real gates"))):
             p.start()
             self.addCleanup(p.stop)
         self.assertEqual(self.quiet(ws.cmd_deploy, []), 0)
@@ -241,7 +247,7 @@ class FakeGame(unittest.TestCase):
         self.update_game()
         self.quiet(ws.cmd_launch_before, [])
         self.bepinex_regenerated()
-        with mock.patch.object(ws, "checkout", return_value=("f" * 40, "elsewhere", False)):
+        with mock.patch.object(ws, "rebuild_refusal", return_value="the plugin was deployed from fffffff"):
             self.assertEqual(self.quiet(ws.cmd_launch_after, []), 1)
             self.assertTrue(os.path.isdir(ws.aside_dir(self.folder)))
             # `make update` deploys that checkout in full instead, after the gates.
@@ -378,6 +384,16 @@ class FakeGame(unittest.TestCase):
             self.assertTrue(held)
             self.assertEqual(self.quiet(ws.cmd_update, []), 1)
             self.assertEqual(self.quiet(ws.cmd_deploy, []), 1)
+
+
+class GatesInsideTests(unittest.TestCase):
+    """The gates run these tests; a test that reaches the real gates must get a refusal, never a nested run."""
+
+    def test_gates_refuse_inside_their_own_tests(self):
+        with mock.patch.dict(os.environ, {ws.IN_TESTS: "1"}), \
+             mock.patch.object(ws, "vehicles", side_effect=AssertionError("the gates ran")):
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(ws.cmd_gates([]), 1)
 
 
 class Refusal(unittest.TestCase):
