@@ -14,6 +14,8 @@ Standard library only, so it runs before the Python environment exists. Usage:
     python3 tools/werkstatt.py undeploy [--deploy-dir D] [--force] remove exactly what deployed.json lists
     python3 tools/werkstatt.py status [--deploy-dir D]             repo, build and game folder side by side
     python3 tools/werkstatt.py save-add [ItemId ...]               add our trucks to the save (backs up first)
+    python3 tools/werkstatt.py loop <vehicle>                      build one vehicle, run its gates, redo its contact
+                                                                   sheet, write its CHANGES.md (`make loop V=...`)
 
 Environment: GAME_DIR (the game folder), MY_GAMES (the game's documents folder holding Saves/, default
 ~/My Games/over the hill), BEPINEX_ARCHIVE (a downloaded BepInEx zip to install from), PROFILE (save profile
@@ -30,6 +32,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import urllib.request
 import zipfile
 
@@ -200,6 +203,23 @@ def sha256(path):
 
 def run(cmd, **kw):
     return subprocess.run(cmd, capture_output=True, text=True, **kw)
+
+
+def git(*args):
+    """A git command's output in the repo, or None when git is missing or the repo isn't a git checkout
+    (a "Download ZIP" copy works everywhere git would only add information)."""
+    if not which("git"):
+        return None
+    r = run(["git", *args], cwd=ROOT)
+    return r.stdout.strip() if r.returncode == 0 else None
+
+
+def checkout():
+    """(commit, branch, uncommitted changes?) of the repo, or None outside a git checkout."""
+    head = git("rev-parse", "HEAD")
+    if not head:
+        return None
+    return head, git("rev-parse", "--abbrev-ref", "HEAD"), bool(git("status", "--porcelain", "--untracked-files=no"))
 
 
 def which(tool):
@@ -729,17 +749,14 @@ def cmd_record_deploy(args):
     if missing:
         print("The deploy is missing files it should have copied:\n  " + "\n  ".join(missing))
         return 1
-    head = run(["git", "rev-parse", "HEAD"], cwd=ROOT).stdout.strip()
-    branch = run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=ROOT).stdout.strip()
-    dirty = bool(run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=ROOT).stdout.strip())
+    head, branch, dirty = checkout() or (None, None, False)
     record = {
         "notes": "Written by `make deploy`. `make undeploy` removes exactly these files; `make status` compares them with the repo.",
         "tool": "werkstatt",
         "deployedAt": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
-        "repoCommit": head + ("+dirty" if dirty else ""),
+        # The repo's commit and branch when it is a git checkout, else null.
+        "repoCommit": head + ("+dirty" if dirty else "") if head else None,
         "branch": branch,
-        # `make try PR=<n>` sets WERKSTATT_PR, so `make approve` can tell a driven pull request from an undriven one.
-        "pr": int(os.environ["WERKSTATT_PR"]) if os.environ.get("WERKSTATT_PR", "").isdigit() else None,
         "files": [{"path": rel, "sha256": sha256(p),
                    "source": os.path.relpath(sources[rel], ROOT).replace(os.sep, "/") if rel in sources else None}
                   for rel, p in sorted(files.items())],
@@ -770,10 +787,11 @@ def cmd_undeploy(args):
 
 def cmd_status(args):
     game = game_dir()
-    head = run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT).stdout.strip()
-    branch = run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=ROOT).stdout.strip()
-    dirty = bool(run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=ROOT).stdout.strip())
-    print(f"Checkout:     {branch} @ {head}{' (uncommitted changes)' if dirty else ''}")
+    repo = checkout()
+    if repo:
+        print(f"Checkout:     {repo[1]} @ {repo[0][:7]}{' (uncommitted changes)' if repo[2] else ''}")
+    else:
+        print("Checkout:     not a git checkout")
     print(f"Game folder:  {game or 'not found'}")
     if game:
         print(f"Game running: {'yes' if game_running() else 'no'}")
@@ -787,12 +805,14 @@ def cmd_status(args):
         rec_path = os.path.join(folder, "deployed.json")
         if os.path.isfile(rec_path):
             rec = json.load(open(rec_path))
-            commit = rec.get("repoCommit", "?")
-            same = commit.split("+")[0].startswith(run(["git", "rev-parse", "HEAD"], cwd=ROOT).stdout.strip()) and "+dirty" not in commit
-            print(f"  installed:  {rec.get('branch', '?')} @ {commit[:7]}{'+dirty' if '+dirty' in commit else ''}"
-                  + (f", pull request #{rec['pr']}" if rec.get("pr") else "")
-                  + f" ({rec.get('deployedAt', '?')}); "
-                  + ("matches this checkout" if same and state == "current" else "differs from this checkout"))
+            commit = rec.get("repoCommit")
+            if commit and repo:
+                same = commit == repo[0] and not repo[2]
+                print(f"  installed:  {rec.get('branch') or '?'} @ {commit[:7]}{'+dirty' if '+dirty' in commit else ''}"
+                      f" ({rec.get('deployedAt', '?')}); "
+                      + ("matches this checkout" if same and state == "current" else "differs from this checkout"))
+            else:
+                print(f"  installed:  {rec.get('deployedAt', '?')}")
         if state in ("stale", "modified") and os.path.isfile(rec_path):
             rec = {f["path"]: f for f in json.load(open(rec_path))["files"]}
             for dest, src in sorted(expected_sources().items()):
@@ -834,10 +854,64 @@ def cmd_save_add(args):
     return r.returncode
 
 
+def compared_with():
+    """The commit a vehicle's change is summarised against, and how to describe it: on a branch, where it
+    left main; on main, the last commit. None outside a git checkout."""
+    repo = checkout()
+    if not repo:
+        return None, None
+    if repo[1] == "main":
+        return "HEAD", "the last commit"
+    run(["git", "fetch", "--quiet", "origin", "main"], cwd=ROOT)
+    base = git("merge-base", "HEAD", "origin/main") or git("merge-base", "HEAD", "main")
+    return (base, "where this branch left main") if base else ("HEAD", "the last commit")
+
+
+def cmd_loop(args):
+    names = [os.path.basename(v) for v in vehicles()]
+    if not args or args[0] not in names:
+        print(f"Name a vehicle: make loop V=<{'|'.join(names)}>")
+        return 2
+    name = args[0]
+    vdir = os.path.join(ROOT, "vehicles", name)
+    generator = manifest(vdir).get("generator") or (f"tools/make_{name}.py" if os.path.isfile(
+        os.path.join(ROOT, "tools", f"make_{name}.py")) else None)
+    steps = ([[VENV_PY, os.path.join(ROOT, generator)]] if generator else []) + [
+        [VENV_PY, os.path.join(ROOT, "tools", "build_vehicle.py"), os.path.join(vdir, "vehicle.json")],
+        [sys.executable, os.path.abspath(__file__), "gates", name],
+        [VENV_PY, os.path.join(ROOT, "tools", "composite_atlas.py"), manifest(vdir).get("base", {}).get("car", "Mammoth")],
+        [VENV_PY, os.path.join(ROOT, "tools", "contact_sheet.py"), vdir],
+    ]
+    for cmd in steps:
+        print("→ " + " ".join(os.path.relpath(c, ROOT) if c.startswith(ROOT) else c for c in cmd), flush=True)
+        if subprocess.run(cmd, cwd=ROOT).returncode:
+            print(f"Stopped here. Fix what it reports, then run `make loop V={name}` again.")
+            return 1
+    base, how = compared_with()
+    old = git("show", f"{base}:vehicles/{name}/contact/contact.json") if base else None
+    with tempfile.TemporaryDirectory() as tmp:
+        old_path = "-"
+        if old:
+            old_path = os.path.join(tmp, "old.json")
+            open(old_path, "w").write(old)
+        r = run([VENV_PY, os.path.join(ROOT, "tools", "contact_sheet.py"), "--changes", old_path,
+                 os.path.join(vdir, "contact", "contact.json")], cwd=ROOT)
+    if r.returncode:
+        print("contact_sheet.py --changes failed:\n" + r.stderr.strip())
+        return 1
+    note = (f"Compared with {base[:7]} ({how})." if old else
+            "Nothing to compare with: " + ("no committed contact sheet for this vehicle." if base else "this copy isn't a git checkout."))
+    open(os.path.join(vdir, "contact", "CHANGES.md"), "w").write(f"<!-- {note} -->\n" + r.stdout)
+    print("\n" + note + "\n" + r.stdout)
+    say("Next step:", f"Look at vehicles/{name}/README.md (the renders, the rig view and the gates). "
+        f"vehicles/{name}/contact/CHANGES.md is the summary to share with the change.")
+    return 0
+
+
 COMMANDS = {
     "start": cmd_start, "require": cmd_require, "doctor": cmd_doctor, "game-dir": cmd_game_dir, "bepinex": cmd_bepinex,
     "gates": cmd_gates, "preflight-deploy": cmd_preflight_deploy, "record-deploy": cmd_record_deploy,
-    "undeploy": cmd_undeploy, "status": cmd_status, "save-add": cmd_save_add,
+    "undeploy": cmd_undeploy, "status": cmd_status, "save-add": cmd_save_add, "loop": cmd_loop,
 }
 
 if __name__ == "__main__":

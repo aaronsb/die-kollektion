@@ -595,7 +595,7 @@ def changes(old, new):
     """What a change did to one vehicle, in the order a reviewer reads it: facts, points, gates, triangles.
 
     `old` may be None (a vehicle the change adds). Written by `make loop` as the vehicle's
-    contact/CHANGES.md and gathered into the pull request's description by `make pr`."""
+    contact/CHANGES.md, the summary that travels with the change (in this repository, in its pull request)."""
     name = new["facts"]["displayName"]
     if old is None:
         return f"### {name}\n\nNew vehicle: no earlier contact sheet to compare with.\n"

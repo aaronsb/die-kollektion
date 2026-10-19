@@ -35,15 +35,11 @@ There are no release builds yet: Werkstatt builds the mod on your machine from t
 **By hand.** Every step is a command you paste into a terminal, or a click path in Steam.
 
 1. Install Over the Hill in Steam, start it once, get past the intro, and quit. This creates your save.
-2. Install `git` and `make` if you don't have them:
-   - Arch: `sudo pacman -S git make`
-   - Debian, Ubuntu: `sudo apt install git make`
-   - Fedora: `sudo dnf install git make`
-3. Get Werkstatt:
-   ```sh
-   git clone https://github.com/aaronsb/die-kollektion
-   cd die-kollektion
-   ```
+2. Install `make` if you don't have it:
+   - Arch: `sudo pacman -S make`
+   - Debian, Ubuntu: `sudo apt install make`
+   - Fedora: `sudo dnf install make`
+3. Get Werkstatt. No git needed: on the [repository page](https://github.com/aaronsb/die-kollektion), click **Code → Download ZIP**, unzip it, and open a terminal in the unzipped folder. (With git: `git clone https://github.com/aaronsb/die-kollektion && cd die-kollektion`.) To update later, download the ZIP again.
 4. Run:
    ```sh
    make start
@@ -90,7 +86,7 @@ Each vehicle is one self-contained folder, `vehicles/<name>/`: its manifest `veh
 
 ## How changes are reviewed
 
-Every change to a vehicle goes through a pull request, and its contact sheets are the review: GitHub shows the renders and the rig view before and after, and `make pr` writes what moved into the description. You drive it before it merges. `make prs` lists what's waiting, `make try PR=<n>` installs one, `make report V=<vehicle>` opens a Drive report about what you noticed, `make comment PR=<n> MSG="..."` leaves a quick note, `make approve PR=<n>` merges it and puts main back in the game, and `make main` returns to the known-good build without merging. Making the change is `make loop V=<vehicle>` on a branch, then `make pr`; AGENTS.md has the loop step by step.
+Changes to this repository arrive as pull requests on GitHub, where you review them by reading the diff and the before-and-after contact sheets; driving a change first is optional. [CONTRIBUTING.md](CONTRIBUTING.md) covers branches, pull requests and how to drive one; none of it is needed to play or to build your own vehicle.
 
 ## Documentation
 
