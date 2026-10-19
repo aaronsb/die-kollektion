@@ -45,9 +45,11 @@
   },
   "headlights": {
     "notes": [
-      "Halogen headlights, on this vehicle's own copy of the game's headlight config. Every stock car shares one",
-      "headlight at about 4200 K and intensity 9; the halogen lamps of this truck's period run near 3200 K and give",
-      "less light, so 3200 K at 0.8 of the game's intensity (7.2). The plugin applies it at spawn; stock cars keep theirs."
+      "Halogen headlights. kelvin is the headlight colour temperature to aim for: the halogen lamps of this truck's",
+      "period run near 3200 K, against the game's shared headlight at about 4200 K. The headlight and its glow on the",
+      "ground (the bounce light) both move by that step from the game's own colours, so the glow stays as much whiter",
+      "than the beam as the game made it. intensity is a factor on the game's: 0.8, as halogens give less light. The",
+      "plugin applies both to this vehicle's own copies of the configs at spawn; stock cars keep theirs."
     ],
     "kelvin": 3200,
     "intensity": 0.8

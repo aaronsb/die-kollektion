@@ -46,6 +46,22 @@ The mechanic's truck (`r1_canada` scene bundle, scale 100, offset (0, −0.071, 
 - `suspensionAnchor` is read as a fraction measured up from full extension (Unity's convention); driving bears this out.
 - Toggling `VPVehicleController` off and on breaks the vehicle.
 
+## Lights
+
+- Each car prefab has a `LightsController` on `Lights` with five light groups (`LightsController.TurnableLights`: a `Config`, its `Lights` and lens flares). All 23 car prefabs point each group at the same shared `CarLightConfig` asset in the cars bundle (read with UnityPy, 2026-10-19 build):
+
+  | Group | Config | Colour | Intensity | Range |
+  |---|---|---|---|---|
+  | `headlights` | `HeadLightConfig` | (0.996, 0.833, 0.659), about 4200 K | 9 | 120 |
+  | `fakeBounceLights` | `FakeBounceLightConfig` | (0.961, 0.878, 0.831), about 5300 K | 0.4 | 50 |
+  | `rearlights` | `BrakeLightPositioningConfig` | (0.706, 0, 0.090) | 2 | 10 |
+  | `brakingRearlights` | `BrakeLightBrakingConfig` | (0.706, 0, 0.090) | 15 | 12 |
+  | `reverselights` | `ReverseLightConfig` | (1, 0.945, 0.820) | 15 | 12 |
+
+- The prefab `Light` components of every group except the bounce light hold intensity 0 and range 0 (the bounce light: 0.3 and 30), and none uses colour temperature (`m_UseColorTemperature` off on all 204). The game sets them from the config at run time: `TurnOnLights` runs a DOTween whose setter closure (`__c__DisplayClass51_0`, captured fields `turnableLights` and `__4__this`, setter `_TurnOnLights_b__0(float t)`) drives the group's lights, and `CarLightConfig` carries `SwitchDuration` and `AnimationEase` for it. The decomp is interop stubs without method bodies, so which fields each call copies (colour once at setup, or again at each switch-on) isn't visible; a change has to hold either way.
+- The lamp lens glow is a shader scalar on the car's `MaterialPropertyBlock` (`TurnableLights.ShaderParameterID`, `UpdateShaderProperty(int, float)`), not a colour.
+- Changing a shared config changes every car. A per-vehicle change goes on that vehicle's own copy of the config, assigned to its spawned instance's group (a definition's `headlights` block).
+
 ## BepInEx
 
 - BepInEx 6.0.0-be.789 IL2CPP linux-x64, extracted into the game folder. Steam launch options: `"./run_werkstatt.sh" %command%`, Werkstatt's launch script, which starts `run_bepinex.sh` with the same arguments.
