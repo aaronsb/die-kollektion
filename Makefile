@@ -4,12 +4,10 @@
 PY      := .venv/bin/python
 WS      := python3 tools/werkstatt.py
 GAME_DIR ?= $(shell python3 tools/werkstatt.py game-dir 2>/dev/null)
-RV      := python3 tools/workshop.py
-export GAME_DIR MY_GAMES DEPLOY_DIR FORCE BEPINEX_ARCHIVE PROFILE NO_BROWSER DRY_RUN
+export GAME_DIR MY_GAMES DEPLOY_DIR FORCE BEPINEX_ARCHIVE PROFILE
 
 .DEFAULT_GOAL := start
-.PHONY: start help doctor setup bepinex extract build check contact deploy undeploy status save-add all \
-        loop pr prs try main sheet report comment approve pack
+.PHONY: start help doctor setup bepinex extract build check contact loop pack deploy undeploy status save-add all
 
 start: ## The next setup step, in plain words. Run it again after each step.
 	@$(WS) start
@@ -68,34 +66,10 @@ all: ## Everything after setup: extract, build, check, deploy
 	$(MAKE) --no-print-directory deploy
 	@echo "Done. Next: make start"
 
-# ---------------------------------------------------------------- the workshop loop: change, review, drive, merge
+# ---------------------------------------------------------------- changing a vehicle, sharing a pack
 
 loop: ## Change one vehicle: build it, run its gates, redo its contact sheet, summarise what changed (V=<vehicle>)
-	@$(RV) loop $(V)
-
-pr: ## Push this branch and open or update its pull request, with every changed vehicle's summary
-	@$(RV) pr
-
-prs: ## List open pull requests: branch, which vehicles' sheets changed, checks
-	@$(RV) prs
-
-try: ## Install a pull request to drive it: check out, build, check, deploy (PR=<number>; game closed)
-	@$(RV) try $(PR)
-
-main: ## Back to the known-good build: main, pulled, built, checked and installed (game closed)
-	@$(RV) main
-
-sheet: ## Open a vehicle's contact sheet on GitHub for this branch, or the pull request's files (V=<vehicle>)
-	@$(RV) sheet $(V)
-
-report: ## Open a Drive report for a vehicle, prefilled with the installed build (V=<vehicle>)
-	@$(RV) report $(V)
-
-comment: ## Comment on a pull request from the terminal (PR=<number> MSG="...")
-	@$(RV) comment $(PR) "$(MSG)"
-
-approve: ## Merge a pull request you have driven, then go back to main (PR=<number>; DRY_RUN=1 to only check)
-	@$(RV) approve $(PR)
+	@$(WS) loop $(V)
 
 pack: ## Build the shareable zip of a pack into dist/ (P=<pack>, default die-kollektion)
 	@python3 tools/pack.py build packs/$(or $(P),die-kollektion)

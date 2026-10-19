@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        One report per vehicle and build. `make report V=<vehicle>` opens this form with the vehicle and the build you have installed filled in.
+        One report per vehicle and build. `make status` shows the build you have installed.
   - type: dropdown
     id: vehicle
     attributes:
