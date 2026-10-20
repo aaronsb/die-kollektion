@@ -77,7 +77,7 @@ Every panel action has a scriptable equivalent, so an agent can look, nudge, mea
   - `duplicate(node)`, `delete_copy(node)`
   - `frame(node)`, which selects the item, points the view at it and returns its centre and size in game metres
   - `ghost(shown, offset)`, `save(force=False)`, `run_loop()`
-  - `clearance(node)` and `review_views(node, out_dir)`, for the loop below
+  - `clearance(node, reach=0.5, move=None)` and `review_views(node, out_dir)`, for the loop below
 
   A node is a full node path or any unique end of one (`Winch_01`, `RoofSpare/RoofrackFlatA`); an ambiguous name lists its matches.
 
@@ -97,12 +97,12 @@ api.save()                                  # {'ok': True, 'file': 'vehicles/meg
 
 For an agent fitting an item, the loop is: measure, nudge by what the measurement says, measure again, look at the same views, save.
 
-- `api.clearance(node)` measures the item against the body parts in game metres:
-  - **Clear:** `{"intersecting": False, "gap": 0.004, "touches": "body_LOD0", "at": [...]}`.
-  - **Inside:** `{"intersecting": True, "penetration": 0.223, "direction": "up", "clear_by": ["y", 1], "depths": {...}}`. The penetration is the smallest move along one truck axis after which the item no longer touches the body, checked by moving it and testing again. A thin shell such as the cab roof can't be "cleared" by dropping the item into the hollow cab: that candidate is refused.
+- `api.clearance(node)` measures the item, in game metres, against what it can hit: the body and axle parts, the wheels and tyres, and every other option that is shown. A slot group counts its shown options only.
+  - **Clear:** `{"intersecting": False, "inside": False, "gap": 0.004, "touches": "body_LOD0", "at": [...]}`. The gap is measured from vertices to surfaces both ways, so where an edge passes an edge it can read a little more than the true gap.
+  - **Crossing or inside:** `{"intersecting": True, "penetration": 0.223, "direction": "up", "clear_by": ["y", 1], "offset_delta": [0, 0.223, 0], "depths": {...}}`. `intersecting` means surfaces cross. `inside` means the item sits wholly inside something (a rack lowered into the cab) with no surface crossing, and then no gap is reported. The penetration is the smallest move along one truck axis after which the item neither crosses nor sits inside anything, checked by moving it and testing again. A thin shell such as the cab roof can't be "cleared" by dropping the item into the hollow cab: that candidate is refused. With no such move within `reach` (default 0.5 m), `penetration` is None and a `note` says so.
 
-  `clear_by` is the axis and sign for `api.nudge`, and `depths` holds every direction's move (None where none within half a metre clears).
-- `api.review_views(node, out_dir)` renders front, side, top and three-quarter views framed on the item, always at 1200×900, with the same studio lighting and no dither or date stamps. The same pose gives byte-identical files, so successive nudges compare like with like.
+  `clear_by` is the axis and sign for `api.nudge` and `offset_delta` the change to the offset, both in the frame of the node you'll move: the item, or `move=` (its slot group, say), whose placed ancestors may turn or scale its nudges. When the move isn't along one axis of that frame, `clear_by` is None: add `offset_delta` to its offset with `set_placement`. `depths` holds every direction's move (None where none within `reach` clears).
+- `api.review_views(node, out_dir)` renders front, side, top and three-quarter views framed on the item, always as 1200×900 PNGs with the same studio lighting, colour management and no dither, border or date stamps, whatever the scene was set to (its own settings come back afterwards). The same pose gives byte-identical files, so successive nudges compare like with like.
 
 ```python
 from werkstatt_addon import api

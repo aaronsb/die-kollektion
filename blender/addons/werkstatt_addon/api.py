@@ -521,11 +521,14 @@ def frame(node=None):
 
 
 @_api
-def clearance(node=None, reach=0.5):
-    """How the item sits against the vehicle's body, in game metres: {"intersecting", "gap" (when clear),
-    "penetration" (how deep, when intersecting), "touches" (the part), "at" (the point)}. Drive a penetration
-    to a small positive gap, e.g. nudge up until intersecting is False and gap is a few millimetres."""
-    return review.clearance(_empty(node), reach)
+def clearance(node=None, reach=0.5, move=None):
+    """How the item sits against the vehicle (body, axles, wheels, other shown options), in game metres:
+    {"intersecting", "inside", "gap" (when clear), "penetration" (the move that clears it, when it crosses or sits
+    inside something), "clear_by" ([axis, sign] for nudge), "offset_delta", "touches", "at"}. clear_by and
+    offset_delta are for nudging `move` (default: the item), e.g. its slot group. Drive a penetration to a small
+    positive gap: nudge until intersecting and inside are False and the gap is a few millimetres."""
+    model.number(reach, "reach", 0.01, 5.0)
+    return review.clearance(_empty(node), reach, _empty(move) if move else None)
 
 
 @_api

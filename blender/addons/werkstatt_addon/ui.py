@@ -253,10 +253,15 @@ class WERKSTATT_OT_clearance(_NodeOp, bpy.types.Operator):
     def execute(self, context):
         result = api.clearance(self.node or None)
         if result.get("ok"):
-            context.scene.werkstatt.last_clearance = (
-                f"{result['penetration'] * 1000:.0f} mm into {result['touches']}" if result["intersecting"]
-                else f"{result['gap'] * 1000:.0f} mm from {result['touches']}" if result["gap"] is not None
-                else result.get("note", ""))
+            if (result["intersecting"] or result["inside"]) and result["penetration"] is not None:
+                text = f"{result['penetration'] * 1000:.0f} mm {result['direction']} clears {result['touches']}"
+            elif result["intersecting"] or result["inside"]:
+                text = f"{'inside' if result['inside'] else 'into'} {result['touches']}: {result.get('note', '')}"
+            elif result["gap"] is not None:
+                text = f"{result['gap'] * 1000:.0f} mm from {result['touches']}"
+            else:
+                text = result.get("note", "")
+            context.scene.werkstatt.last_clearance = text
         return _report(self, result, lambda r: context.scene.werkstatt.last_clearance)
 
 

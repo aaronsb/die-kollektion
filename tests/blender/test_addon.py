@@ -80,6 +80,66 @@ def arch(body_points, x, y, z, r, reach=1.0):
     return max((q for q in low if q < z), default=z - reach), min((q for q in low if q > z), default=z + reach)
 
 
+def clearance_findings(roof, rack):
+    """The review's findings on #31: a buried item, a move that can't clear, slot groups, the output format, the
+    nudge frame, and what counts as an obstacle."""
+    from werkstatt_addon import review
+    # Buried inside the cab (the roof slot lowered 60 cm): no surface crosses, yet it is inside the body.
+    api.nudge(roof, "y", -60, "cm")
+    r = api.clearance("RoofSpare/RoofrackFlatA")
+    check(r["ok"] and r["inside"] and not r["intersecting"] and r["gap"] is None and r["penetration"] is None and r.get("note"),
+          f"a rack buried in the cab reads as inside, with no gap: {r}")
+    r = api.clearance("RoofSpare/RoofrackFlatA", reach=1.5)
+    check(r["ok"] and r["inside"] and r["direction"] == "up" and 0.75 < r["penetration"] < 0.9,
+          f"with reach 1.5 m it is cleared upwards by about 82 cm: {r.get('penetration')} {r.get('direction')}")
+    check(bpy.ops.werkstatt.clearance(node="RoofSpare/RoofrackFlatA") == {"FINISHED"} and "inside" in bpy.context.scene.werkstatt.last_clearance,
+          f"the Clearance button reports a move it can't find: {bpy.context.scene.werkstatt.last_clearance!r}")
+    api.reset(roof)
+
+    # The nudge frame: with the roof slot rolled 10°, the move up is no single axis of RoofSpare's frame, and the
+    # offset delta clears the rack when added to RoofSpare's offset.
+    api.set_placement(roof, rotation=(0.0, 0.0, 10.0))
+    r = api.clearance("RoofSpare/RoofrackFlatA", move="RoofSpare")
+    check(r["ok"] and (r["intersecting"] or r["inside"]) and r["clear_by"] is None and r["offset_delta"] and abs(r["offset_delta"][0]) > 0.01,
+          f"under a rolled group the move is an offset delta, not one axis: {r.get('offset_delta')} {r.get('clear_by')}")
+    old = api.placement("RoofSpare")["offset"]
+    api.set_placement("RoofSpare", offset=[a + b for a, b in zip(old, r["offset_delta"])])
+    after = api.clearance("RoofSpare/RoofrackFlatA")
+    check(after["ok"] and not after["intersecting"] and not after["inside"] and after["gap"] < 0.02,
+          f"adding the offset delta to RoofSpare clears the rack: {after.get('gap')}")
+    api.reset("RoofSpare")
+    api.reset(roof)
+
+    # A slot group measures and renders its shown options only.
+    group = api._empty(roof)
+    api.show_slot("Roof", False)
+    r = api.clearance(roof)
+    check(not r["ok"] and "show" in r["error"], f"a slot group with nothing shown has nothing to measure: {r.get('error')}")
+    api.show("Roof/RoofSpare")
+    check(len(review.item_meshes(group)) == len(review.item_meshes(api._empty("Roof/RoofSpare"))),
+          "a slot group's meshes are its shown options' only")
+    api.show("Roof/Camper")
+    r = api.clearance("Roof/RoofSpare")
+    check(r["ok"] and r["touches"] == "Camper", f"another shown option counts as an obstacle: {r.get('touches')}")
+    check(any(o.get("werkstatt_reference") for o in review.obstacles(group)), "the wheels and tyres count as obstacles")
+    api.show_slot("Roof", False)
+
+    # The output is pinned whatever the scene was set to, and the scene's own settings come back.
+    sc = bpy.context.scene
+    sc.render.image_settings.file_format = "JPEG"
+    sc.render.use_border = True
+    sc.view_settings.view_transform = "AgX"
+    out = tempfile.mkdtemp(prefix="werkstatt-review-")
+    r = api.review_views(rack, out)
+    pngs = r["ok"] and all(os.path.isfile(p) and open(p, "rb").read(8) == b"\x89PNG\r\n\x1a\n" for p in r["views"].values())
+    check(pngs and sorted(os.listdir(out)) == sorted(os.path.basename(p) for p in r["views"].values()),
+          f"review_views writes the PNGs it names, whatever the scene's format: {sorted(os.listdir(out))}")
+    check(sc.render.image_settings.file_format == "JPEG" and sc.render.use_border and sc.view_settings.view_transform == "AgX",
+          "and puts the scene's own output settings back")
+    sc.render.image_settings.file_format, sc.render.use_border = "PNG", False
+    shutil.rmtree(out, ignore_errors=True)
+
+
 def second_round(root, path):
     """The second review of #29: ownership by rule, values Blender's keys can reach, the changed-on-disk guard
     without session state, unsaved compared as values, stricter inputs."""
@@ -426,6 +486,7 @@ def main():
               "a nudge shows in the views")
         shutil.rmtree(out, ignore_errors=True)
         api.reset(roof)
+        clearance_findings(roof, rack)
 
         # A slot group and a child under it: the child's offset turns with the group, as in the plugin.
         api.set_placement(roof, offset=(0.0, 0.02, 0.0), rotation=(0.0, 10.0, 0.0))
