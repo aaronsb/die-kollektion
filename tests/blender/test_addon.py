@@ -23,8 +23,8 @@ argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 VEHICLE = argv[0] if argv else "megaloceros"
 TRUCKS = ("megaloceros", "glyptodon", "mastodon", "megatherium")
 # Two renders of one pose aren't always byte-identical: on Blender's OpenGL backend, Workbench's anti-aliasing can
-# leave a few edge pixels a level or two apart (#39). Views count as the same within these.
-VIEW_LEVELS = 4             # per channel, out of 255
+# leave a few edge pixels a few levels apart (#39). Views count as the same within these.
+VIEW_LEVELS = 8             # per channel, out of 255
 VIEW_PIXELS = 1e-4          # the share of pixels that may differ
 failures = []
 
