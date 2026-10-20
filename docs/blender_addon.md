@@ -4,7 +4,7 @@ The add-on opens a vehicle from its folder as parts, attach points and upgrade n
 
 ## Install
 
-You need Blender 4.2 or newer (tested on 5.2), a Werkstatt checkout with `make extract` run (it writes `extracted/<donor>/upgrades.json`), and the vehicle built (`make build`, or `make all`).
+You need Blender 4.2 or newer (tested on 5.2), a Werkstatt checkout with `make extract` run (it writes `extracted/<donor>/upgrades.json` and the atlas in `extracted/textures/`), and the vehicle built (`make build`, or `make all`).
 
 - **From the checkout (recommended).** In Blender, open Edit > Preferences > File Paths > Script Directories, add the checkout's `blender/` folder, restart Blender, and enable "Die Kollektion Werkstatt" under Add-ons. The add-on then runs from whatever branch that checkout has open and works on that checkout.
 - **From a zip.** Run `make blender-addon`, then in Blender use Edit > Preferences > Add-ons > Install from Disk on `dist/werkstatt-blender-addon.zip`. In the add-on's preferences, set "Werkstatt folder" to your checkout.
@@ -22,6 +22,12 @@ Pick the vehicle and press Open (the button beside it re-reads the vehicle folde
 | `References (donor, read-only)` | The donor's wheels and tyres, which the game keeps live, at the truck's hubs and scaled to its tyre. They're shown but can't be selected. |
 | `Upgrades/<slot>` | An empty for every upgrade node, mirroring the game's tree: slot groups (plain axes), options (arrows), pieces inside an option (cubes), and copies. Each option's meshes hang under its pieces, coloured by slot. Options start hidden. |
 | `Ghost` | The donor's stock body as a wireframe, beside the truck when "Ghost of the donor" is on. Set "Beside by" to 0 to overlay it. |
+
+## What you see
+
+The body, the axles and the wheels show the donor's atlas through their UVs: the composite `extracted/textures/<Donor>_composite.png` that `make extract` writes, the livery with the glass shaded dark as the game draws it. Our cabs carry the same atlas: each of their material classes maps to one atlas point, so the paint takes the livery's colour, the glass the dark glass and the lamps their lens colours. The material references the file where it is; nothing is copied into the vehicle folder or packed into a saved .blend. The upgrade items have no UVs yet and keep their slot colours, and the colliders and the ghost stay wireframes.
+
+Blender's default Solid shading colours each mesh by its material's flat colour, which would hide the atlas, so Open switches each 3D view in Solid shading from Material to Texture colour, once per view and session (a view you switch back stays so). Material Preview shows the atlas as well. Without `extracted/textures/`, the scene is flat-coloured as before; with only the bare livery (`<Donor>_skin00.png`, from an older extract), the windows show in the livery's colour. Either way Open says so once, and the panel keeps a line under the open vehicle until `make extract` has run and the vehicle is opened again.
 
 Everything sits where the game puts it after the reshape, step by step as the plugin does it. The wheelbase sweep moves the nodes behind the body cut back with the rear, the rear axle and its springs included. The centre of mass moves to its share of the new wheelbase, and the wheels sit at the truck's track. Last, the definition's `transforms` place their nodes: the rear lights, the winch points and, on the Glyptodon family and Das Mastodon, the whole `Visual/Rear` slot with its spare wheels. On Das Megaloceros the rear axle is 1.17 m behind the Mammoth's.
 
@@ -78,7 +84,7 @@ Every panel action has a scriptable equivalent, so an agent can look, nudge, mea
   - `show(node=..., shown=...)`, `show_slot(slot=..., shown=...)`
   - `frame(node=...)`, `save()`, `run_loop()` (starts the loop in the background), `cancel_loop()`
 - **The Python API** (`from werkstatt_addon import api`) returns plain dicts that read back as JSON. A problem, a wrong value included, comes back as `{"ok": False, "error": "..."}` with a plain message, never a traceback. Each call that changes the scene is one undo step:
-  - `status(refresh=False)`, `vehicles()`, `open_vehicle(name, show=[...], force=False)`, `unsaved()`, `changed_on_disk()`, `items(slot=None, kind=None)`; each item carries `in_game` (`"item"`, `"tool"`, `"always"` or `"never"`), `tools` (the toolset ItemIds it needs, when any) and `in_game_note`, and a slot group its `options`
+  - `status(refresh=False)` (with `atlas_note` while the open vehicle lacks its atlas), `vehicles()`, `open_vehicle(name, show=[...], force=False)` (its result names the `atlas` image, or None, and an `atlas_note`), `unsaved()`, `changed_on_disk()`, `items(slot=None, kind=None)`; each item carries `in_game` (`"item"`, `"tool"`, `"always"` or `"never"`), `tools` (the toolset ItemIds it needs, when any) and `in_game_note`, and a slot group its `options`
   - `placement(node)`, `set_placement(node, offset=, rotation=, scale=)`
   - `nudge(node, axis, steps, unit)`, `rotate(node, axis, steps, degrees)`, `scale_by(node, factor, axis=None)`
   - `reset(node)`, `show(node, shown)`, `show_slot(slot, shown)`
@@ -111,7 +117,7 @@ For an agent fitting an item, the loop is: measure, nudge by what the measuremen
   - **Crossing or inside:** `{"intersecting": True, "penetration": 0.223, "direction": "up", "clear_by": ["y", 1], "offset_delta": [0, 0.223, 0], "depths": {...}}`. `intersecting` means surfaces cross. `inside` means the item sits wholly inside something (a rack lowered into the cab) with no surface crossing, and then no gap is reported. The penetration is the smallest move along one truck axis after which the item neither crosses nor sits inside anything, checked by moving it and testing again. A thin shell such as the cab roof can't be "cleared" by dropping the item into the hollow cab: that candidate is refused. With no such move within `reach` (default 0.5 m), `penetration` is None and a `note` says so.
 
   `clear_by` is the axis and sign for `api.nudge`, `nudge_by` the nudge's length in metres, and `offset_delta` the change to the offset, all in the frame of the node you'll move: the item, or one of its parents given as `move=` (its slot group, say), whose placed ancestors may turn or scale its nudges. Under a scaled frame `nudge_by` differs from `penetration`. When the move isn't along one axis of that frame, `clear_by` is None: add `offset_delta` to its offset with `set_placement`. `depths` holds every direction's move (None where none within `reach` clears).
-- `api.review_views(node, out_dir)` renders front, side, top and three-quarter views framed on the item, always as 1200×900 PNGs with the same studio lighting, colour management and no dither, border or date stamps, whatever the scene was set to (its own settings come back afterwards). The same pose gives the same picture, so successive nudges compare like with like, but not always the same bytes: on Blender's OpenGL backend, Workbench's anti-aliasing can leave a few edge pixels a few levels apart. Compare the pictures, not the files' hashes.
+- `api.review_views(node, out_dir)` renders front, side, top and three-quarter views framed on the item, always as 1200×900 PNGs with the same studio lighting, each mesh in its flat colour (the atlas doesn't show, so a view looks the same with or without `extracted/textures/`), colour management and no dither, border or date stamps, whatever the scene was set to (its own settings come back afterwards). The same pose gives the same picture, so successive nudges compare like with like, but not always the same bytes: on Blender's OpenGL backend, Workbench's anti-aliasing can leave a few edge pixels a few levels apart. Compare the pictures, not the files' hashes.
 
 ```python
 from werkstatt_addon import api
@@ -148,5 +154,5 @@ The add-on is layered for this (`blender/addons/werkstatt_addon/`): `model.py` r
 ## Limits
 
 - The game scales a node along its own axes, and the add-on's empties don't carry the turn a node has in the prefab. So a node the prefab turns relative to the car (132 of the Mammoth's 535 upgrade nodes, the plush toys and the spare wheel's tools among them) takes a uniform scale only; a non-uniform one is refused with a message.
-- Meshes are flat-coloured, without the game's textures and lights. Check the final fit in the mechanic.
+- The atlas shows without the game's shader: no baked shading (`<Donor>_AO`), lights, snow or player paint, and the upgrade items stay flat-coloured. Check the final fit in the mechanic.
 - Only LOD0 is loaded. Placements move every LOD alike in game.

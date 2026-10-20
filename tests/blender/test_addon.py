@@ -546,6 +546,83 @@ def axles(root):
         transformed(name, v)
 
 
+def texel(img, uv):
+    """The image's 8-bit RGB at a UV (Blender's pixels start at the bottom-left, as UVs do)."""
+    w, h = img.size
+    px = np.empty(w * h * 4, dtype=np.float32)
+    img.pixels.foreach_get(px)
+    i = (min(h - 1, int(uv[1] * h)) * w + min(w - 1, int(uv[0] * w))) * 4
+    return tuple(int(round(c * 255)) for c in px[i:i + 3])
+
+
+def image_of(obj):
+    nodes = obj.active_material.node_tree.nodes if obj.active_material and obj.active_material.node_tree else []
+    return next((n.image for n in nodes if n.bl_idname == "ShaderNodeTexImage"), None)
+
+
+def textures(root):
+    """The game's atlas on the parts that carry its UVs (#48): the body, our cab's atlas points included, the axles
+    and the wheel references show extracted/textures/<Donor>_composite.png, referenced by path, and keep their flat
+    colour for Solid's Material colour and the review views. Without the composite they show the bare livery, and
+    without either the scene is flat; a note says which. Each case on a fresh scratch checkout."""
+    out = tempfile.mkdtemp(prefix="werkstatt-review-")
+    views = {}
+    cases = ((["Mammoth_composite.png", "Mammoth_skin00.png"], "Mammoth_composite.png", None),
+             (["Mammoth_skin00.png"], "Mammoth_skin00.png", "Windows in the livery's colour"),
+             ([], None, "Flat colours"))
+    try:
+        for links, atlas, note in cases:
+            checkout = scratch_checkout([VEHICLE], textures=links)
+            os.environ["WERKSTATT_DIR"] = checkout
+            try:
+                r = api.open_vehicle(VEHICLE, show=["BashBar_01"], force=True)
+                want = atlas and f"extracted/textures/{atlas}"
+                check(r["ok"] and r["atlas"] == want and ((r["atlas_note"] or "").startswith(note) and "make extract" in r["atlas_note"] if note else r["atlas_note"] is None),
+                      f"with {links or 'no textures'}: atlas {r.get('atlas')}, note {r.get('atlas_note')!r}")
+                check(api.status().get("atlas_note") == r["atlas_note"], "the panel's status carries the same note")
+                objs = [o for o in bpy.context.scene.objects if o.type == "MESH"]
+                body = next(o for o in objs if o.get("werkstatt_part") == "body")
+                img = image_of(body)
+                check(close(body.active_material.diffuse_color, scene.KIND_COLOURS["body"], 1e-6),
+                      "the body keeps its flat colour as the viewport colour, which the review views draw")
+                views[atlas] = api.review_views("BashBar_01", os.path.join(out, str(atlas)))["views"]
+                if not atlas:
+                    check(not any(image_of(o) for o in objs), "no mesh shows an image")
+                    continue
+                check(img is not None and bpy.path.abspath(img.filepath) == os.path.join(checkout, "extracted", "textures", atlas)
+                      and img.packed_file is None, f"the body's material references {atlas} by path, unpacked: {img and img.filepath}")
+                if atlas != "Mammoth_composite.png":
+                    continue
+                for what, pick in (("axles", lambda o: o.get("werkstatt_part") == "axle"),
+                                   ("wheel references", lambda o: o.get("werkstatt_reference"))):
+                    group = [o for o in objs if pick(o)]
+                    check(group and all(image_of(o) == img and o.data.uv_layers for o in group), f"the {what} show the atlas too ({len(group)})")
+                for what, pick in (("colliders", lambda o: o.get("werkstatt_part") == "collider"), ("ghost meshes", lambda o: o.get("werkstatt_ghost")),
+                                   ("upgrade meshes", lambda o: o.get("werkstatt_mesh_of"))):
+                    group = [o for o in objs if pick(o)]
+                    check(group and not any(image_of(o) for o in group), f"the {what} stay flat ({len(group)})")
+                # Our cab maps each material class of its master to one atlas point; through the composite the glass
+                # shades dark as in game, the paint takes the livery and the lamps their lens.
+                master = os.path.join(checkout, "vehicles", VEHICLE, "meshes", f"cab_{VEHICLE}_LOD0.obj")
+                classes = {name: uvs[0][0] for name, (_v, _f, uvs) in scene.read_obj(master).items()} if os.path.isfile(master) else {}
+                loops = {tuple(round(c, 5) for c in d.uv) for d in body.data.uv_layers.active.data}
+                check(classes and all(tuple(round(c, 5) for c in uv) in loops for uv in classes.values()),
+                      f"the body carries the cab's atlas points ({sorted(classes)})")
+                glass, paint, lamp = (texel(img, classes[k]) for k in ("Glass", "Paint", "Lamp"))
+                check(glass == (38, 40, 44) and paint != glass and lamp not in (glass, paint),
+                      f"the cab's glass shows the composite's glass, its paint and lamps their own colours: {glass} {paint} {lamp}")
+                api.open_vehicle(VEHICLE, show=["BashBar_01"], force=True)
+                check(len([i for i in bpy.data.images if i.get("werkstatt")]) == 1, "reopening loads the atlas once")
+            finally:
+                os.environ["WERKSTATT_DIR"] = root
+                shutil.rmtree(checkout, ignore_errors=True)
+        flat = views[None]
+        check(all(same_view(flat[k], p) for atlas, v in views.items() for k, p in v.items()),
+              "the review views draw the flat colours: with the composite, the livery or neither, they show the same")
+    finally:
+        shutil.rmtree(out, ignore_errors=True)
+
+
 def transformed(name, v):
     """The definition's transforms, which the plugin applies after the sweep: each node at its position, an upgrade
     group's items and meshes carried along, and the centre of mass at its share of the new wheelbase. Expected
@@ -571,7 +648,7 @@ def transformed(name, v):
                 meshes = [o for o in empties[option].children_recursive if o.type == "MESH" and o.get("werkstatt_mesh_of") in own]
                 lo, hi = game_box(meshes)
                 centre = [(a + b) / 2 for a, b in zip(lo, hi)]
-                verts = [model.blender_to_game(p) for _, (vs, _f) in own.items() for p in vs]
+                verts = [model.blender_to_game(p) for _, (vs, *_) in own.items() for p in vs]
                 donor_centre = [(min(p[i] for p in verts) + max(p[i] for p in verts)) / 2 for i in range(3)]
                 shift = [a - b for a, b in zip(world_game(empties[option]), raw[option]["position"])]
                 check(close(centre, [c + d for c, d in zip(donor_centre, shift)], 2e-3),
@@ -771,6 +848,7 @@ def main():
         api.delete_copy(copy["node"])
         api.save()
         refusals(root, path)
+        textures(root)
         axles(root)
         loop_job(root)
         # Reload Scripts re-runs the package's __init__, which reloads every submodule too.

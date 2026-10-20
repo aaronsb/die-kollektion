@@ -624,6 +624,21 @@ class Vehicle:
         f = os.path.join(self.extracted, f"Parts__{self.donor}__{self.donor}_body_LOD0.obj")
         return f if os.path.isfile(f) else None
 
+    def atlas(self):
+        """(image path or None, note or None): the donor's atlas for the parts that carry its UVs. The composite
+        (tools/composite_atlas.py, which `make extract` runs) is the livery with the glass shaded dark, as the game
+        draws it; the bare livery (<Donor>_skin00) shows the windows in the livery's colour, so the note says so.
+        With neither, the scene keeps flat colours and the note says what to run."""
+        textures = os.path.join(self.root, "extracted", "textures")
+        composite = os.path.join(textures, f"{self.donor}_composite.png")
+        if os.path.isfile(composite):
+            return composite, None
+        skin = os.path.join(textures, f"{self.donor}_skin00.png")
+        want = os.path.relpath(composite, self.root)
+        if os.path.isfile(skin):
+            return skin, f"Windows in the livery's colour: no {want} (run `make extract`)"
+        return None, f"Flat colours: no {want} (run `make extract`)"
+
     def wheels(self):
         """(corner, game position, radius, width) for the wheel references: each corner's wheel node where the
         reshape puts it (the definition's numbers when the donor's node facts lack it), with the fitted tyre."""

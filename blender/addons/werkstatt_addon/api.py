@@ -280,6 +280,8 @@ def status(refresh=False):
     open_root = scene.root_collection()
     out = {"root": root, "branch": branch(root), "uncommitted": uncommitted(root, refresh),
            "vehicle": open_root.get("werkstatt_vehicle") if open_root else None}
+    if open_root is not None and open_root.get("werkstatt_atlas_note"):
+        out["atlas_note"] = open_root["werkstatt_atlas_note"]
     if open_root is not None and open_root.get("werkstatt_root") != root:
         out["vehicle_root"] = open_root.get("werkstatt_root")
     return out
@@ -332,13 +334,16 @@ def open_vehicle(name, show=(), force=False):
         raise model.WerkstattError(f"{name} isn't built yet: run `make build` (or `make loop V={name}`) in {root}")
     show = [_resolve_option(v, s) for s in show]
     sha = model.file_hash(_placements_file(v))
-    scene.build(v, show)
+    built = scene.build(v, show)
+    if built["werkstatt_atlas"]:
+        scene.show_textures()
     _state["vehicle"] = v
     _read(v, sha)
     uncommitted(root, refresh=True)
     # Entries on nodes the scene doesn't build (outside the upgrade tree, or a copy of one): save keeps them.
     return {"vehicle": name, "codename": v.codename, "donor": v.donor, "options": len(v.options()),
             "placements": len(v.placements), "copies": len(v.copies),
+            "atlas": built["werkstatt_atlas"] or None, "atlas_note": built["werkstatt_atlas_note"] or None,
             "not_shown": sorted([p for p in v.placements if not v.is_built(p)]
                                 + [p for p, pl in v.copies.items() if not v.is_built(p, pl.source)])}
 
