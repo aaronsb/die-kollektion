@@ -2,6 +2,8 @@
 
 The add-on opens a vehicle from its folder as parts, attach points and upgrade nodes, lets you fit each accessory with stepped nudges, and saves the result to the vehicle's `placements.json`. The plugin applies that file in game, on the truck and in the mechanic's preview (format and engine facts: `docs/engine.md`, "Upgrade nodes"). The add-on only writes files; committing them is yours.
 
+![The add-on in Blender: Das Megaloceros in the Mammoth's atlas, its bumper winch shown and selected, and the Werkstatt panel with the Winch slot listed as "With tool"](images/blender-addon.jpg)
+
 ## Install
 
 You need Blender 4.2 or newer (tested on 5.2), a Werkstatt checkout with `make extract` run (it writes `extracted/<donor>/upgrades.json` and the atlas in `extracted/textures/`), and the vehicle built (`make build`, or `make all`).
@@ -39,6 +41,8 @@ Everything sits where the game puts it after the reshape, step by step as the pl
 4. Reset puts the item back at the donor's pose.
 
 The list shows a slot group with its number of options, and an option, piece or copy with its slot, unless the game shows it otherwise:
+
+![The panel's list and item box filtered to the Rollcage slot (the roll cage marked "Not in game") and to the Winch slot (the bumper winch marked "With tool", shown with the portable winch)](images/blender-addon-marks.png)
 
 - **Not in game** (a warning sign): the node names no item and is off in the prefab, so the game never shows it. On the Mammoth and The Ding these are the roll cage (`Performance/Rollcage/rollcage`) and the bumper winch (`Performance/Winch/Winch_01`).
 - **Always shown** (an info sign): the node names no item and is on in the prefab, so the game always shows it. The Mammoth has none.
