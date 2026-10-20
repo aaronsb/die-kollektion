@@ -6,7 +6,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 
 
 def scratch_checkout(names):
-    tmp = tempfile.mkdtemp(prefix="werkstatt-addon-")
+    # A path past 63 characters, like a real checkout's: Blender limits property names to that, and a name built
+    # from the path once broke save.
+    tmp = tempfile.mkdtemp(prefix="werkstatt-addon-a-checkout-path-longer-than-blender-allows-in-a-property-name-")
     open(os.path.join(tmp, "Makefile"), "w").close()
     os.makedirs(os.path.join(tmp, "vehicles"))
     os.symlink(os.path.join(ROOT, "extracted"), os.path.join(tmp, "extracted"))
