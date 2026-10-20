@@ -125,9 +125,10 @@ HEADLIGHTS = {
     "kelvin": 3200,
     "intensity": 0.8
 }
-# The bumper winch, a node the game never shows: the plugin shows it while the truck carries the portable winch
-# (its toolset ItemId) and hides it otherwise, on the spawned truck and on the mechanic's display.
-TOOL_NODES = {"Parts/Mammoth_CosmeticParts/Performance/Winch/Winch_01": 2317836723}
+TOOL_NODES = {
+    "notes": "The bumper winch, which the game never shows, shows while the truck carries the portable winch (its toolset ItemId).",
+    "Parts/Mammoth_CosmeticParts/Performance/Winch/Winch_01": 2317836723
+}
 SPARE_AXLE_SCALE, SPARE_RADIAL_SCALE = TYRE["width"] / WHEEL["width"], TYRE["radius"] / WHEEL["radius"]
 SPARE_R, SPARE_HALF_W = 0.53 * SPARE_RADIAL_SCALE, 0.372 / 2 * SPARE_AXLE_SCALE
 # The spare's carrier, after a sketch (from above): a
