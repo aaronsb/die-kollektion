@@ -252,6 +252,8 @@ class WERKSTATT_OT_save(bpy.types.Operator):
                         options={"SKIP_SAVE"})
 
     def invoke(self, context, event):
+        if not self.force and api.changed_on_disk().get("changed"):
+            self.force = True                    # Save on a file changed on disk asks, as Overwrite does
         if self.force:
             return context.window_manager.invoke_confirm(
                 self, event, title="Overwrite placements.json",

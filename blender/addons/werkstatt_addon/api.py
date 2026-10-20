@@ -273,6 +273,16 @@ def unsaved():
         return {"unsaved": True, "why": str(e)}
 
 
+@_api
+def changed_on_disk():
+    """Whether the open vehicle's placements.json changed since the scene read or wrote it (True too when the
+    scene has no record of reading it): what makes save refuse without force."""
+    try:
+        return {"changed": not _known_file(_vehicle())}
+    except model.WerkstattError as e:
+        return {"changed": True, "why": str(e)}
+
+
 @_api(undo="open vehicle")
 def open_vehicle(name, show=(), force=False):
     """Builds the vehicle's scene (parts, attach points, references, upgrades, ghost) from its files. Refuses to

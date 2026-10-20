@@ -46,7 +46,7 @@ Save placements writes `vehicles/<name>/placements.json`. Only nodes that moved 
 
 Save refuses, with a message, in these cases:
 
-- The file changed on disk since the vehicle was opened or last saved. The scene keeps the file's hash, so this holds after an undo, Reload Scripts or a restart. Open the vehicle again to see the change, or press Overwrite (`save(force=True)` in a script), which asks first.
+- The file changed on disk since the vehicle was opened or last saved. The scene keeps the file's hash, so this holds after an undo, Reload Scripts or a restart. Open the vehicle again to see the change, or overwrite it: Save then asks before writing, as the Overwrite button always does (`save(force=True)` in a script).
 - The add-on's Werkstatt folder isn't the one the vehicle was opened from. Open it again.
 - An item holds values the plugin would refuse, as Blender's G and S keys can leave it: moved more than 10 m, mirrored by a negative scale, or scaled unevenly while the car turns it. The message names the items; Reset them, or move them back.
 
@@ -70,7 +70,7 @@ Every panel action has a scriptable equivalent, so an agent can look, nudge and 
   - `show(node=..., shown=...)`, `show_slot(slot=..., shown=...)`
   - `frame(node=...)`, `save()`, `run_loop()`
 - **The Python API** (`from werkstatt_addon import api`) returns plain dicts that read back as JSON. A problem, a wrong value included, comes back as `{"ok": False, "error": "..."}` with a plain message, never a traceback. Each call that changes the scene is one undo step:
-  - `status(refresh=False)`, `vehicles()`, `open_vehicle(name, show=[...], force=False)`, `unsaved()`, `items(slot=None, kind=None)`
+  - `status(refresh=False)`, `vehicles()`, `open_vehicle(name, show=[...], force=False)`, `unsaved()`, `changed_on_disk()`, `items(slot=None, kind=None)`
   - `placement(node)`, `set_placement(node, offset=, rotation=, scale=)`
   - `nudge(node, axis, steps, unit)`, `rotate(node, axis, steps, degrees)`, `scale_by(node, factor, axis=None)`
   - `reset(node)`, `show(node, shown)`, `show_slot(slot, shown)`

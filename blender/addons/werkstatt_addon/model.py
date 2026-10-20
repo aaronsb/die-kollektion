@@ -478,6 +478,8 @@ class Vehicle:
         for node in self.nodes.values():
             if node.kind == "node" and any(self._has_option_below(c) for c in node.children):
                 node.kind = "group"
+        self.wheel_nodes = {f["path"]: self.place(f["path"], f["position"]) for f in facts
+                            if parent_path(f["path"]) == "Axles/WheelMeshes"}
         self.attach_points = {}
         for f in facts:
             if self.cosmetic_root and f["path"].startswith(self.cosmetic_root):
@@ -599,7 +601,8 @@ class Vehicle:
         return f if os.path.isfile(f) else None
 
     def wheels(self):
-        """(corner, game position, radius, width) for the wheel references, from the definition."""
+        """(corner, game position, radius, width) for the wheel references: each corner's wheel node where the
+        reshape puts it (the definition's numbers when the donor's node facts lack it), with the fitted tyre."""
         m = self.manifest
         wheel = dict(m.get("wheel", {}), **m.get("tyre", {}))
         if "radius" not in wheel:
@@ -608,7 +611,9 @@ class Vehicle:
         rear = front - m["wheelbase"]
         half = m["track"] / 2
         y = wheel.get("y", wheel["radius"])
-        return [(c, (half if c[1] == "R" else -half, y, front if c[0] == "F" else rear), wheel["radius"], wheel.get("width", 0.3))
+        return [(c, self.wheel_nodes.get(f"Axles/WheelMeshes/{c}",
+                                         (half if c[1] == "R" else -half, y, front if c[0] == "F" else rear)),
+                 wheel["radius"], wheel.get("width", 0.3))
                 for c in ("FL", "FR", "RL", "RR")]
 
     def donor_wheel(self):

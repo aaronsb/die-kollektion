@@ -90,6 +90,7 @@ def second_round(root, path):
     api.open_vehicle(VEHICLE, force=True)
     copy = api.duplicate(keg)["node"]
     check(api.save()["result"] == "written" and copy in open(path).read(), "a copy made in the session is saved")
+    check(not api.changed_on_disk()["changed"], "right after a save the file isn't changed on disk")
     api.delete_copy(copy)
     check(api.unsaved()["unsaved"], "deleting a saved copy is an unsaved change")
     saved = api.save()
@@ -125,6 +126,7 @@ def second_round(root, path):
     api.nudge("Winch_01", "y", 1, "cm")
     r = api.save()
     check(not r["ok"] and "changed on disk" in r["error"], f"and a file changed on disk is still refused: {r.get('error')}")
+    check(api.changed_on_disk()["changed"], "changed_on_disk() says so, which makes the panel's Save ask before overwriting")
     del scene.root_collection()["werkstatt_file_sha"]
     api._state["sha"] = {}
     r = api.save()
@@ -295,10 +297,17 @@ def axles(root):
         bpy.context.view_layer.update()
         points = [model.blender_to_game(tuple(body.matrix_world @ vert.co)) for vert in body.data.vertices]
         refs = {o.name.split()[0]: o for o in bpy.context.scene.objects if o.get("werkstatt_reference")}
+        # Where the plugin puts each hub, from vehicle.json and the donor's node facts (not from the add-on): x at
+        # half the track, y as the donor has it (the reshape doesn't lift wheels), z with the sweep for the rear.
+        facts = {f["path"]: f["position"] for f in json.load(open(os.path.join(v.extracted, "nodes.json")))["nodes"]}
+        donor_front, donor_rear = facts["Axles/WheelMeshes/FL"][2], facts["Axles/WheelMeshes/RL"][2]
+        shift = -(m["wheelbase"] - (donor_front - donor_rear))
         for corner, hub, radius, _width in v.wheels():
+            plugin = ((1 if corner[1] == "R" else -1) * m["track"] / 2, facts[f"Axles/WheelMeshes/{corner}"][1],
+                      donor_front if corner[0] == "F" else donor_rear + shift)
             lo, hi = game_box([o for o in bpy.context.scene.objects if o.get("werkstatt_reference") and o.name.startswith(corner + " ")])
             centre = [(a + b) / 2 for a, b in zip(lo, hi)]
-            check(close(centre, hub, 0.03), f"{name}: the {corner} wheel sits on its hub {tuple(round(c, 3) for c in hub)}")
+            check(close(centre, plugin, 0.01), f"{name}: the {corner} wheel sits on the plugin's hub {tuple(round(c, 3) for c in plugin)} ({tuple(round(c, 3) for c in centre)})")
             back, front = arch(points, *hub, radius)
             check(abs((back + front) / 2 - hub[2]) < 0.05 and front - back > radius,
                   f"{name}: the {corner} hub sits under the body's wheel arch (arch {back:.3f} to {front:.3f}, hub {hub[2]:.3f})")
