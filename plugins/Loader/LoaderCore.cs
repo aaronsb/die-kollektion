@@ -90,9 +90,13 @@ public static class LoaderCore
         if (stray.Count > 0)
         {
             var files = string.Join(", ", stray.Select(f => "BepInEx/plugins/" + f));
+            // `make deploy` moves only an install from before the loader, BepInEx/plugins/VehicleMods/, out of plugins/.
+            var deployMoves = stray.All(f => f.StartsWith("VehicleMods/", StringComparison.Ordinal));
+            var fix = deployMoves
+                ? $"Run `make deploy` in the Werkstatt folder, which moves this install from before the loader out of plugins/, or delete {files}. "
+                : $"Delete {files}. ";
             return CantStart(s, $"another copy of the plugin is in BepInEx/plugins/ ({files}), which BepInEx loads by itself",
-                             $"Delete {files}, or run `make deploy` in the Werkstatt folder, which moves an old install out of plugins/. " +
-                             "Until then the mod may still load from that copy, which may not fit this game.",
+                             fix + "Until then the mod may still load from that copy, which may not fit this game.",
                              "Die Kollektion: remove a stray copy");
         }
         var record = ReadJson(Path.Combine(s.PluginDir, Record));
@@ -212,14 +216,8 @@ public static class LoaderCore
     static void Install(Setup s, JsonNode record, string candidate, string live, string builtFor, string build, string how)
     {
         var dll = Path.Combine(s.PluginDir, PluginDll);
-        var temp = dll + ".loader-new";
         using (var from = File.OpenRead(candidate))
-        using (var to = new FileStream(temp, FileMode.Create, FileAccess.Write))
-        {
-            from.CopyTo(to);
-            to.Flush(true);
-        }
-        File.Move(temp, dll, true);
+            ReplaceSynced(dll, from.CopyTo);
         var hash = Sha256(dll);
         foreach (var entry in record["files"] as JsonArray ?? new JsonArray())
             if (Text(entry?["path"]) == PluginDll)
@@ -351,7 +349,7 @@ public static class LoaderCore
         string.IsNullOrEmpty(pluginsDir) || !Directory.Exists(pluginsDir)
             ? new List<string>()
             : Directory.EnumerateFiles(pluginsDir, PluginDll, SearchOption.AllDirectories)
-                .Select(f => Path.GetRelativePath(pluginsDir, f)).ToList();
+                .Select(f => Path.GetRelativePath(pluginsDir, f).Replace(Path.DirectorySeparatorChar, '/')).ToList();
 
     public static string InteropHash(string bepinex)
     {
@@ -435,8 +433,20 @@ public static class LoaderCore
 
     static void WriteJson(string path, JsonNode node)
     {
+        var bytes = Encoding.UTF8.GetBytes(node.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n");
+        ReplaceSynced(path, to => to.Write(bytes));
+    }
+
+    /// <summary>Writes a temp file beside <paramref name="path"/>, fsyncs it and renames it over the path, so after a
+    /// crash or power loss the path holds the old file or the whole new one, never an empty one.</summary>
+    static void ReplaceSynced(string path, Action<Stream> write)
+    {
         var temp = path + ".loader-new";
-        File.WriteAllText(temp, node.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n");
+        using (var to = new FileStream(temp, FileMode.Create, FileAccess.Write))
+        {
+            write(to);
+            to.Flush(true);
+        }
         File.Move(temp, path, true);
     }
 

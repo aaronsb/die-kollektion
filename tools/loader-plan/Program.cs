@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using System.Runtime.InteropServices;
 using System.Text.Json.Nodes;
 using DieKollektion.Loader;
 
@@ -152,6 +153,9 @@ static class Program
 
     static int failures, checks;
 
+    [DllImport("libc")]
+    static extern uint geteuid();
+
     static void Check(string scenario, bool ok, string detail)
     {
         checks++;
@@ -242,12 +246,17 @@ static class Program
         Check("a grandchild left holding the build's output doesn't hold the start", r.Outcome == LoaderCore.Outcome.Load
               && clock.Elapsed < TimeSpan.FromSeconds(10), $"{r.Outcome} {r.Message} {clock.Elapsed.TotalSeconds:F1}s");
 
-        var stuck = F("build-folder-stuck");
-        stuck.Flag("stuck");
-        r = stuck.Run();
-        Check("a build folder that can't be removed is logged and leaves a good rebuild loading", r.Outcome == LoaderCore.Outcome.Load
-              && stuck.Installed == "plugin built for v2" && stuck.Log.Any(l => l.StartsWith("Couldn't remove", StringComparison.Ordinal)),
-              $"{r.Outcome} {r.Message}");
+        const string stuckScenario = "a build folder that can't be removed is logged and leaves a good rebuild loading";
+        if (geteuid() == 0)
+            Console.WriteLine($"skip {stuckScenario}: running as root, where chmod 555 doesn't stop the delete");
+        else
+        {
+            var stuck = F("build-folder-stuck");
+            stuck.Flag("stuck");
+            r = stuck.Run();
+            Check(stuckScenario, r.Outcome == LoaderCore.Outcome.Load && stuck.Installed == "plugin built for v2"
+                  && stuck.Log.Any(l => l.StartsWith("Couldn't remove", StringComparison.Ordinal)), $"{r.Outcome} {r.Message}");
+        }
 
         var stray = F("stray-copy");
         stray.WriteRecord("hash-v2");
@@ -255,6 +264,8 @@ static class Program
         r = stray.Run();
         Check("a copy of the plugin under plugins/ stops ours from starting twice", r.Outcome == LoaderCore.Outcome.Quit && r.Message.Contains("plugins/"),
               $"{r.Outcome} {r.Message}");
+        Check("an install from before the loader, in plugins/VehicleMods/, is offered `make deploy`, which moves it",
+              stray.Ui.Shown.Count == 1 && stray.Ui.Shown[0].Contains("make deploy"), string.Join(" | ", stray.Ui.Shown));
 
         var strayStock = F("stray-copy-no-trucks", trucks: false);
         strayStock.WriteRecord("hash-v2");
@@ -264,6 +275,9 @@ static class Program
               && strayStock.Ui.Shown.Count == 1 && strayStock.Ui.Shown[0].Contains("BepInEx/plugins/VehicleMods.dll")
               && strayStock.Ui.Shown[0].Contains("may still load") && !strayStock.Ui.Shown[0].Contains("is off"),
               $"{r.Outcome} [{string.Join(" | ", strayStock.Ui.Shown)}]");
+        Check("a stray copy elsewhere in plugins/ is only told to be deleted (`make deploy` wouldn't move it)",
+              strayStock.Ui.Shown.Count == 1 && strayStock.Ui.Shown[0].Contains("Delete BepInEx/plugins/VehicleMods.dll")
+              && !strayStock.Ui.Shown[0].Contains("make deploy"), string.Join(" | ", strayStock.Ui.Shown));
 
         var locked = F("locked");
         locked.WriteRecord("hash-v2");
