@@ -1,0 +1,14 @@
+#!/bin/sh
+# A stand-in for `make` in the Blender tests: prints a few lines a fifth of a second apart, like `make loop`, with
+# a child process of its own (as the contact sheet's `blender -b`). FAKE_MAKE_CHILD names a file for the child's
+# pid, FAKE_MAKE_EXIT the exit code, FAKE_MAKE_SLOW=1 keeps it running a minute, FAKE_MAKE_STUBBORN=1 ignores TERM.
+[ -n "$FAKE_MAKE_STUBBORN" ] && trap '' TERM
+echo "fake make $*"
+sleep 300 >/dev/null 2>&1 &
+child=$!
+[ -n "$FAKE_MAKE_CHILD" ] && echo "$child" > "$FAKE_MAKE_CHILD"
+for i in 1 2 3 4 5; do echo "step $i"; sleep 0.2; done
+[ -n "$FAKE_MAKE_SLOW" ] && sleep 60
+kill "$child"
+echo "done"
+exit "${FAKE_MAKE_EXIT:-0}"

@@ -6,7 +6,7 @@ Runs on a scratch copy of the checkout's vehicle folders (the builds and extract
 the checkout is never written. Needs `make extract` (with upgrades.json) and the vehicle built. Exits non-zero on
 any failure. The panel's real draw is tested under Xvfb by tests/blender/test_panel_gui.py.
 """
-import hashlib, json, math, os, shutil, sys, tempfile, traceback
+import hashlib, json, math, os, shutil, sys, tempfile, time, traceback
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "blender", "addons"))
@@ -358,6 +358,109 @@ def refusals(root, path):
     bpy.context.scene.unit_settings.system = "METRIC"
 
 
+def fake_make():
+    """A directory holding `make` -> tests/blender/fake_make, to put first on PATH."""
+    d = tempfile.mkdtemp(prefix="werkstatt-fake-make-")
+    os.symlink(os.path.join(os.path.dirname(os.path.abspath(__file__)), "fake_make"), os.path.join(d, "make"))
+    return d
+
+
+def alive(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    # A zombie still answers kill(0): count it as gone.
+    try:
+        with open(f"/proc/{pid}/stat") as f:
+            return f.read().split(") ")[-1].split()[0] != "Z"
+    except OSError:
+        return True
+
+
+def wait_for(state_ok, seconds):
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        s = api.loop_status()
+        if state_ok(s):
+            return s
+        time.sleep(0.05)
+    return api.loop_status()
+
+
+def loop_job(root):
+    """Build and check runs in the background: the start returns at once, output streams in, a second start
+    waits its turn, cancel stops the whole process group, and unregistering leaves no process behind. A fake
+    make on PATH stands in for the real one."""
+    from werkstatt_addon import loop
+    bin_dir = fake_make()
+    old_path = os.environ["PATH"]
+    os.environ["PATH"] = bin_dir + os.pathsep + old_path
+    child_file = os.path.join(bin_dir, "child.pid")
+    os.environ["FAKE_MAKE_CHILD"] = child_file
+    try:
+        api.open_vehicle(VEHICLE, force=True)
+        check(api.loop_status() == {"ok": True, "state": "idle"} or api.loop_status()["state"] != "running", "no loop running at first")
+        t = time.monotonic()
+        r = api.start_loop()
+        took = time.monotonic() - t
+        check(r["ok"] and r["started"] and r["state"] == "running" and took < 0.5,
+              f"start_loop returns at once ({took:.2f} s), the loop running: {r.get('state')}")
+        again = api.start_loop()
+        check(again["ok"] and not again["started"] and again["state"] == "running", "a second start while one runs starts nothing")
+        mid = wait_for(lambda s: any(l.startswith("step") for l in s.get("tail", [])), 3)
+        check(mid["state"] == "running" and "step 1" in mid["tail"], f"output streams in while it runs: {mid.get('tail')}")
+        done = wait_for(lambda s: s["state"] != "running", 10)
+        text = bpy.data.texts.get(loop.LOG_TEXT)
+        check(done["state"] == "passed" and done["code"] == 0 and done["tail"][-1] == "done" and text and "step 5" in text.as_string(),
+              f"it passes, with its output in the {loop.LOG_TEXT} text: {done.get('state')} {done.get('tail', [])[-1:]}")
+        check(f"V={VEHICLE}" in text.as_string().splitlines()[0], "the text starts with the command it ran")
+
+        os.environ["FAKE_MAKE_EXIT"] = "3"
+        api.start_loop()
+        done = wait_for(lambda s: s["state"] != "running", 10)
+        check(done["state"] == "failed" and done["code"] == 3, f"a failing make reads as failed with its code: {done.get('state')} {done.get('code')}")
+        del os.environ["FAKE_MAKE_EXIT"]
+
+        # Cancel: make and its child (the contact sheet's blender -b in the real loop) stop.
+        os.environ["FAKE_MAKE_SLOW"] = "1"
+        api.start_loop()
+        wait_for(lambda s: "step 5" in s.get("tail", []), 5)
+        job = loop.current()
+        child = int(open(child_file).read())
+        r = api.cancel_loop()
+        check(r["ok"] and r["state"] == "cancelling", f"cancel asks it to stop: {r.get('state')}")
+        done = wait_for(lambda s: s["state"] not in ("running", "cancelling"), 4)
+        check(done["state"] == "cancelled" and not alive(job.proc.pid) and not alive(child),
+              f"cancel stops make and its child: {done.get('state')}, make alive {alive(job.proc.pid)}, child alive {alive(child)}")
+
+        # A make that ignores the request is killed after the grace period.
+        os.environ["FAKE_MAKE_STUBBORN"] = "1"
+        api.start_loop()
+        wait_for(lambda s: "step 1" in s.get("tail", []), 5)
+        job, child = loop.current(), int(open(child_file).read())
+        api.cancel_loop()
+        done = wait_for(lambda s: s["state"] not in ("running", "cancelling"), loop.GRACE + 4)
+        check(done["state"] == "cancelled" and not alive(job.proc.pid) and not alive(child),
+              f"one that ignores the request is killed after {loop.GRACE:.0f} s: {done.get('state')}, child alive {alive(child)}")
+        del os.environ["FAKE_MAKE_STUBBORN"]
+
+        # Unregistering (Reload Scripts, disabling the add-on) stops a running loop; nothing is left behind.
+        api.start_loop()
+        wait_for(lambda s: "step 1" in s.get("tail", []), 5)
+        job, child = loop.current(), int(open(child_file).read())
+        werkstatt_addon.unregister()
+        check(loop.current() is None and not alive(job.proc.pid) and not alive(child),
+              f"unregistering stops the loop and its child: make alive {alive(job.proc.pid)}, child alive {alive(child)}")
+        werkstatt_addon.register()
+        del os.environ["FAKE_MAKE_SLOW"]
+    finally:
+        loop.shutdown()
+        os.environ["PATH"] = old_path
+        os.environ.pop("FAKE_MAKE_CHILD", None)
+        shutil.rmtree(bin_dir, ignore_errors=True)
+
+
 def axles(root):
     """Each built truck as the plugin spawns it: the rear axle and springs moved back by the sweep, the wheels at
     the wheelbase and track, and the body's wheel arches over the hubs."""
@@ -585,6 +688,7 @@ def main():
         check(not api.delete_copy("Winch_01")["ok"], "an original can't be deleted")
         refusals(root, path)
         axles(root)
+        loop_job(root)
         # Reload Scripts re-runs the package's __init__, which reloads every submodule too.
         import importlib
         werkstatt_addon.unregister()

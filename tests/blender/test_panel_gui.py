@@ -1,4 +1,5 @@
-"""The Werkstatt panel drawn by a real Blender window, and undo after the API's calls.
+"""The Werkstatt panel drawn by a real Blender window, undo after the API's calls, and Build and check running in
+the background while the window keeps drawing.
 
 Usage: xvfb-run -a blender --factory-startup --python tests/blender/test_panel_gui.py -- [<vehicle>]
 Blender refuses writes to objects while it draws a panel, which a headless test with a fake layout can't see, so
@@ -6,7 +7,7 @@ this one opens a window (Xvfb's), shows the sidebar, selects an item and lets Bl
 registered under the sidebar's first tab ("Item"), since a script can't switch tabs; its draw is the real one.
 Runs on a scratch checkout. Prints ok/FAIL lines and exits non-zero on any failure.
 """
-import os, shutil, sys, traceback
+import os, shutil, sys, tempfile, time, traceback
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "blender", "addons"))
@@ -14,12 +15,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import bpy  # noqa: E402
 import werkstatt_addon  # noqa: E402
-from werkstatt_addon import api, ui  # noqa: E402
+from werkstatt_addon import api, loop, ui  # noqa: E402
 from checkout import scratch_checkout  # noqa: E402
 
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 VEHICLE = argv[0] if argv else "megaloceros"
-failures, draws = [], []
+failures, draws, loop_draws = [], [], []
 
 
 def check(cond, what):
@@ -37,6 +38,9 @@ class WERKSTATT_PT_gui_test(ui.WERKSTATT_PT_panel):
         would show as "Select an upgrade item")."""
         try:
             super().draw(context)
+            job = loop.current()
+            if job is not None:
+                loop_draws.append((job.state, job.status()["elapsed"]))
             info = api.placement()
             draws.append(None if info.get("ok") else info.get("error"))
         except Exception as e:
@@ -90,13 +94,62 @@ def main():
             check(not errors, f"the panel draws with an item selected and reads its placement, without errors ({errors[:1]})")
             check(winch.rotation_mode == "XYZ", "drawing left the selected empty's rotation mode alone")
             undo(window, area)
+            background_loop(window, root)
         except Exception:
             traceback.print_exc()
             failures.append("exception")
-        finish(root)
+            finish(root)
         return None
 
     bpy.app.timers.register(drawn, first_interval=0.5)
+
+
+def background_loop(window, root):
+    """Build and check with a fake make on PATH that keeps running: the button starts it and returns, Blender's own
+    timer streams the output into the text while the panel keeps drawing the running state, and Cancel stops it.
+    Nothing here pumps the job by hand: only the add-on's timer moves output."""
+    bin_dir = tempfile.mkdtemp(prefix="werkstatt-fake-make-")
+    os.symlink(os.path.join(os.path.dirname(os.path.abspath(__file__)), "fake_make"), os.path.join(bin_dir, "make"))
+    os.environ["PATH"] = bin_dir + os.pathsep + os.environ["PATH"]
+    os.environ["FAKE_MAKE_SLOW"] = "1"
+    t = time.monotonic()
+    started = bpy.ops.werkstatt.run_loop()
+    took = time.monotonic() - t
+    check(started == {"FINISHED"} and took < 0.5, f"Build and check returns at once ({took:.2f} s)")
+    check(not bpy.ops.werkstatt.run_loop.poll(), "the button is off while the loop runs")
+    ticks = [0]
+
+    def watch():
+        ticks[0] += 1
+        for a in window.screen.areas:
+            a.tag_redraw()
+        text = bpy.data.texts.get(loop.LOG_TEXT)
+        streamed = text is not None and "step 3" in text.as_string()
+        if not streamed and ticks[0] < 40:
+            return 0.2
+        try:
+            running = [d for d in loop_draws if d[0] == "running"]
+            check(streamed, "Blender's timer streams the output into the text while the loop runs")
+            check(len(running) >= 2 and running[-1][1] > running[0][1],
+                  f"the panel keeps drawing the running state, its time going up ({len(running)} draws)")
+            check(bpy.ops.werkstatt.cancel_loop() == {"FINISHED"}, "Cancel stops it")
+        except Exception:
+            traceback.print_exc()
+            failures.append("exception")
+        bpy.app.timers.register(stopped, first_interval=0.2)
+        return None
+
+    def stopped():
+        job = loop.current()
+        if job is not None and job.ended is None and ticks[0] < 80:
+            ticks[0] += 1
+            return 0.2
+        check(job is not None and job.state == "cancelled", f"and the loop reads as cancelled: {job.state if job else None}")
+        shutil.rmtree(bin_dir, ignore_errors=True)
+        finish(root)
+        return None
+
+    bpy.app.timers.register(watch, first_interval=0.2)
 
 
 def undo(window, area):
