@@ -28,6 +28,8 @@ public static class LoaderCore
 {
     public const string PluginDll = "VehicleMods.dll";
     public const string Record = "deployed.json";
+    /// <summary>Under BepInEx/: where the loader compiles, so the checkout's bin/ is left alone; removed once used.</summary>
+    public const string BuildDir = "VehicleMods.build";
     static readonly string[] TruckIds = { "3000000001", "3000000002", "3000000003", "3000000004" };
     static readonly string[] BuildInputs = { "Directory.Build.props", "Directory.Build.targets", "global.json" };
 
@@ -121,6 +123,8 @@ public static class LoaderCore
         finally
         {
             s.Ui?.End();
+            try { Directory.Delete(Path.Combine(s.BepInExDir, BuildDir), true); }
+            catch (DirectoryNotFoundException) { }
         }
         if (candidate == null)
             return CantStart(s, why);
@@ -184,8 +188,7 @@ public static class LoaderCore
             return (null, container
                 ? "no .NET SDK is visible inside Steam's runtime container (looked in ~/.dotnet and the host's /usr; a Flatpak Steam can't see the host's)"
                 : "the .NET SDK wasn't found");
-        // Built into a folder of the loader's own, so the checkout's bin/ is left alone whatever happens.
-        var output = Path.Combine(s.BepInExDir, "VehicleMods.build");
+        var output = Path.Combine(s.BepInExDir, BuildDir);
         if (Directory.Exists(output))
             Directory.Delete(output, true);
         var args = new[] { "build", project, "-c", "Release", "-nologo", "-v", "minimal", "-m:1", "-nodeReuse:false",

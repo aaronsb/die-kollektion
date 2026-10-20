@@ -184,9 +184,9 @@ static class Program
         var checkoutBuild = Path.Combine(compiled.Werkstatt, "plugins", "VehicleMods", "bin", "Release", "net6.0", "VehicleMods.dll");
         Fake.Write(checkoutBuild, "the checkout's own build");
         r = compiled.Run();
-        Check("without a fitting prebuilt plugin the checkout is compiled, into the loader's own folder",
+        Check("without a fitting prebuilt plugin the checkout is compiled, into the loader's own folder, removed afterwards",
               r.Outcome == LoaderCore.Outcome.Load && compiled.Installed == "plugin built for v2" && compiled.Record["afterUpdate"]["how"].GetValue<string>() == "compiled"
-              && File.ReadAllText(checkoutBuild) == "the checkout's own build",
+              && File.ReadAllText(checkoutBuild) == "the checkout's own build" && !Directory.Exists(Path.Combine(compiled.BepInEx, LoaderCore.BuildDir)),
               $"{r.Outcome} {r.Message} {compiled.Installed}");
 
         var changed = F("sources-changed");
@@ -256,7 +256,7 @@ static class Program
         File.Delete(Path.Combine(nohash.BepInEx, "interop", "assembly-hash.txt"));
         r = nohash.Run();
         Check("a missing interop hash can't tell: no rebuild", r.Outcome == LoaderCore.Outcome.Quit && !nohash.Ui.Calls.Contains("begin")
-              && !Directory.Exists(Path.Combine(nohash.BepInEx, "VehicleMods.build")), $"{r.Outcome} {r.Message} [{nohash.Ui}]");
+              && !Directory.Exists(Path.Combine(nohash.BepInEx, LoaderCore.BuildDir)), $"{r.Outcome} {r.Message} [{nohash.Ui}]");
 
         var odd = F("non-string");
         odd.WriteRecord(null, JsonValue.Create(42));
