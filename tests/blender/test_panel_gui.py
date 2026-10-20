@@ -87,12 +87,19 @@ def main():
     bpy.utils.register_class(WERKSTATT_PT_gui_test)
     opened = api.open_vehicle(VEHICLE, show=["BashBar_01"])
     check(opened["ok"], f"the vehicle opens in a window: {opened.get('error')}")
+    window, area = view3d()
+    check(area is not None, "Blender has a 3D view")
+    shading = area.spaces.active.shading
+    check(opened["atlas"] and shading.type == "SOLID" and shading.color_type == "TEXTURE",
+          f"with the atlas, open switches Solid shading's colour from Material to Texture: {shading.color_type}")
+    shading.color_type = "MATERIAL"
+    api.open_vehicle(VEHICLE, show=["BashBar_01"], force=True)
+    check(shading.color_type == "MATERIAL", "once: a view switched back stays so on the next open")
+    shading.color_type = "TEXTURE"
     ui.refresh_items(bpy.context)                        # the list's first rows: the Performance slot groups and options
     api.frame("BashBar_01")
     bar = api._empty("BashBar_01")
     bar.rotation_mode = "XYZ"                            # as Blender's R key can leave it
-    window, area = view3d()
-    check(area is not None, "Blender has a 3D view")
     area.spaces.active.show_region_ui = True
     ticks = [0]
 

@@ -164,7 +164,8 @@ class WERKSTATT_OT_open_vehicle(bpy.types.Operator):
             return {"CANCELLED"}
         result = api.open_vehicle(name, force=self.force)
         refresh_vehicles()
-        return _report(self, result, lambda r: f"Opened {r['codename']}: {r['options']} upgrade options, {r['placements']} placements")
+        return _report(self, result, lambda r: f"Opened {r['codename']}: {r['options']} upgrade options, {r['placements']} placements"
+                                               + (f". {r['atlas_note']}" if r["atlas_note"] else ""))
 
 
 class WERKSTATT_OT_nudge(_NodeOp, bpy.types.Operator):
@@ -381,6 +382,8 @@ class WERKSTATT_PT_panel(bpy.types.Panel):
         if not status.get("vehicle"):
             return
         layout.label(text=f"Open: {status['vehicle']}", icon="AUTO")
+        if status.get("atlas_note"):
+            layout.label(text=status["atlas_note"], icon="INFO")
 
         col = layout.column()
         row = col.row(align=True)

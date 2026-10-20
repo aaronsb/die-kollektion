@@ -1,4 +1,5 @@
-"""Bakes a car's atlas the way the game's car shader appears to shade it, for offline renders.
+"""Bakes a car's atlas the way the game's car shader appears to shade it, for offline renders and the Blender add-on;
+`make extract` and `make contact` run it for every donor.
 
 Usage: python3 tools/composite_atlas.py <Donor> [--tint r,g,b]    e.g. Mammoth -> extracted/textures/Mammoth_composite.png
 
@@ -35,7 +36,15 @@ def composite(donor, tint=None):
         paint = mask[:, :, 2] > 127
         out[paint] = np.clip(out[paint] * np.array(tint) * 2.0, 0, 255)
     path = os.path.join(textures, f"{donor}_composite.png")
-    Image.fromarray(out.astype(np.uint8)).save(path)
+    # Written under a temporary name and renamed, so an interrupted run leaves the old composite or none, never a
+    # partial PNG (Blender loads one as an empty image).
+    part = path + ".part"
+    try:
+        Image.fromarray(out.astype(np.uint8)).save(part, format="PNG")
+        os.replace(part, path)
+    finally:
+        if os.path.exists(part):
+            os.remove(part)
     return path, int(glass.sum())
 
 

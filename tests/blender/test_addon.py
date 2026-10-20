@@ -546,6 +546,126 @@ def axles(root):
         transformed(name, v)
 
 
+def texel(img, uv):
+    """The image's 8-bit RGB at a UV (Blender's pixels start at the bottom-left, as UVs do)."""
+    w, h = img.size
+    px = np.empty(w * h * 4, dtype=np.float32)
+    img.pixels.foreach_get(px)
+    i = (min(h - 1, int(uv[1] * h)) * w + min(w - 1, int(uv[0] * w))) * 4
+    return tuple(int(round(c * 255)) for c in px[i:i + 3])
+
+
+def image_of(obj):
+    nodes = obj.active_material.node_tree.nodes if obj.active_material and obj.active_material.node_tree else []
+    return next((n.image for n in nodes if n.bl_idname == "ShaderNodeTexImage"), None)
+
+
+# Each of our cab's material classes, the mask class its atlas point sits on (tools/composite_atlas.py's rule).
+CAB_CLASSES = {"Glass": "glass", "Paint": "paint", "Hood": "paint", "Lamp": "lamp", "HeadlampLens": "lamp",
+               "Amber": "lamp", "Black": "none"}
+COMPOSITE_GLASS = (38, 40, 44)
+
+
+def mask_class(rgb):
+    """The mask's class at a texel: blue = paint, red with green = lamp, green alone = glass."""
+    r, g, b = (c > 127 for c in rgb)
+    return "paint" if b else "lamp" if r and g else "glass" if g else "none"
+
+
+def textures(root):
+    """The game's atlas on the parts that carry its UVs (#48): the body, our cab's atlas points included, the axles
+    and the wheel references show extracted/textures/<Donor>_composite.png, referenced by path, and keep their flat
+    colour for Solid's Material colour and the review views. Without the composite, or with one Blender can't read,
+    they show the bare livery, and without either the scene is flat; a note says which. Each case on a fresh
+    scratch checkout."""
+    out = tempfile.mkdtemp(prefix="werkstatt-review-")
+    views = {}
+    comp, skin, masks = "Mammoth_composite.png", "Mammoth_skin00.png", "Mammoth_masks.png"
+    rel = lambda name: f"extracted/textures/{name}"
+    real_composite = os.path.join(root, "extracted", "textures", comp)
+    junk = {comp: open(real_composite, "rb").read()[:100],             # a truncated PNG, as an interrupted write left
+            skin: b"not an image"}
+    # (case, files linked, files written as junk, the atlas shown, the note)
+    cases = (("composite", [comp, skin, masks], [], comp, None),
+             ("older extract", [skin, masks], [], skin, f"Windows in the livery's colour: no {rel(comp)} (run `make extract`)"),
+             ("junk composite", [skin, masks], [comp], skin,
+              f"Windows in the livery's colour: {rel(comp)} can't be read (run `make extract`)"),
+             ("donor without masks", [skin], [], skin, f"Windows in the livery's colour: no {rel(masks)} to composite the glass from"),
+             ("junk composite and livery", [masks], [comp, skin], None,
+              f"Flat colours: neither {rel(comp)} nor {rel(skin)} can be read (run `make extract`)"),
+             ("no textures", [], [], None, f"Flat colours: no {rel(comp)} (run `make extract`)"))
+    try:
+        for case, links, junked, atlas, note in cases:
+            checkout = scratch_checkout([VEHICLE], textures=links)
+            textures_dir = os.path.join(checkout, "extracted", "textures")
+            for name in junked:
+                os.makedirs(textures_dir, exist_ok=True)
+                with open(os.path.join(textures_dir, name), "wb") as f:
+                    f.write(junk[name])
+            os.environ["WERKSTATT_DIR"] = checkout
+            try:
+                r = api.open_vehicle(VEHICLE, show=["BashBar_01"], force=True)
+                check(r["ok"] and r["atlas"] == (atlas and rel(atlas)) and r["atlas_note"] == note,
+                      f"{case}: atlas {r.get('atlas')}, note {r.get('atlas_note')!r}")
+                check(api.status().get("atlas_note") == note, f"{case}: the panel's status carries the same note")
+                check(not any(i.size[0] == 0 for i in bpy.data.images if i.get("werkstatt")
+                              or os.path.dirname(bpy.path.abspath(i.filepath)) == textures_dir),
+                      f"{case}: no unreadable image is left loaded")
+                objs = [o for o in bpy.context.scene.objects if o.type == "MESH"]
+                body = next(o for o in objs if o.get("werkstatt_part") == "body")
+                img = image_of(body)
+                check(close(body.active_material.diffuse_color, scene.KIND_COLOURS["body"], 1e-6),
+                      f"{case}: the body keeps its flat colour as the viewport colour, which the review views draw")
+                views[case] = api.review_views("BashBar_01", os.path.join(out, case.replace(" ", "_")))["views"]
+                if not atlas:
+                    check(not any(image_of(o) for o in objs), f"{case}: no mesh shows an image")
+                    continue
+                check(img is not None and bpy.path.abspath(img.filepath) == os.path.join(textures_dir, atlas)
+                      and img.packed_file is None, f"{case}: the body's material references {atlas} by path, unpacked: {img and img.filepath}")
+                if atlas != comp:
+                    continue
+                for what, pick in (("axles", lambda o: o.get("werkstatt_part") == "axle"),
+                                   ("wheel references", lambda o: o.get("werkstatt_reference"))):
+                    group = [o for o in objs if pick(o)]
+                    check(group and all(image_of(o) == img and o.data.uv_layers for o in group), f"the {what} show the atlas too ({len(group)})")
+                refs = {o.active_material for o in objs if o.get("werkstatt_reference")}
+                check(len(refs) == 1 and len([n for n in refs.pop().node_tree.nodes if n.bl_idname == "ShaderNodeTexImage"]) == 1,
+                      "the wheel references share one material with one image node")
+                for what, pick in (("colliders", lambda o: o.get("werkstatt_part") == "collider"), ("ghost meshes", lambda o: o.get("werkstatt_ghost")),
+                                   ("upgrade meshes", lambda o: o.get("werkstatt_mesh_of"))):
+                    group = [o for o in objs if pick(o)]
+                    check(group and not any(image_of(o) for o in group), f"the {what} stay flat ({len(group)})")
+                # Our cab maps each material class of its master to one atlas point. Each point sits on its class in
+                # the masks, and through the composite the glass shades dark as in game while the paint, the lamps
+                # and the black keep the livery's colour there.
+                master = os.path.join(checkout, "vehicles", VEHICLE, "meshes", f"cab_{VEHICLE}_LOD0.obj")
+                classes = {name: uvs[0][0] for name, (_v, _f, uvs) in scene.read_obj(master).items()} if os.path.isfile(master) else {}
+                loops = {tuple(round(c, 5) for c in d.uv) for d in body.data.uv_layers.active.data}
+                check(set(classes) == set(CAB_CLASSES) and all(tuple(round(c, 5) for c in uv) in loops for uv in classes.values()),
+                      f"the body carries the cab's atlas points ({sorted(classes)})")
+                maps = {name: bpy.data.images.load(os.path.join(textures_dir, name), check_existing=False) for name in (skin, masks)}
+                try:
+                    for name, uv in sorted(classes.items()):
+                        want = CAB_CLASSES.get(name)
+                        got, shown, livery = mask_class(texel(maps[masks], uv)), texel(img, uv), texel(maps[skin], uv)
+                        expect = COMPOSITE_GLASS if want == "glass" else livery
+                        check(got == want and shown == expect,
+                              f"the cab's {name} sits on the masks' {want} ({got}) and shows {expect} ({shown})")
+                finally:
+                    for i in maps.values():
+                        bpy.data.images.remove(i)
+                api.open_vehicle(VEHICLE, show=["BashBar_01"], force=True)
+                check(len([i for i in bpy.data.images if i.get("werkstatt")]) == 1, "reopening loads the atlas once")
+            finally:
+                os.environ["WERKSTATT_DIR"] = root
+                shutil.rmtree(checkout, ignore_errors=True)
+        flat = views["no textures"]
+        check(all(same_view(flat[k], p) for v in views.values() for k, p in v.items()),
+              "the review views draw the flat colours: whatever the textures, they show the same")
+    finally:
+        shutil.rmtree(out, ignore_errors=True)
+
+
 def transformed(name, v):
     """The definition's transforms, which the plugin applies after the sweep: each node at its position, an upgrade
     group's items and meshes carried along, and the centre of mass at its share of the new wheelbase. Expected
@@ -571,7 +691,7 @@ def transformed(name, v):
                 meshes = [o for o in empties[option].children_recursive if o.type == "MESH" and o.get("werkstatt_mesh_of") in own]
                 lo, hi = game_box(meshes)
                 centre = [(a + b) / 2 for a, b in zip(lo, hi)]
-                verts = [model.blender_to_game(p) for _, (vs, _f) in own.items() for p in vs]
+                verts = [model.blender_to_game(p) for _, (vs, *_) in own.items() for p in vs]
                 donor_centre = [(min(p[i] for p in verts) + max(p[i] for p in verts)) / 2 for i in range(3)]
                 shift = [a - b for a, b in zip(world_game(empties[option]), raw[option]["position"])]
                 check(close(centre, [c + d for c, d in zip(donor_centre, shift)], 2e-3),
@@ -771,6 +891,7 @@ def main():
         api.delete_copy(copy["node"])
         api.save()
         refusals(root, path)
+        textures(root)
         axles(root)
         loop_job(root)
         # Reload Scripts re-runs the package's __init__, which reloads every submodule too.

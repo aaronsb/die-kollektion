@@ -37,45 +37,97 @@ SLOT_COLOURS = [(0.85, 0.25, 0.2, 1.0), (0.2, 0.7, 0.3, 1.0), (0.25, 0.45, 0.9, 
                 (0.7, 0.3, 0.8, 1.0), (0.15, 0.75, 0.75, 1.0), (0.9, 0.5, 0.15, 1.0)]
 
 
-# ---- OBJ reading (positions and faces only; our OBJs carry extension lines Blender's importer warns about)
+# ---- OBJ reading (positions, faces and UVs; our OBJs carry extension lines Blender's importer warns about)
 
 def read_obj(path):
-    """{object name: (vertices, faces)} with vertices in Blender axes; one entry per 'o' block, '' for none."""
-    out, verts, faces, name, base = {}, [], [], "", 0
-    all_verts = []
+    """{object name: (vertices, faces, uvs)} with vertices in Blender axes; one entry per 'o' block, '' for none.
+    uvs holds each face's corner UVs, or is None when a corner has none (the upgrade meshes carry none yet)."""
+    out, verts, faces, corner_uvs, name = {}, [], [], [], ""
+    all_verts, all_uvs = [], []
     with open(path, encoding="utf-8") as f:
         for line in f:
             if line.startswith("v "):
                 x, y, z = (float(v) for v in line.split()[1:4])
                 all_verts.append((x, -z, y))           # OBJ (x, y up, z forward) -> Blender
+            elif line.startswith("vt "):
+                all_uvs.append(tuple(float(v) for v in line.split()[1:3]))
             elif line.startswith("f "):
-                faces.append([int(p.split("/")[0]) - 1 for p in line.split()[1:]])
+                corners = [p.split("/") for p in line.split()[1:]]
+                faces.append([int(c[0]) - 1 for c in corners])
+                corner_uvs.append([int(c[1]) - 1 if len(c) > 1 and c[1] else None for c in corners])
             elif line.startswith("o "):
                 if faces:
-                    out[name] = _gather(all_verts, faces)
-                name, faces = line[2:].strip(), []
+                    out[name] = _gather(all_verts, faces, all_uvs, corner_uvs)
+                name, faces, corner_uvs = line[2:].strip(), [], []
     if faces:
-        out[name] = _gather(all_verts, faces)
+        out[name] = _gather(all_verts, faces, all_uvs, corner_uvs)
     return out
 
 
-def _gather(all_verts, faces):
+def _gather(all_verts, faces, all_uvs, corner_uvs):
     used = sorted({i for face in faces for i in face})
     index = {old: new for new, old in enumerate(used)}
-    return [all_verts[i] for i in used], [[index[i] for i in face] for face in faces]
+    uvs = None
+    if all(i is not None for face in corner_uvs for i in face):
+        uvs = [[all_uvs[i] for i in face] for face in corner_uvs]
+    return [all_verts[i] for i in used], [[index[i] for i in face] for face in faces], uvs
 
 
-def material(name, rgba):
+# ---- materials: flat colours, and the donor's atlas on the parts that carry its UVs
+
+def atlas_image(path):
+    """The atlas as an image datablock that references the file (the add-on never packs it), loaded once. Raises
+    RuntimeError when Blender can't read it: a missing file raises in images.load, but a junk or truncated PNG loads
+    as a 0 x 0 image, which would draw as the missing-texture magenta."""
+    for img in bpy.data.images:
+        if img.get("werkstatt") and bpy.path.abspath(img.filepath) == path:
+            return img
+    img = bpy.data.images.load(path)
+    if img.size[0] == 0:
+        bpy.data.images.remove(img)
+        raise RuntimeError("not a readable image")
+    img["werkstatt"] = True
+    return img
+
+
+def material(name, rgba, image=None):
+    """A material showing rgba, or the image through the mesh's UVs. Its viewport colour stays rgba either way:
+    Solid shading's Material colour and the review views (review.py) draw that; the Texture colour and Material
+    Preview draw the image."""
     m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
     m.diffuse_color = rgba
+    if not m.node_tree:
+        m.use_nodes = True       # Blender before 5.0; from 5.0 every material has its node tree
+    nodes = m.node_tree.nodes
+    bsdf = next((n for n in nodes if n.bl_idname == "ShaderNodeBsdfPrincipled"), None)
+    if bsdf is None:
+        return m
+    bsdf.inputs["Base Color"].default_value = rgba
+    texs = [n for n in nodes if n.bl_idname == "ShaderNodeTexImage"]
+    if image is not None and len(texs) == 1 and texs[0].image == image:
+        return m                             # built already: the meshes of a part, and the wheel references, share it
+    for n in texs:
+        nodes.remove(n)
+    if image is not None:
+        tex = nodes.new("ShaderNodeTexImage")
+        tex.image = image
+        tex.interpolation = "Closest"        # atlas points are single flat-coloured spots, as the contact sheets draw them
+        m.node_tree.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+        nodes.active = tex                   # Solid shading's Texture colour shows the active image node
     return m
 
 
-def mesh_object(name, verts, faces, collection, colour_name, rgba, offset=(0.0, 0.0, 0.0)):
+def mesh_object(name, verts, faces, collection, colour_name, rgba, offset=(0.0, 0.0, 0.0), uvs=None, image=None):
+    """A mesh object in collection; with uvs and an image, it shows the image through those UVs."""
     mesh = bpy.data.meshes.new(name)
     mesh.from_pydata([(v[0] - offset[0], v[1] - offset[1], v[2] - offset[2]) for v in verts], [], faces)
     mesh.update()
-    mesh.materials.append(material(colour_name, rgba))
+    if uvs is not None and image is not None:
+        layer = mesh.uv_layers.new(name="UVMap")
+        layer.data.foreach_set("uv", [c for face in uvs for uv in face for c in uv])
+        mesh.materials.append(material(f"{colour_name}.atlas", rgba, image))
+    else:
+        mesh.materials.append(material(colour_name, rgba))
     mesh["werkstatt"] = True
     obj = bpy.data.objects.new(name, mesh)
     collection.objects.link(obj)
@@ -126,6 +178,9 @@ def clear():
     for mat in list(bpy.data.materials):
         if mat.users == 0 and mat.name.startswith("werkstatt."):
             bpy.data.materials.remove(mat)
+    for img in list(bpy.data.images):
+        if img.users == 0 and img.get("werkstatt"):
+            bpy.data.images.remove(img)
 
 
 def _remove_collection(c):
@@ -137,13 +192,27 @@ def _remove_collection(c):
 
 
 def build(vehicle, show=()):
-    """Builds the vehicle's scene; returns the root collection. Options in `show` start visible."""
+    """Builds the vehicle's scene; returns the root collection. Options in `show` start visible. The body, axles
+    and wheel references show the donor's atlas when it is extracted (model.Vehicle.atlas); the root collection's
+    werkstatt_atlas names the image ("" for none) and werkstatt_atlas_note says what is missing."""
     clear()
     scene = bpy.context.scene
     root = bpy.data.collections.new(ROOT_PREFIX + vehicle.codename)
     scene.collection.children.link(root)
     root["werkstatt_vehicle"] = vehicle.name
     root["werkstatt_root"] = vehicle.root
+    unreadable = set()
+    path, note = vehicle.atlas()
+    image = None
+    while path:
+        try:
+            image = atlas_image(path)
+            break
+        except RuntimeError:               # a file Blender can't read: the next one down, the livery or flat colours
+            unreadable.add(path)
+            path, note = vehicle.atlas(unreadable)
+    root["werkstatt_atlas"] = os.path.relpath(path, vehicle.root) if path else ""
+    root["werkstatt_atlas_note"] = note or ""
 
     body_obj = None
     for name, path, file, kind in vehicle.part_files():
@@ -151,8 +220,9 @@ def build(vehicle, show=()):
         part["werkstatt_part"] = kind
         part["werkstatt_node"] = path
         part["werkstatt_source"] = os.path.relpath(file, vehicle.root)
-        for obj_name, (verts, faces) in read_obj(file).items():
-            obj = mesh_object(name, verts, faces, part, f"werkstatt.{kind}", KIND_COLOURS[kind])
+        for obj_name, (verts, faces, uvs) in read_obj(file).items():
+            obj = mesh_object(name, verts, faces, part, f"werkstatt.{kind}", KIND_COLOURS[kind],
+                              uvs=uvs, image=image if kind != "collider" else None)
             # Built meshes are in the donor's root space, and the plugin maps them through the donor's layout
             # before the reshape moves their node (the rear axle and its springs go back with the sweep).
             obj.matrix_world = pose_matrix(vehicle.pose(path))
@@ -185,7 +255,7 @@ def build(vehicle, show=()):
         for file in (wheel_file, tyre_file):
             if not os.path.isfile(file):
                 continue
-            for _, (verts, faces) in read_obj(file).items():
+            for _, (verts, faces, uvs) in read_obj(file).items():
                 at = model.game_to_blender(position)
                 mirror = -1.0 if corner[1] == "L" else 1.0        # the left wheels face out the other way
                 # As the plugin's ScaleTyres: the fitted tyre over the donor's, radius on y and z, width on x.
@@ -194,7 +264,9 @@ def build(vehicle, show=()):
                 verts = [(v[0] * kx + at[0], v[1] * k + at[1], v[2] * k + at[2]) for v in verts]
                 if mirror < 0:
                     faces = [list(reversed(face)) for face in faces]
-                obj = mesh_object(f"{corner} {os.path.basename(file)[:-4]}", verts, faces, refs, "werkstatt.reference", KIND_COLOURS["reference"])
+                    uvs = uvs and [list(reversed(face)) for face in uvs]
+                obj = mesh_object(f"{corner} {os.path.basename(file)[:-4]}", verts, faces, refs, "werkstatt.reference",
+                                  KIND_COLOURS["reference"], uvs=uvs, image=image)
                 obj.hide_select = True
                 obj["werkstatt_reference"] = os.path.relpath(file, vehicle.root)
 
@@ -204,7 +276,7 @@ def build(vehicle, show=()):
     ghost["werkstatt_ghost"] = True
     donor = vehicle.donor_body()
     if donor:
-        for _, (verts, faces) in read_obj(donor).items():
+        for _, (verts, faces, _uvs) in read_obj(donor).items():
             obj = mesh_object(f"Ghost {vehicle.donor}", verts, faces, ghost, "werkstatt.ghost", KIND_COLOURS["ghost"])
             obj.display_type = "WIRE"
             obj.hide_select = True
@@ -265,7 +337,7 @@ def _build_upgrades(vehicle, upgrades, show):
         file = vehicle.option_file(option)
         if not os.path.isfile(file):
             continue
-        for mesh_path, (verts, faces) in read_obj(file).items():
+        for mesh_path, (verts, faces, _uvs) in read_obj(file).items():
             owner = empties.get(mesh_path) or empty_parent(mesh_path)
             if owner is None:
                 continue
@@ -422,6 +494,29 @@ def set_ghost(shown, offset):
             obj.hide_set(not shown)
             obj.hide_render = not shown
             obj.location = (offset, 0.0, 0.0)
+
+
+# The 3D views show_textures switched this session, by address: a SpaceView3D isn't an ID, so it can't carry a
+# property. A view opened where a closed one was can reuse its address and is then left on Material, and Reload
+# Scripts empties the set, so a view switched back is switched again at the next Open. Either costs one shading
+# toggle, which is acceptable for a convenience.
+_switched = set()
+
+
+def show_textures():
+    """Switches each 3D view whose Solid shading colours by Material (Blender's default) to Texture, so the atlas
+    shows without a trip to the shading popover. Once per view and session: a view switched back stays so."""
+    for window in bpy.context.window_manager.windows:
+        for area in window.screen.areas:
+            if area.type != "VIEW_3D":
+                continue
+            space = area.spaces.active
+            if space.as_pointer() in _switched:
+                continue
+            _switched.add(space.as_pointer())
+            if space.shading.type == "SOLID" and space.shading.color_type == "MATERIAL":
+                space.shading.color_type = "TEXTURE"
+                area.tag_redraw()
 
 
 def root_collection():
