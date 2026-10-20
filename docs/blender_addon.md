@@ -60,7 +60,7 @@ To see it in game:
 
 ## Scripts and agents
 
-Every panel action has a scriptable equivalent, so an agent can look, nudge and save through the Blender MCP server (`execute_blender_code`), with its screenshot tools to look.
+Every panel action has a scriptable equivalent, so an agent can look, nudge, measure and save through the Blender MCP server (`execute_blender_code`), with its screenshot tools to look.
 
 - **Operators** take plain arguments:
   - `bpy.ops.werkstatt.open_vehicle(name="megaloceros")`
@@ -77,6 +77,7 @@ Every panel action has a scriptable equivalent, so an agent can look, nudge and 
   - `duplicate(node)`, `delete_copy(node)`
   - `frame(node)`, which selects the item, points the view at it and returns its centre and size in game metres
   - `ghost(shown, offset)`, `save(force=False)`, `run_loop()`
+  - `clearance(node, reach=0.5, move=None)` and `review_views(node, out_dir)`, for the loop below
 
   A node is a full node path or any unique end of one (`Winch_01`, `RoofSpare/RoofrackFlatA`); an ambiguous name lists its matches.
 
@@ -91,6 +92,31 @@ api.nudge("Visual/Roof", "y", 2, "cm")      # the roof slot group: every roof it
 api.placement("Visual/Roof")                # {'ok': True, 'offset': [0.0, 0.02, 0.0], ...}
 api.save()                                  # {'ok': True, 'file': 'vehicles/megaloceros/placements.json', 'result': 'written', ...}
 ```
+
+### The agent loop: look, nudge, review, save
+
+For an agent fitting an item, the loop is: measure, nudge by what the measurement says, measure again, look at the same views, save.
+
+- `api.clearance(node)` measures the item, in game metres, against what it can hit: the body and axle parts, the wheels and tyres, and every other option that is shown. A slot group counts its shown options only.
+  - **Clear:** `{"intersecting": False, "inside": False, "gap": 0.004, "touches": "body_LOD0", "at": [...]}`. The gap is measured from vertices to surfaces both ways, so where an edge passes an edge it can read a little more than the true gap.
+  - **Crossing or inside:** `{"intersecting": True, "penetration": 0.223, "direction": "up", "clear_by": ["y", 1], "offset_delta": [0, 0.223, 0], "depths": {...}}`. `intersecting` means surfaces cross. `inside` means the item sits wholly inside something (a rack lowered into the cab) with no surface crossing, and then no gap is reported. The penetration is the smallest move along one truck axis after which the item neither crosses nor sits inside anything, checked by moving it and testing again. A thin shell such as the cab roof can't be "cleared" by dropping the item into the hollow cab: that candidate is refused. With no such move within `reach` (default 0.5 m), `penetration` is None and a `note` says so.
+
+  `clear_by` is the axis and sign for `api.nudge`, `nudge_by` the nudge's length in metres, and `offset_delta` the change to the offset, all in the frame of the node you'll move: the item, or one of its parents given as `move=` (its slot group, say), whose placed ancestors may turn or scale its nudges. Under a scaled frame `nudge_by` differs from `penetration`. When the move isn't along one axis of that frame, `clear_by` is None: add `offset_delta` to its offset with `set_placement`. `depths` holds every direction's move (None where none within `reach` clears).
+- `api.review_views(node, out_dir)` renders front, side, top and three-quarter views framed on the item, always as 1200×900 PNGs with the same studio lighting, colour management and no dither, border or date stamps, whatever the scene was set to (its own settings come back afterwards). The same pose gives byte-identical files, so successive nudges compare like with like.
+
+```python
+from werkstatt_addon import api
+api.open_vehicle("megaloceros", show=["Roof/RoofSpare"])
+c = api.clearance("RoofSpare/RoofrackFlatA", move="Visual/Roof")
+# {'intersecting': True, 'penetration': 0.2228, 'direction': 'up', 'clear_by': ['y', 1], 'nudge_by': 0.2228, ...}
+axis, sign = c["clear_by"]
+api.nudge("Visual/Roof", axis, sign * (round(c["nudge_by"] * 1000) + 3), "mm")   # the whole roof slot, plus 3 mm
+api.clearance("RoofSpare/RoofrackFlatA")     # {'intersecting': False, 'gap': 0.003, ...}
+api.review_views("RoofSpare/RoofrackFlatA", "/tmp/rack")   # read the four PNGs; compare with the last round
+api.save()
+```
+
+Judge the fit by eye too: a winch whose mesh runs half a metre deep into the bumper clears only 0.45 m forward, which is no fit. Clearance says where the geometry is, not what looks right.
 
 `tests/blender/test_addon.py` runs the same calls headless (`blender -b`), on a scratch copy of the vehicle folders, and checks every built truck's axles, wheels and wheel arches against the plugin's spawn positions; `tests/blender/test_panel_gui.py` draws the panel in a real window under Xvfb and checks undo. `make check` runs both when Blender (and `xvfb-run`) are installed.
 
