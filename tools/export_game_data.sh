@@ -2,11 +2,11 @@
 # Extract the game data the build reads from the player's own install into the gitignored folders:
 # the Mammoth donor meshes and its wheel for spare previews (extracted/mammoth/), the mechanic truck
 # (extracted/merchant/), the atlas maps, each donor's composite (tools/composite_atlas.py) and the stock icon
-# (extracted/textures/, extracted/icons/), and the
-# Mammoth prefab's node facts for contact sheets (extracted/mammoth/nodes.json), and for every other stock
-# car a vehicle folder names as its donor (a patch such as vehicles/dingding/), that car's body, colliders,
-# node facts and atlas maps (tools/export_donor.py); each donor's upgrade nodes, parts and option meshes for
-# placements and the Blender add-on (extracted/<donor>/upgrades.json, tools/export_upgrades.py); and every car's parts list, for `make save-test`
+# (extracted/textures/, extracted/icons/), and the Mammoth prefab's node facts for contact sheets
+# (extracted/mammoth/nodes.json); for every other stock car a vehicle folder names as its donor (a patch such
+# as vehicles/dingding/), that car's body, colliders, node facts and atlas maps (tools/export_donor.py); each
+# donor's upgrade nodes, parts and option meshes for placements and the Blender add-on
+# (extracted/<donor>/upgrades.json, tools/export_upgrades.py); and every car's parts list, for `make save-test`
 # (extracted/parts.json, tools/export_parts.py).
 # Nothing under extracted/ is ever committed. Needs a Python with UnityPy (PYTHON, default .venv/bin/python).
 # Usage: tools/export_game_data.sh [<game folder>]   (default: GAME_DIR, else Steam's default library)
@@ -47,7 +47,11 @@ for donor in $("$py" -I -c 'import glob, json; print(" ".join(sorted({json.load(
     "$py" -I tools/export_named_mesh.py "$cars" "extracted/$(echo "$donor" | tr '[:upper:]' '[:lower:]')" 1 0 0 0 \
         "${donor}_tyre_LOD0" "${donor}_wheel_LOD0"
 done
-# Each atlas as the game shades it (glass dark), for the Blender add-on and the contact sheets.
+# Each atlas as the game shades it (glass dark), for the Blender add-on and the contact sheets. A donor without
+# masks gets none (export_donor.py says so above); the add-on then shows its bare livery and a note.
 for skin in extracted/textures/*_skin00.png; do
-    "$py" -I tools/composite_atlas.py "$(basename "$skin" _skin00.png)"
+    [ -f "$skin" ] || continue                  # no livery extracted: the glob stayed unmatched
+    d="$(basename "$skin" _skin00.png)"
+    [ -f "extracted/textures/${d}_masks.png" ] || { echo "$d: no ${d}_masks.png, no composite (the add-on shows the bare livery)"; continue; }
+    "$py" -I tools/composite_atlas.py "$d"
 done

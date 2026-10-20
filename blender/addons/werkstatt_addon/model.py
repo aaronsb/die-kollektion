@@ -624,20 +624,29 @@ class Vehicle:
         f = os.path.join(self.extracted, f"Parts__{self.donor}__{self.donor}_body_LOD0.obj")
         return f if os.path.isfile(f) else None
 
-    def atlas(self):
+    def atlas(self, unreadable=()):
         """(image path or None, note or None): the donor's atlas for the parts that carry its UVs. The composite
         (tools/composite_atlas.py, which `make extract` runs) is the livery with the glass shaded dark, as the game
         draws it; the bare livery (<Donor>_skin00) shows the windows in the livery's colour, so the note says so.
-        With neither, the scene keeps flat colours and the note says what to run."""
+        With neither, the scene keeps flat colours and the note says what to run. Files in unreadable (ones
+        Blender couldn't load) count as missing, and the note names them."""
         textures = os.path.join(self.root, "extracted", "textures")
         composite = os.path.join(textures, f"{self.donor}_composite.png")
-        if os.path.isfile(composite):
-            return composite, None
         skin = os.path.join(textures, f"{self.donor}_skin00.png")
-        want = os.path.relpath(composite, self.root)
-        if os.path.isfile(skin):
-            return skin, f"Windows in the livery's colour: no {want} (run `make extract`)"
-        return None, f"Flat colours: no {want} (run `make extract`)"
+        masks = os.path.join(textures, f"{self.donor}_masks.png")
+        if os.path.isfile(composite) and composite not in unreadable:
+            return composite, None
+        rel = lambda p: os.path.relpath(p, self.root)
+        why = f"{rel(composite)} can't be read" if composite in unreadable else f"no {rel(composite)}"
+        if os.path.isfile(skin) and skin not in unreadable:
+            if not os.path.isfile(masks) and composite not in unreadable:
+                # make extract composites only a donor with masks (tools/export_game_data.sh), so it won't help
+                return skin, f"Windows in the livery's colour: no {rel(masks)} to composite the glass from"
+            return skin, f"Windows in the livery's colour: {why} (run `make extract`)"
+        if skin in unreadable:
+            why = (f"neither {rel(composite)} nor {rel(skin)} can be read" if composite in unreadable
+                   else f"no {rel(composite)}, and {rel(skin)} can't be read")
+        return None, f"Flat colours: {why} (run `make extract`)"
 
     def wheels(self):
         """(corner, game position, radius, width) for the wheel references: each corner's wheel node where the

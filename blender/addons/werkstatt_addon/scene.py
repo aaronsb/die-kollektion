@@ -76,11 +76,16 @@ def _gather(all_verts, faces, all_uvs, corner_uvs):
 # ---- materials: flat colours, and the donor's atlas on the parts that carry its UVs
 
 def atlas_image(path):
-    """The atlas as an image datablock that references the file (never packed into the .blend), loaded once."""
+    """The atlas as an image datablock that references the file (the add-on never packs it), loaded once. Raises
+    RuntimeError when Blender can't read it: a missing file raises in images.load, but a junk or truncated PNG loads
+    as a 0 x 0 image, which would draw as the missing-texture magenta."""
     for img in bpy.data.images:
         if img.get("werkstatt") and bpy.path.abspath(img.filepath) == path:
             return img
     img = bpy.data.images.load(path)
+    if img.size[0] == 0:
+        bpy.data.images.remove(img)
+        raise RuntimeError("not a readable image")
     img["werkstatt"] = True
     return img
 
@@ -98,7 +103,10 @@ def material(name, rgba, image=None):
     if bsdf is None:
         return m
     bsdf.inputs["Base Color"].default_value = rgba
-    for n in [n for n in nodes if n.bl_idname == "ShaderNodeTexImage"]:
+    texs = [n for n in nodes if n.bl_idname == "ShaderNodeTexImage"]
+    if image is not None and len(texs) == 1 and texs[0].image == image:
+        return m                             # built already: the meshes of a part, and the wheel references, share it
+    for n in texs:
         nodes.remove(n)
     if image is not None:
         tex = nodes.new("ShaderNodeTexImage")
@@ -193,13 +201,16 @@ def build(vehicle, show=()):
     scene.collection.children.link(root)
     root["werkstatt_vehicle"] = vehicle.name
     root["werkstatt_root"] = vehicle.root
+    unreadable = set()
     path, note = vehicle.atlas()
     image = None
-    if path:
+    while path:
         try:
             image = atlas_image(path)
-        except RuntimeError as e:          # a file Blender can't read
-            path, note = None, f"Flat colours: {os.path.relpath(path, vehicle.root)} can't be read ({e})"
+            break
+        except RuntimeError:               # a file Blender can't read: the next one down, the livery or flat colours
+            unreadable.add(path)
+            path, note = vehicle.atlas(unreadable)
     root["werkstatt_atlas"] = os.path.relpath(path, vehicle.root) if path else ""
     root["werkstatt_atlas_note"] = note or ""
 
@@ -485,7 +496,11 @@ def set_ghost(shown, offset):
             obj.location = (offset, 0.0, 0.0)
 
 
-_switched = set()       # the 3D views show_textures switched this session
+# The 3D views show_textures switched this session, by address: a SpaceView3D isn't an ID, so it can't carry a
+# property. A view opened where a closed one was can reuse its address and is then left on Material, and Reload
+# Scripts empties the set, so a view switched back is switched again at the next Open. Either costs one shading
+# toggle, which is acceptable for a convenience.
+_switched = set()
 
 
 def show_textures():

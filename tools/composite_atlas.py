@@ -36,7 +36,15 @@ def composite(donor, tint=None):
         paint = mask[:, :, 2] > 127
         out[paint] = np.clip(out[paint] * np.array(tint) * 2.0, 0, 255)
     path = os.path.join(textures, f"{donor}_composite.png")
-    Image.fromarray(out.astype(np.uint8)).save(path)
+    # Written under a temporary name and renamed, so an interrupted run leaves the old composite or none, never a
+    # partial PNG (Blender loads one as an empty image).
+    part = path + ".part"
+    try:
+        Image.fromarray(out.astype(np.uint8)).save(part, format="PNG")
+        os.replace(part, path)
+    finally:
+        if os.path.exists(part):
+            os.remove(part)
     return path, int(glass.sum())
 
 
