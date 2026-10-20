@@ -46,6 +46,34 @@ class Sources(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(r.stdout.strip(), ws.plugin_sources_hash(project, ROOT))
 
+    def test_the_hashes_agree_over_msbuild_inputs_above_the_project(self):
+        """The real tree has no Directory.Build.* or global.json, so both hashes are compared over a tree that has them,
+        with names whose ordinal and cultural orders differ."""
+        if ws.dotnet_sdk_major() < 6:
+            self.skipTest("tools/loader-plan needs a .NET SDK")
+        tmp = tempfile.mkdtemp(prefix="werkstatt-sources-")
+        self.addCleanup(shutil.rmtree, tmp)
+        project = os.path.join(tmp, "plugins", "VehicleMods")
+        for rel, text in (("Directory.Build.props", "<Project/>"), ("global.json", "{}"), ("plugins/Directory.Build.targets", "<Project/>"),
+                          ("plugins/VehicleMods/Plugin.cs", "class P {}"), ("plugins/VehicleMods/b.cs", "class B {}"),
+                          ("plugins/VehicleMods/_Z.cs", "class Z {}"), ("plugins/VehicleMods/VehicleMods.csproj", "<Project/>"),
+                          ("plugins/VehicleMods/bin/x.cs", "built")):
+            path = os.path.join(tmp, rel)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            open(path, "w").write(text)
+
+        def loader_hash():
+            r = subprocess.run(["dotnet", "run", "--project", "tools/loader-plan", "-v", "quiet", "--", "sources", project, tmp],
+                               cwd=ROOT, capture_output=True, text=True, timeout=300)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            return r.stdout.strip()
+
+        with_inputs = ws.plugin_sources_hash(project, tmp)
+        self.assertEqual(loader_hash(), with_inputs)
+        os.remove(os.path.join(tmp, "Directory.Build.props"))
+        self.assertNotEqual(ws.plugin_sources_hash(project, tmp), with_inputs)
+        self.assertEqual(loader_hash(), ws.plugin_sources_hash(project, tmp))
+
     def test_the_hash_follows_sources_only(self):
         tmp = tempfile.mkdtemp(prefix="werkstatt-sources-")
         self.addCleanup(shutil.rmtree, tmp)
