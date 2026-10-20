@@ -139,18 +139,18 @@ Then the author shares the refreshed pack the way they share anything (`pack`, a
 
 Sketch, for the author to react to. The main window:
 ```
-┌ Die Kollektion ───────────────────────────────────────────────── 0.x · Linux ┐
-│ Check  ✔ Game found, build N        ✔ BepInEx 6.0.0-be.789                   │
-│        ✔ Plugin fits this game      ✘ Launch option not set          [Fix]   │
+┌ Die Kollektion ───────────────────────────────────────────────── 0.x · Linux ─┐
+│ Check  ✔ Game found, build N        ✔ BepInEx 6.0.0-be.789                    │
+│        ✔ Plugin fits this game      ✘ Launch option not set          [Fix]    │
 │ [Start modded] [Start stock]  [Status] [Update] [Stock] [Remove the mod]      │
 ├ Vehicles ─────────────────────────────────────────────────────────────────────┤
 │ Das Megaloceros   Variant of a stock car  die-kollektion  on  ✔ played 10-20  │
 │  [Info] [Stats] [Edit] [Rebuild] [Preview] [Verify] [Refresh] [Off] [Delete]  │
-│ Das Mammoth       Stock car mod           workspace       on  … first play    │
+│ Mammoth           Stock car mod           workspace       on  … first play    │
 │  [Info] [Stats] [Edit] [Rebuild] [Preview] [Verify] [Refresh] [Off] [Delete]  │
 │ [ New… ]  [ Import… ]                                                         │
 ├───────────────────────────────────────────────────────────────────────────────┤
-│ [Settings]  [Install for this user]   ran: kollektion status            [Copy] │
+│ [Settings]  [Install for this user]   ran: kollektion status           [Copy] │
 └───────────────────────────────────────────────────────────────────────────────┘
 ```
 The other screens, each one form over one command:
