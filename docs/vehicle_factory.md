@@ -17,19 +17,18 @@
 
 People are picking the mod up, and most players want a turnkey mod experience like Minecraft's: install a loader once, drop mods in, play. Distribution is compiled artifacts.
 
-**First principle: keep setup and use on Linux (the author's own case) and Windows (most people's) as similar as possible.** Same steps, same order, same words on both: download one zip, run `kollektion` (the hub), Setup, Play. The hub and the CLI have identical screens, commands and messages on both OSes; per-OS differences live only in Core's platform layer, and each remaining one is named under Parity below. The layout under `<game>/BepInEx/` and `<mygames>/DieKollektion/` is the same on both.
+**First principle: keep setup and use on Linux (the author's own case) and Windows (most people's) as similar as possible.** Same steps, same order, same words on both: download one zip, run `kollektion` (the hub), Setup, then play (the hub's Start modded, or Steam's Play). The hub and the CLI have identical screens, commands and messages on both OSes; per-OS differences live only in Core's platform layer, and each remaining one is named under Parity below. The layout under `<game>/BepInEx/` and `<mygames>/DieKollektion/` is the same on both.
 
 | Tier | What they use | What they install |
 |---|---|---|
-| **Player** | The release zip: run `kollektion` → Setup → Play, or unzip it into the game folder over a BepInEx install by hand (no hub needed). Nexus carries the same zip | Nothing else: no Python, make, .NET SDK or Blender |
+| **Player** | The release zip: run `kollektion` → Setup → Start modded, or unzip it into the game folder over a BepInEx install by hand (no hub needed; Distribution). Nexus carries the same zip | Nothing else: no Python, make, .NET SDK or Blender |
 | **Tinkerer** | The hub: the mod's lifecycle, import and verify packs, turn items on and off, a vehicle's stats table, start modded or stock, names | Nothing else |
 | **Creator** | The hub's wizard and Edit, which open Blender with the Werkstatt add-on for geometry and fitting, and the user's image or vector editor for textures | Blender 5, and an editor of their choice |
 | Scripts and agents | The `kollektion` CLI: every hub action, by name | Nothing else |
 
 - **Players and creators need neither Python nor .NET.** The exe is self-contained, Blender carries its own Python, and the truck build moves into the plugin. Our Python tools stay internal, for building our own trucks.
-- **One engine, three faces.** Every hub action and every add-on action is a `kollektion` command, so the CLI, the hub and the add-on never differ, and an agent or a script can do what a click does. The add-on stops calling `make` (today "Build and check" runs `make loop`) once the CLI covers it.
+- **One engine, three faces.** The hub and the add-on both run `kollektion` commands (the hub's rule, The hub), so neither can do what the CLI can't. The add-on stops calling `make` (today "Build and check" runs `make loop`) once the CLI covers it.
 - **BepInEx stays out of our zip.** `kollektion setup` fetches the pinned, checksum-verified build (as `make bepinex` does today from `tools/bepinex.json`) and installs it.
-- **Windows** is supported only after a volunteer collaborator runs the release there (see Windows).
 
 | Minecraft | Die Kollektion |
 |---|---|
@@ -40,22 +39,22 @@ People are picking the mod up, and most players want a turnkey mod experience li
 | Datapacks | Packs are data: no code, no game assets |
 
 **What stands between today and the player tier:**
-1. **Trucks are built on the player's machine from their game by Python tools** (`make extract`, `make build`). The plugin must build them on first launch instead: Core's operations and donor reader, run on the plugin's background thread into the cache (Packs). The donor meshes can't be read from the loaded prefab (Research findings, "Reading donor meshes at run time"), so the plugin carries a managed bundle reader.
+1. **Trucks are built on the player's machine from their game by Python tools** (`make extract`, `make build`). The plugin must build them on first launch instead: Core's operations and its managed bundle reader (Architecture; Research findings, "Reading donor meshes at run time"), run on the plugin's background thread into the cache (Packs).
 2. **A plugin built against old interop hangs the game.** The loader rebuilds it with the .NET SDK, which players won't have, and CI can't compile the plugin (the interop is generated from the game). So a maintainer with the game publishes a release per game update (`tools/release.py build`), and between an update and that release a player's game runs stock or, with our trucks in the save, closes with the loader's message (`docs/engine.md`, BepInEx). **[research]** Why a stale plugin hangs: if the cause is narrow (a type or signature our code touches that the update changed), a release might survive minor updates.
-3. **Windows** has never been run (see Windows).
+3. **Windows** has never been run, and today's loader and plugin would fail there in three ways (Windows).
 
 ### Parity: the OS differences and how each is hidden
 
 | Difference | Linux | Windows | Hidden by |
 |---|---|---|---|
 | Steam launch option | `"./run_bepinex.sh" %command%` is required | None: Doorstop's `winhttp.dll` beside the exe loads on a plain Steam Play | Setup sets it (below); when it can't, the hub shows the exact line with a Copy button and the click path |
-| Start stock | `enabled="0"` in `run_bepinex.sh` (the file `make bepinex` already edits), or `--doorstop-enabled false` in the launch option | `enabled = false` in `doorstop_config.ini` | The hub's "Start modded" / "Start stock" toggle that flag and launch through `steam://rungameid/2929250`, so Steam's own launch (overlay, DRM) is kept; both refuse while the game runs |
+| Start stock | `enabled="0"` in `run_bepinex.sh` (the file `make bepinex` already edits), or `--doorstop-enabled false` in the launch option | `enabled = false` in `doorstop_config.ini` | The hub's "Start modded" / "Start stock" set that flag and launch through `steam://rungameid/2929250`, so Steam's own launch (overlay, DRM) is kept; both refuse while the game runs. The flag stays set, so a plain Steam Play after Start stock is stock too: Check and Status show "next start: stock", and Start modded sets it back |
 | Dialogs (can't start, progress) | zenity, notify-send | A native message box | One text in Core, shown by each |
 | Plugin after a game update | The loader can rebuild with a host SDK | No rebuild | The player path on both is a release built for the new game version; the SDK rebuild stays a developer path |
-| Paths | `~/.local/share/Steam`, `~/My Games/over the hill` | `C:\Program Files (x86)\Steam`, `Documents\My Games\over the hill` | Core resolves both; other libraries from `libraryfolders.vdf` |
+| Paths | Steam in `~/.local/share/Steam`, `~/.steam/steam`, `~/.steam/debian-installation` or Flatpak's `~/.var/app/com.valvesoftware.Steam/.local/share/Steam` (all of `werkstatt.py`'s `steam_roots`); `~/My Games/over the hill` | Steam from `HKCU\Software\Valve\Steam\SteamPath`, else `C:\Program Files (x86)\Steam`; `Documents\My Games\over the hill` | Core resolves both; other libraries from `libraryfolders.vdf` |
 | Process checks | `/proc` by process name | The process list | Core's game-running and Steam-running checks |
 
-**Setting the Linux launch option (feasibility, from the file format, 2026-10-20).** Steam keeps it in `<steam>/userdata/<account id>/config/localconfig.vdf`, a text KeyValues file, at `UserLocalConfigStore/Software/Valve/Steam/apps/2929250/LaunchOptions`, the value with `\"` escapes; `tools/werkstatt.py` already reads it (`launch_options()`). Steam rewrites the file when it exits, so Setup writes only with Steam closed (it says so and waits), picks the account from `config/loginusers.vdf` (`MostRecent`), backs the file up to `<mygames>/DieKollektion/backups/`, changes only that one value (adding the app's block if it has none), parses the result back before renaming it over the original, and keeps any options the player already had in front of `%command%`. Anything unexpected (no `apps` block, several matching accounts, a parse failure) falls back to Copy. Writing it in a running Steam is never attempted **[test]** once with the author: Steam keeps the value after its next start.
+**Setting the Linux launch option (feasibility, from the file format, 2026-10-20).** Steam keeps it in `<steam>/userdata/<account id>/config/localconfig.vdf`, a text KeyValues file, at `UserLocalConfigStore/Software/Valve/Steam/apps/2929250/LaunchOptions`, the value with `\"` escapes; `tools/werkstatt.py` already reads it (`launch_options()`). Steam rewrites the file when it exits, so Setup writes only with Steam closed (it says so and waits), picks the account from `config/loginusers.vdf` (`MostRecent`; that file is keyed by SteamID64, and the `userdata/<account id>` folder is the 32-bit account ID, SteamID64 − 76561197960265728), backs the file up to `<mygames>/DieKollektion/backups/`, changes only that one value (adding the app's block if it has none), parses the result back before renaming it over the original, and keeps any options the player already had in front of `%command%`. Anything unexpected (no `apps` block, several matching accounts, a parse failure) falls back to Copy. Setup never writes it while Steam runs. **[test]** once with the author: Steam keeps the written value after its next start.
 
 ### The hub (author, 2026-10-20)
 
@@ -66,25 +65,25 @@ People are picking the mod up, and most players want a turnkey mod experience li
 - **The hub never starts the game to test anything.** It starts it only when the player presses Start.
 
 **Actions:**
-- **Lifecycle:** Check (`doctor`, the first step of Setup), Setup (`setup`: find the game, fetch BepInEx, install the loader, plugin and pack, set the Linux launch option, then "start the game once" so BepInEx prepares the interop), Status (`status`), Update (`update`: the newest release's loader, plugin and pack, and whether a release exists for the current game build), Start modded / Start stock (`start --modded|--stock`), Stock (`stock`: every pack uninstalled, the save cleaned, the plugin kept; Stable states 1), Remove the mod (`remove`: the loader, plugin, packs and cache too, BepInEx kept unless ticked; Stable states 2).
+- **Lifecycle:** Check (`doctor`, the first step of Setup), Setup (`setup`: find the game, fetch BepInEx, set `UnityLogListening = false` in `BepInEx/config/BepInEx.cfg` (with it on, this game crashes at start), on Linux set `run_bepinex.sh`'s `executable_name` and execute bit (the archive ships neither), install the loader, plugin and pack, set the Linux launch option, then "start the game once" so BepInEx prepares the interop), Status (`status`), Update (`update`: the newest release's loader, plugin and pack, and whether a release exists for the current game build), Start modded / Start stock (`start --modded|--stock`), Stock (`stock`: every pack uninstalled, the save cleaned, the plugin kept; Stable states 1), Remove the mod (`remove`: the loader, plugin, packs and cache too, BepInEx kept unless ticked; Stable states 2). Removing BepInEx on Linux also restores the launch option Setup replaced, from its backup and with Steam closed, or shows the click path for clearing it; `"./run_bepinex.sh" %command%` with no script left would stop the game starting.
 - **New…** (the wizard, below): `new variant|patch|vehicle`.
 - **Import** (`install <file|url|github:owner/repo[@tag]>`): anyone's pack, a `.kpack` or a traded zip (Import, below).
-- **Per item:** Stats (`stats`, below), Edit (`edit`), Rebuild (`build`, then `install`), Verify (`verify`), Activate / Deactivate (`enable` / `disable`), Delete (`uninstall <pack>/<item>`, the save cleaned; its workspace folder stays unless ticked).
-- **Settings:** the game folder, Blender and the other editor launchers, in-game names fictional or real (`names`), "Install for this user" (`self install`).
+- **Per item:** Stats (`stats`, below), Edit (`edit`), Rebuild (`build --install`), Preview (`preview`), Verify (`verify`), Activate / Deactivate (`enable` / `disable`), Delete (`uninstall <pack>/<item>`, the save cleaned; `--workspace` also deletes its workspace folder, a tickbox in the hub).
+- **Settings** (`config get|set`): the game folder, Blender and the other editor launchers (each with a Test button, `config test <launcher>`), in-game names fictional or real (`names`), "Install for this user" (`self install`).
 
-**Kinds as the hub shows them:** "Unique vehicle" (`novel`), "Variant of a stock car" (`based`, as ours are), "Stock car mod" (`patch`).
+**Kinds as the hub shows them,** the same three names in the wizard, the vehicle list and Import: "Variant of a stock car" (`based`, as ours are; `new variant`), "Stock car mod" (`patch`; `new patch`), "Unique vehicle" (`novel`; `new vehicle`).
 
 **The wizard** is the guided face of `kollektion new`, three starting points:
 - **Variant of a stock car** (`kollektion new variant <Codename> --donor <Car> --name … --category …`, kind `based`): a new item that references the stock car. Its pack holds the reference (the `base` block with its stock snapshot), the differences, own parts and own textures.
-- **Change the stock car itself** (`new patch <Car>`, kind `patch`): the same, with no new name or ItemId.
-- **Completely new vehicle** (`new vehicle <Codename> --template <type> --name … --category …`, kind `novel`): own meshes and textures only, from the mesh template (`examples/template-vehicle/`), on the stock rig used live (prefab, physics, wheels, lights, points).
+- **Stock car mod** (`new patch <Car>`, kind `patch`): the stock car itself changed, with no new name or ItemId; otherwise the same.
+- **Unique vehicle** (`new vehicle <Codename> --template <type> --name … --category …`, kind `novel`): own meshes and textures only, from the mesh template (`examples/template-vehicle/`), on the stock rig used live (prefab, physics, wheels, lights, points).
 
 Steps: kind → stock car (from `kollektion extract --list`) → fictional name and description (the names check runs here) → ItemId issued, category → starting stats copied from the stock car → the item created in the workspace → the stats editor or Blender. Variants and patches give a portable pack of a stock vehicle with no game assets in it: the geometry is rebuilt from each player's own install. The only image such a pack ships is the author's own texture (Textures).
 
 **Import** (`install`) runs, in order, and stops at the first failure with its reason:
 1. Unpack; the manifest and schema; the in-game names check; ItemId collisions with stock items, our block and installed packs.
 2. Mesh gates: holes, slivers, a triangle budget per LOD (**[decide]** the budget, likely relative to the template type's donor).
-3. Provenance: refuse extracted game geometry or textures (the donor-copy check, Items and the two pipelines; Textures).
+3. Provenance: refuse game geometry or textures (the donor-copy check, Items and the two pipelines; Textures), except in a local pack built from this install (`origin: extracted`, What ships), which never leaves the machine.
 4. Build against the local game (`based`, `patch`) and the round-trip check (Verify).
 5. Record it in `installed.json`; the hub shows "built and checked, waiting for first play" until the next play's status turns it green (In-game status).
 
@@ -98,7 +97,7 @@ Steps: kind → stock car (from `kollektion extract --list`) → fictional name 
 - Unchanged passes.
 - A changed stock value the item overrides is a warning naming the field, old and new (spring 40000 → 42000); the player keeps the pack's value (the default) or takes the new stock one, recorded in `installed.json`. A changed value the item doesn't set flows through and is listed.
 - A missing node path or a mesh selection that no longer matches fails that item with a message naming the part.
-- It runs on import, after a game update (the loader detects it from the interop hash), and from the Verify button.
+- It runs on import, after a game update (the item's `base.gameBuild` or the extracted base's `hash` differs; an update that changes only assets leaves the interop hash alone), and from the Verify button.
 
 **In-game status.** After each start the plugin writes `<mygames>/DieKollektion/status.json`: per item registered, spawned, meshes swapped, or the failure reason, with the date and the game build. The hub shows it beside each item, so "verify it works" in game needs one play, by the player.
 
@@ -112,7 +111,7 @@ Steps: kind → stock car (from `kollektion extract --list`) → fictional name 
 
 | File | Default on Linux | Default on Windows |
 |---|---|---|
-| A vehicle (an item directory) | `"{blender}" --python-expr "{startup}"`: the add-on enabled and the item opened | The same |
+| A vehicle (an item directory) | `"{blender}" --python "{startup}"`: a startup file that enables the add-on and opens the item | The same |
 | `.png` | The first found of Pinta, KolourPaint, Drawing, GIMP, Krita, else `xdg-open "{file}"` | `mspaint "{file}"` |
 | `.svg` | Inkscape when found, else `xdg-open "{file}"` | Inkscape when found, else the file's default app |
 
@@ -122,46 +121,50 @@ Steps: kind → stock car (from `kollektion extract --list`) → fictional name 
 
 **Finding Blender:** PATH; Steam's Blender (`steamapps/common/Blender`); the standard install folders (Linux: `/usr/bin`, Flatpak `org.blender.Blender`, Snap; Windows: `Program Files\Blender Foundation\Blender 5.*`); or a path the user picks, remembered in Settings.
 
-**Opening Blender with a vehicle:** the vehicle launcher's `{startup}` is a script that enables the add-on and calls its API with the item directory, deferred with `bpy.app.timers` until the window exists **[test]**. What the add-on lacks for that (`blender/addons/werkstatt_addon/`, 2026-10-20):
+**Opening Blender with a vehicle:** the vehicle launcher's `{startup}` is a script file the hub writes, which enables the add-on and calls its API with the item directory, deferred with `bpy.app.timers` until the window exists **[test]**. What the add-on lacks for that (`blender/addons/werkstatt_addon/`, 2026-10-20):
 - `api.open_vehicle(name)` takes a vehicle name in a checkout: `werkstatt_root()` comes from `WERKSTATT_DIR` or the add-on's preferences, and `model.repo_root` accepts only a folder with a `Makefile` and `vehicles/`. It needs an `open_item(path)` for an item directory anywhere.
 - `model.Vehicle` reads the donor's facts from `<root>/extracted/<donor>/` (`nodes.json`, `upgrades.json`): the extract location must be passed in (`kollektion extract` writes them to `<mygames>/DieKollektion/extracted/<donor>/`).
 - Opening refuses an unbuilt vehicle with "run `make build`", and `start_loop` runs `make loop V=<name>`, refusing when make is missing: both become `kollektion build` (and its check and contact sheet).
-- `status()` reports the checkout's branch and uncommitted changes through git; with no git it returns none, and the panel hides them outside a checkout.
-- Registration: it is a legacy add-on (`bl_info`, no `blender_manifest.toml`). The hub copies it into Blender's user add-ons folder and enables it with `blender -b` (`addon_enable`, `save_userpref`), the checker's Fix action.
+- `status()` reads the checkout's branch from `.git/HEAD` without running git and asks git only for uncommitted changes; outside a checkout both come back empty, and the panel should hide them.
+- Registration: it is a legacy add-on (`bl_info`, no `blender_manifest.toml`; it declares Blender 4.2). The checker's Fix action runs one `blender -b` that asks Blender for its user add-ons folder (`bpy.utils.user_resource('SCRIPTS', path="addons")`, which differs for Flatpak and Snap Blender), copies the add-on there and enables it (`addon_enable`, `save_userpref`).
 
-**Landing on Linux before the in-game build (step 4 of the Migration plan).** Cheap, so it lands with the hub: Check, Setup, Status, Update, Start, Stock, Remove the mod, Import of a `novel` pack, Delete, Settings, the editor launchers and self-install. These are file copies, the BepInEx fetch and the lifecycle commands, all in Core. Not cheap, so they wait for step 4: the wizard, Stats, Rebuild, Verify and Import of a `based` or `patch` pack, which need Core's operations and bundle reader; vehicle Deactivate, which needs the sidecar. In a developer checkout (`WERKSTATT_DIR` set), Edit and Rebuild drive today's tooling (`make loop`, the add-on's checkout mode), since that is what the add-on already does; the hub never asks a player for Python or make.
+**What lands with the hub (step 3), before the in-game build (step 4).** Cheap, so it lands in step 3: Check, Setup, Status, Update, Start, Stock, Remove the mod, Import of a `novel` pack, Delete, Settings, the editor launchers and self-install. These are file copies, the BepInEx fetch and the lifecycle commands, all in Core. Not cheap, so they wait for step 4: the wizard, Stats, Rebuild, Verify and Import of a `based` or `patch` pack, which need Core's operations and bundle reader; vehicle Deactivate (Activate / Deactivate). In a developer checkout (`WERKSTATT_DIR` set), Edit and Rebuild drive today's tooling (`make loop`, the add-on's checkout mode) from step 3, since that is what the add-on already does; the hub never asks a player for Python or make.
 
 Sketch, for the author to react to. The main window:
 ```
 ┌ Die Kollektion ───────────────────────────────────────────────── 0.x · Linux ┐
 │ Check  ✔ Game found, build N        ✔ BepInEx 6.0.0-be.789                   │
 │        ✔ Plugin fits this game      ✘ Launch option not set          [Fix]   │
-│ [ Start modded ] [ Start stock ]   [ Update ] [ Stock ] [ Remove the mod ]   │
+│ [Start modded] [Start stock]  [Status] [Update] [Stock] [Remove the mod]      │
 ├ Vehicles ─────────────────────────────────────────────────────────────────────┤
 │ Das Megaloceros   Variant of a stock car  die-kollektion  on  ✔ played 10-20  │
-│                   [Stats] [Edit] [Preview] [Verify] [Off] [Delete]            │
+│            [Stats] [Edit] [Rebuild] [Preview] [Verify] [Off] [Delete]         │
 │ Das Mammoth       Stock car mod           workspace       on  … first play    │
-│                   [Stats] [Edit] [Preview] [Verify] [Off] [Delete]            │
+│            [Stats] [Edit] [Rebuild] [Preview] [Verify] [Off] [Delete]         │
 │ [ New… ]  [ Import… ]                                                         │
 ├───────────────────────────────────────────────────────────────────────────────┤
 │ [Settings]  [Install for this user]   ran: kollektion status            [Copy] │
 └───────────────────────────────────────────────────────────────────────────────┘
 ```
 The other screens, each one form over one command:
-- **New…:** 1 Kind (Variant of a stock car / Change the stock car itself / Completely new vehicle) → 2 Stock car (list) → 3 Name and description (names check) → 4 Category, ItemId shown → 5 Starting stats → Create: `kollektion new variant Moa --donor Mammoth --name "Der Moa" --category CarCategory_05_DieKollektion`, then Stats or Edit in Blender.
+- **New…:** 1 Kind (Variant of a stock car / Stock car mod / Unique vehicle) → 2 Stock car (list) → 3 Name and description (names check) → 4 Category, ItemId shown → 5 Starting stats → Create: `kollektion new variant Moa --donor Mammoth --name "Der Moa" --category CarCategory_05_DieKollektion`, then Stats or Edit in Blender.
 - **Import…:** a file or `github:owner/repo` field → the five checks as a list that fills in (✔/✘ with the reason) → Install, or Cancel with nothing changed.
 - **Stats:** field, the pack's value (editable), stock now, stock when authored, range; changed rows highlighted; Rebuild.
 - **Verify:** one row per changed stock value (field, old → new, keep / take new) and per failed part.
-- **Settings:** game folder, Blender, image editor, vector editor (each a command template with a Test button), names, install mode and settings location.
+- **Settings:** game folder, Blender, image editor, vector editor (each a command template with a Test button), names, install mode and settings location (`config`).
 
 ### Packaging of `kollektion` itself (author, 2026-10-20)
 
 - **Portable first.** The release zip unzips anywhere, and `kollektion` / `kollektion.exe` runs from its own folder.
 - **Optional per-user install, no root or UAC,** done by the exe itself: the hub's "Install for this user" with tickboxes for PATH and a shortcut, or `kollektion self install|uninstall|update` (`install`/`uninstall` stay for packs).
-  - Linux: the app in `$XDG_DATA_HOME/die-kollektion/` (default `~/.local/share`), a link in `~/.local/bin`, a `.desktop` file in `$XDG_DATA_HOME/applications`, the icon in `$XDG_DATA_HOME/icons/hicolor`.
+  - Linux: the app in `$XDG_DATA_HOME/die-kollektion/` (default `~/.local/share`), a link in `~/.local/bin`, a `.desktop` file in `$XDG_DATA_HOME/applications`, the icon in `$XDG_DATA_HOME/icons/hicolor/scalable/apps/` (and `hicolor/<size>/apps/` PNGs). The PATH tickbox helps only when `~/.local/bin` is on PATH; `doctor` says so when it isn't.
   - Windows: the app in `%LOCALAPPDATA%\Programs\DieKollektion\`, the user PATH through `HKCU\Environment` (then a `WM_SETTINGCHANGE` broadcast), a Start Menu shortcut under `%APPDATA%\Microsoft\Windows\Start Menu\Programs`, and an uninstall entry in `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\DieKollektion` (Settings → Apps).
-  - Self-uninstall removes exactly what self-install recorded, the installed settings included; on Windows the running exe's own last delete goes to a short-lived helper. **Decided:** it asks first, with "Keep my settings" unticked (`--keep-settings` on the CLI), since the settings hold the user's editor commands.
-- **Settings follow the install mode** (author, 2026-10-20). Not installed: `settings.json` beside the exe, in the folder it runs from. Installed (running from the path `self install` recorded): Linux `$XDG_CONFIG_HOME/die-kollektion/settings.json` (default `~/.config`), Windows `%LOCALAPPDATA%\Programs\DieKollektion\settings.json`. So a portable and an installed copy keep separate settings (game folder, editor launchers, names).
+  - Self-uninstall removes exactly what self-install recorded, and the installed settings; on Windows the running exe's own last delete goes to a short-lived helper. **Decided:** it asks first, with "Keep my settings" unticked (`--keep-settings` on the CLI), since the settings hold the user's editor commands.
+  - A winget install counts as installed. `self update` and `self uninstall` defer to `winget upgrade` / `winget uninstall` for it, so the two never compete.
+- **Settings follow the install mode** (author, 2026-10-20):
+  - Portable: `settings.json` beside the exe, in the folder it runs from. A copy unzipped into the game folder (Distribution) keeps them in `<game>/BepInEx/DieKollektion/settings.json` instead, so nothing of ours lands in the game folder's root.
+  - Installed (running from the path `self install` recorded, or from winget's package folder): Linux `$XDG_CONFIG_HOME/die-kollektion/settings.json` (default `~/.config`), Windows `%APPDATA%\DieKollektion\settings.json`, outside the app folder that an update replaces.
+  - So a portable and an installed copy keep separate settings (game folder, editor launchers, names).
 - **Everything else is game-tied and shared:** the workspace, extracted data, backups, `status.json` and the save sidecar live in `<mygames>/DieKollektion/`, so a portable and an installed copy share the user's vehicles, and deleting the unzipped folder loses only its settings.
 - **Uninstalling the app** never touches the mod in the game or the workspace; removing packs (`uninstall`, `stock`) is separate.
 - **Update:** unzip over the old folder (the zip carries no `settings.json`, so a portable copy keeps its own), or `self update`, which replaces the installed copy in its per-user folder (no UAC).
@@ -169,13 +172,13 @@ The other screens, each one form over one command:
 ### The requirements checker (author, 2026-10-20)
 
 The first step of Setup is `kollektion doctor`, the hub's Check screen: the same list on both OSes, scoped by tier.
-- **Player:** the game found and its build; Steam and the game running or not; BepInEx present at the pinned version; the Linux launch option set; the loader and plugin fitting the game's interop; disk space.
-- **Creator:** the player's list, plus Blender 5 or newer found (see Finding Blender), the Werkstatt add-on registered, and each editor launcher's program present.
-- **Developer** (this repo): Python 3.10 or newer, the .NET SDK, make, rsvg-convert, potrace, Blender, optionally wine (the local Windows pre-push check) and xvfb. That stays `make start` / `make doctor` (Linux) and isn't in the shipped exe.
+- **Player:** the game found and its build; Steam and the game running or not; BepInEx present at the pinned version, `UnityLogListening = false`, and on Linux `run_bepinex.sh` ready (`executable_name`, the execute bit); the Linux launch option set; whether the next start is modded or stock; BepInEx has prepared the game once; the loader and plugin fitting the game's interop; disk space.
+- **Creator:** the player's list, plus Blender 5 or newer found (see Finding Blender; the add-on itself runs from 4.2, but the contact-sheet renders need 5), the Werkstatt add-on registered, and each editor launcher's program present.
+- **Developer** (this repo): that stays `make start` / `make doctor` (Linux) and isn't in the shipped exe. Today they check Python 3.10 or newer, the venv, rsvg-convert, potrace, the .NET SDK (unless the prebuilt plugin fits) and Blender; `make check` reports a missing xvfb-run; the optional Wine check (Windows) reports a missing wine.
 - **Output: a shopping list,** one line per missing item with its fix.
-  - Our own items (BepInEx, the launch option, the add-on's registration) get a Fix button that `kollektion` carries out itself, with no admin rights.
+  - Our own items (BepInEx and its two settings, the launch option, the add-on's registration) get a Fix button that `kollektion` carries out itself, with no admin rights.
   - Third-party software gets the exact command with Copy, and an Install button that runs only after the user confirms; nothing installs silently. Windows: `winget` (built into Windows 10 and 11), `--scope user` where a package supports it. Blender's winget package is an MSI with machine scope only (`BlenderFoundation.Blender` 5.2.2 in winget-pkgs, 2026-10-20), so its install asks for admin rights; the checker says so and offers Steam's Blender or the portable zip from blender.org instead. Linux: the distro's package manager through `pkexec` (or the `sudo` line printed), after checking the version it would install; for Blender also `flatpak install --user flathub org.blender.Blender` (no root) or Steam.
-- **What moves into Core from `tools/werkstatt.py`'s `steps()`:** the game and Steam library search (`steam_roots`, `vdf_load`, `game_dir`), the launch-option read (`launch_options`), `my_games`, `game_running`, the BepInEx version and start-script checks (`bepinex_installed_version`, `run_script_ready`), the log-listener setting (`cfg_log_listening_off`), the interop and prebuilt-plugin fit (`interop_hash`, `prebuilt_plugin`) and the deploy state. Python, the venv, rsvg-convert, potrace, the .NET SDK, extract, build and the test save stay developer steps.
+- **What moves into Core from `tools/werkstatt.py`'s `steps()`:** the game and Steam library search (`steam_roots`, `vdf_load`, `game_dir`), the launch-option read (`launch_options`), `my_games`, `game_running`, the BepInEx version and start-script checks (`bepinex_installed_version`, `run_script_ready`), the log-listener setting (`cfg_log_listening_off`), the `interop` step (BepInEx has prepared the game: `BepInEx/interop/Assembly-CSharp.dll`), the interop and prebuilt-plugin fit (`interop_hash`, `prebuilt_plugin`), `launch_script_target` (an old launch option naming `run_werkstatt.sh`, which Setup replaces) and the deploy state. Python, the venv, rsvg-convert, potrace, the .NET SDK, extract, build and the test save stay developer steps.
 
 ### Scripts policy (author, 2026-10-20)
 
@@ -263,8 +266,8 @@ Internal tools       our Python (Glyptodon-family generator, cab scripts, gates,
   - the mesh operations, ported from `meshlib.py`: stretch, stretchPieces, removeRegion, removePieces, movePieces, relocatePiece, insertPart, paint, addBoxes, portalAxle, coilSprings, widenPieces;
   - the donor reader: donor meshes and prefab facts read from the player's Addressables bundles with a managed bundle reader (AssetsTools.NET or similar, pure managed, no IL2CPP), so it is safe from the plugin's background thread. The loaded prefab is no alternative: its meshes aren't CPU-readable (Research findings, "Reading donor meshes at run time");
   - save reading and editing; ItemId issuing; per-OS paths (Steam library via `libraryfolders.vdf`, game folder, save folder, game process name).
-- **Plugin** keeps today's invariants: no class injection; all patches from the `GameStateManager.Transition` entry hook; Load touches no IL2CPP type; `DobbyNearPages` is Linux-only (`/proc/self/maps`, `libdobby.so`) and must be a logged no-op elsewhere.
-- **CLI** is built with `dotnet publish -r <rid> --self-contained -p:PublishSingleFile=true` for `linux-x64` and `win-x64` from this machine (SDK 10.0; Core and the plugin target net6.0, the CLI can target a newer framework). Building for Windows needs no Windows; running there does (see Windows).
+- **Plugin** keeps today's invariants: no class injection; all patches from the `GameStateManager.Transition` entry hook; Load touches no IL2CPP type; `DobbyNearPages` is Linux-only (`/proc/self/maps`, `libdobby.so`) and must become a logged no-op elsewhere (Windows).
+- **`kollektion`** (CLI and hub) is built with `dotnet publish -r <rid> --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:InvariantGlobalization=true` for `linux-x64` and `win-x64` (SDK 10.0; Core and the plugin target net6.0, `kollektion` can target a newer framework). `IncludeNativeLibrariesForSelfExtract` folds Avalonia's SkiaSharp and HarfBuzzSharp native libraries into the one file; `InvariantGlobalization` drops .NET's need for ICU on Linux (the hub shows no culture-specific formats). The Linux exe still uses the desktop's X11 and fontconfig libraries, as any GUI does. It needs no game files, so CI builds it: each RID on its own runner (ubuntu, windows-latest) in `checks.yml`, uploaded as a workflow artifact, and the release packs the artifact the tagged commit's checks tested (Distribution), never a rebuild.
 - **Blender add-on**: Blender's scripting is Python on every OS, so authoring stays Python. It never touches the save or the game folder.
 - **Internal tools** keep building our own trucks. As the operations move into Core, `build_vehicle.py`'s role shrinks to emitting operation lists, and `meshlib.py` retires once Core reproduces its outputs.
 
@@ -276,7 +279,7 @@ An **item** is one thing a pack adds or changes. Every item has a directory and 
 ```jsonc
 {
   "schema": 1,
-  "kind": "vehicle",
+  "kind": "based",
   "codename": "Megaloceros",
   "itemId": 3000000004,            // ours keep their IDs; new items get a hashed ID (see ItemIds)
   "names": {"en": {"name": "Das Megaloceros", "description": "..."}},   // in-game; other locales fall back to en
@@ -286,7 +289,7 @@ An **item** is one thing a pack adds or changes. Every item has a directory and 
              "basis": "styled on the two-door; no factory crew cab existed, wheelbase from the long crew-cab drawing",
              "description": "..."}   // factual description of the real vehicle for the catalogue; no personal stories
   },
-  "donor": "Mammoth",
+  "base": {"car": "Mammoth", "gameBuild": "...", "hash": "...", "stock": {...}},   // see below
   "chassis": {
     "wheelbase": 3.70, "track": 1.86, "maxSteerAngle": 37.8,
     "tyre": {"radius": 0.545, "width": 0.352},          // 14.5R20
@@ -308,12 +311,12 @@ An **item** is one thing a pack adds or changes. Every item has a directory and 
 "base": {"car": "Mammoth", "gameBuild": "<Steam build id>", "hash": "<hash of the extracted base>",
          "stock": {"wheelbase": 2.53, "track": 1.80, "suspension": {"springRate": "<stock value>", "...": "..."}}}
 ```
-- A **patch** changes its base in place; a **vehicle** clones its base into a new item. Both are "base plus differences": operations on base meshes, replaced or added meshes, transform overrides, chassis and suspension values, upgrade changes, textures. Anything not mentioned is the base's, so a game update that changes the base flows through.
+- A **patch** changes its base in place; a `based` vehicle clones its base into a new item. Both are "base plus differences": operations on base meshes, replaced or added meshes, transform overrides, chassis and suspension values, upgrade changes, textures. Anything not mentioned is the base's, so a game update that changes the base flows through.
 - `hash` is taken over the extracted base data the item was authored against, and `stock` (author, 2026-10-20) is a snapshot of the base's chassis and suspension values at that time, the same numbers the stats table shows as "stock when authored". When the player's game differs (`gameBuild` or `hash`), the plugin rebuilds the item against the new base and runs Core's round-trip check (The hub, Verify): a changed stock value is a warning naming the field, old and new; an operation whose selection no longer matches, or a missing node path, fails that item with a message naming the part, rather than producing a broken mesh.
 - The Blender add-on writes exactly this: it diffs the edited scene against the extracted base (`baseline.json`) and exports only the changes.
 - This replaces the separate `donor` (vehicle) and `target` (patch) fields below.
 
-**Three kinds, declared in the manifest (author, 2026-10-19).** Each vehicle is one portable folder whose manifest (`vehicle.json`) carries `"kind"`:
+**Three kinds, declared in the manifest (author, 2026-10-19).** Each vehicle is one portable folder whose manifest (`vehicle.json`) carries `"kind"`. On the CLI and in the hub, `new variant` makes a `based` item ("Variant of a stock car"), `new patch` a `patch` ("Stock car mod") and `new vehicle` a `novel` one ("Unique vehicle"); elsewhere in this note "vehicle" means any item that adds a car, `based` or `novel`:
 
 | Kind | What it is | What ships | In the game |
 |---|---|---|---|
@@ -356,7 +359,7 @@ An **item** is one thing a pack adds or changes. Every item has a directory and 
 
 **Names: fictional in the game, real in the catalogue (author, 2026-10-19).** Nothing real reaches Over the Hill: in-game names, descriptions, category names, icons, liveries and textures stay fictional, and so do file, part and tool names. Die Kollektion itself always presents the real data: `listing.real` (make, model, series, variant, years, `basis` saying how faithful the item is, and `description`, a factual description of the real vehicle; no personal stories) feeds the README catalogue, `kollektion list`/`info`, `manifest.json` and the Nexus page text. `kollektion check` fails an item whose in-game strings contain any word of its `listing.real` make or model, or of a fixed list of manufacturer and model names. Showing the real name in the game is the player's choice, never the pack's: `kollektion names real|fictional [item…]` writes a local override file (`<mygames>/DieKollektion/names.json`) that the plugin applies over the pack's in-game names, built from `listing.real`. Packs never ship it, and the check doesn't apply to it.
 
-**Patch item** (existing vehicle): the same blocks, with `"kind": "patch"` and `"target": "Mammoth"` in place of codename, itemId, names, category and donor. Mesh, transform and chassis changes never get an ItemId or touch the save, so removing them returns the car to stock. Upgrade changes, cheapest first:
+**Patch item** (existing vehicle): the same blocks, with `"kind": "patch"` and the `base` block, and no codename, itemId, names or category. Mesh, transform and chassis changes never get an ItemId or touch the save, so removing them returns the car to stock. Upgrade changes, cheapest first:
 1. Full rotation and scale on transforms (today: position and yaw only).
 2. Withdraw an option for one car: the car gets its own copy of its upgrade list (derived trucks share the donor's today).
 3. Conditional visibility: a node shown or hidden by what else is mounted (the hatch versus the AC unit or camper).
@@ -435,7 +438,7 @@ A contact sheet shows a build at a glance, for human review, for AI evaluation l
 - **Facts:** kind and base, dimensions (length, width, height, wheelbase, track, ground clearance), chassis and suspension values, and the listing's family and variant. The real-vehicle data stays in the catalogue.
 - **Reproducible:** fixed target, scale, angles and resolution, so two builds' sheets compare image by image; `--diff <a/contact.json> <b/contact.json>` writes a side-by-side comparison for a change review.
 - **Data first, Markdown second:** every fact, gate result, point, collider and gap goes into `contact.json` with coordinates, and the Markdown is rendered from it. Every CLI command gets a `--json` output the same way.
-- **Towards an editor (an idea, not a plan):** an editor could read the same JSON and show the same views live. Its form is undecided: a standalone app (Electron was mentioned) or a panel inside the Blender add-on. The hub (author, 2026-10-20) is a launcher of commands, not this editor. Its role is clear either way: **Blender edits geometry; the editor edits everything else and verifies.** It edits the manifest's metadata and attach points (move a point, set a value, assign a group) and acts as the linter for the game: when a file in the vehicle folder is saved (from Blender, a text editor or the editor itself) it reruns the build steps and gates through the CLI's JSON output and shows what changed: gaps, failed points, triangle counts, a contact-sheet diff. The contact sheet is its static snapshot, so building it now fixes the data model an editor would use.
+- **Towards an editor (an idea, not a plan):** an editor could read the same JSON and show the same views live. It would be a panel inside the Blender add-on: the hub (author, 2026-10-20) is the one standalone app, and it is a launcher of commands, not this editor. Its role is clear either way: **Blender edits geometry; the editor edits everything else and verifies.** It edits the manifest's metadata and attach points (move a point, set a value, assign a group) and acts as the linter for the game: when a file in the vehicle folder is saved (from Blender, a text editor or the editor itself) it reruns the build steps and gates through the CLI's JSON output and shows what changed: gaps, failed points, triangle counts, a contact-sheet diff. The contact sheet is its static snapshot, so building it now fixes the data model an editor would use.
 - **Contact sheets ship even when they show game geometry** (a based vehicle, a patch, a stock car extracted into a pack): a sheet is pictures and numbers, like a screenshot, with no mesh data. "Nothing extracted ships" covers meshes and textures, not contact sheets.
 
 ## The official livery format
@@ -497,7 +500,7 @@ items/<item>/textures/*.svg, *.png  # optional own texture maps: SVG source, ren
 <mygames>/DieKollektion/extracted/<donor>/       # `kollektion extract` output for the add-on; never shipped
 ```
 
-The same layout on Linux and Windows. The hub's settings follow its install mode instead (Packaging of `kollektion` itself).
+The hub's settings follow its install mode instead (Packaging of `kollektion` itself).
 
 `<mygames>` is the game's documents folder: `~/My Games/over the hill` on Linux, `Documents\My Games\over the hill` on Windows (confirmed by the official livery guide). Our files sit outside `Saves/`, so Steam Cloud, which syncs the whole `Saves` folder, never carries them, and outside the game folder, so verify and uninstall leave them alone. (`tools/add_vehicle_to_save.py`'s backups, `Player1.json.pre-mod-*`, sit in `Saves/` and are cloud-synced; they move.)
 
@@ -508,7 +511,7 @@ Stable states, from most to least modded:
 
 Steam's verify restores the game's own files and leaves extra files and the saves alone (expected; **[test]** once). Nothing here modifies a game file, so verify neither breaks nor uninstalls the mod. On Linux, BepInEx runs only through the launch option `"./run_bepinex.sh" %command%`.
 
-**The save**. The game loads with `StateProfileManagementSystem.Open` → `OverlandSaver.LoadGame` → `ProfileSave.Deserialize`, `ProfileSaveMigration.Migrate`, `DlcManager.EnforceEntitlements` (falling back to `Player1.json.bak`), and saves with `OverlandSaver.SaveGame` → `ProfileSave.Serialize` → `SaveJson`. The first load and first save of a session both happen before our entry hook. Our IDs 3000000001-4 survive load, migration, entitlements and save every session today, so an unknown ID doesn't break loading or saving; what the menus do with an unknown *current* vehicle is untested **[test]**.
+**The save**. The game loads with `StateProfileManagementSystem.Open` → `OverlandSaver.LoadGame` → `ProfileSave.Deserialize`, `ProfileSaveMigration.Migrate`, `DlcManager.EnforceEntitlements` (falling back to `Player1.json.bak`), and saves with `OverlandSaver.SaveGame` → `ProfileSave.Serialize` → `SaveJson`. The first load and first save of a session both happen before our entry hook. Our IDs 3000000001-4 survive load, migration, entitlements and save every session today, though they are registered only later, at the entry hook. A session in which they are never registered hangs the game (`KeyNotFoundException` on 3000000004, seen 2026-10-19; `docs/engine.md`, BepInEx), which is why the loader's can't-start policy closes the game when a save holds them, and why the sidecar keeps them out of the file. What the menus do when the restored current vehicle is a mod truck is untested **[test]**.
 
 Save fields that name a vehicle: `VehicleItem` (`InUse: true` marks the current vehicle; there is no separate field), `VehicleSpecificItem.VehicleStates` (for example a kayak and its bed rack, or an engine stage, fitted to a mod truck), and `Profile.EquippedModLiveries` (keyed by car name). `LastArea`, area, objective and point-of-interest data, and the Animals and FogOfWar files hold none. `ToolsetIDs` lists the tools the vehicle carries (2317836723 portable winch, 3771754783 portable plank) and the player changes it in-game; a new vehicle gets the current stock vehicle's toolset, else the winch.
 
@@ -542,10 +545,10 @@ Every hub form and wizard collects the arguments of one of these commands and ru
 
 Setup and the app:
 - `kollektion doctor`: the requirements checker; `--fix` carries out our own fixes, never third-party installs.
-- `kollektion setup`: find the game, fetch and install BepInEx, install the loader, plugin and pack, set the Linux launch option.
+- `kollektion setup`: find the game, fetch and install BepInEx, set its two settings (`UnityLogListening`, on Linux `run_bepinex.sh`), install the loader, plugin and pack, set the Linux launch option.
 - `kollektion start --modded|--stock`: toggle Doorstop and launch through Steam.
 - `kollektion update`: the newest release's loader, plugin and pack; says whether a release exists for the current game build.
-- `kollektion launchers [--set <type>=<template>]`: the editor launchers (The hub).
+- `kollektion config get|set <key> [<value>]`: the settings (the game folder, the Blender path, the editor launchers as `launcher.<type>`); `config test <launcher>` opens a sample file with it.
 - `kollektion names real|fictional [item…]`: the local names override.
 - `kollektion self install|uninstall|update`: the per-user install of the app itself.
 
@@ -554,17 +557,18 @@ Authoring:
 - `kollektion new variant|patch|vehicle …`, the wizard's three kinds: `new variant <Codename> --donor <Car> --name … --category …` (`based`), `new patch <Car>` (`patch`), `new vehicle <Codename> --template <type> --name … --category …` (`novel`). An item directory in the workspace from a template, the stock snapshot taken, ItemId issued. `new category <Name>` makes a group.
 - `kollektion stats <item> [--set <field>=<value>…]`: the stats table, the stock car's current value beside each field, range-checked.
 - `kollektion verify [<pack>/<item>]`: the round trip against the current game (The hub, Verify).
+- `kollektion preview <pack>/<item>`: the item's contact sheet; later the hub's own render.
 - `kollektion extract --list | <Car> <dir> | <Car> --pack <file>`: enumerate the install's vehicles, or extract one as an item directory or a local pack (see What ships). Output contains game assets and stays on the author's machine.
-- `kollektion build <item dir|pack dir>`: run the operations against the local donor, write the cache, run the gates.
+- `kollektion build <item dir|pack dir> [--install]`: run the operations against the local donor, write the cache, run the gates; `--install` then installs a workspace item (the hub's Rebuild).
 - `kollektion check`: gates only: holes, slivers, triangle budget, node paths, ItemId, codename, the donor-copy check for meshes and textures.
 - `kollektion pack <dir> -o <file>.kpack`: refuses on a failed gate.
 - `kollektion diff <a.kpack> <b.kpack>`: item and file changes between two pack versions.
 
 Lifecycle (each refuses while the game runs):
-- `kollektion install <file|url|github:owner/repo[@tag]>` (the import checks, The hub), `kollektion uninstall <pack>[/<item>]` (runs `save clean` for saves written before the sidecar), `kollektion enable|disable <pack>/<item>` (a vehicle only once the sidecar exists), `kollektion list`, `kollektion status` (packs, cache, save agreement, game running, the last play's `status.json`).
+- `kollektion install <file|url|github:owner/repo[@tag]>` (the import checks, The hub), `kollektion uninstall <pack>[/<item>] [--workspace]` (runs `save clean` for saves written before the sidecar; `--workspace` also deletes the item's workspace folder), `kollektion enable|disable <pack>/<item>` (a vehicle only once the sidecar exists), `kollektion list`, `kollektion status` (packs, cache, save agreement, game running, the last play's `status.json`).
 - `kollektion save list|add|remove|clean|backup|restore`.
 - `kollektion stock`: uninstall every pack, clean the save, remove the cache, leave the plugin.
-- `kollektion remove`: `stock`, then the loader, plugin and `BepInEx/DieKollektion/` too (`--bepinex` removes BepInEx as well).
+- `kollektion remove`: `stock`, then the loader, plugin and `BepInEx/DieKollektion/` too (`--bepinex` removes BepInEx as well and, on Linux, restores the launch option Setup replaced).
 
 Ours only, not shipped: `tools/preview_vehicle.sh`, the cab scripts and `tools/launch_test.sh`, which always asks first.
 
@@ -603,15 +607,19 @@ The template file in the repo holds only empties, collections, materials and pro
 ## Windows
 
 - The CLI and hub cross-compile; the plugin is AnyCPU net6.0 and loads under BepInEx 6 IL2CPP win-x64.
-- **Supported only after a volunteer runs it (author, 2026-10-20).** A volunteer collaborator, found among current users, runs the release on their own Windows machine with the game (the checklist below); until then every Windows artifact is marked experimental (its file name, the release notes, the README and the Nexus page). No Windows setup goes on the author's machine. CI and Wine don't count: they never run the game. The Vehicle Flipper (be.788, Windows x64) shows BepInEx 6 IL2CPP runs there.
+- **Supported only after a volunteer runs it (author, 2026-10-20).** A volunteer collaborator, found among current users, runs the release on their own Windows machine with the game (the checklist below); until then every Windows artifact is marked experimental (its file name, the release notes, the README and the Nexus page). No Windows setup goes on the author's machine unless no volunteer is found (Open questions). CI and Wine don't count: they never run the game. The Vehicle Flipper (be.788, Windows x64) shows BepInEx 6 IL2CPP runs there.
 - **Launch policy (author, 2026-10-20).** No Steam launch option on Windows. BepInEx win-x64's Doorstop is `winhttp.dll` (with `doorstop_config.ini`) in the game folder, which Windows loads from the exe's folder on a plain Steam Play; `kollektion setup` installs it, into `C:\Program Files (x86)\Steam\steamapps\common\over the hill\` by default, other libraries from `libraryfolders.vdf`.
   - `kollektion` doesn't wrap the launch. `"…\kollektion.exe" %command%` would work on Windows Steam, but it is rejected: the loader already does the version check, the plugin swap and the can't-start dialog in-process; a wrapper option goes stale when the exe moves, puts our exe on every game start, and draws Defender's attention.
-  - Playing stock: BepInEx's own `--doorstop-enabled false` launch option, or the hub's Start stock (Parity), which sets `enabled` in `doorstop_config.ini`. The hub refuses to toggle while the game runs.
+  - Playing stock: BepInEx's own `--doorstop-enabled false` launch option, or the hub's Start stock (Parity).
 - **Linux-only pieces the Windows path replaces:**
   - The loader's rebuild after a game update runs the host's .NET SDK inside Steam's pressure-vessel container (`/run/host`, `LD_LIBRARY_PATH`). Windows has no container, and players have no SDK, so there the loader only installs a release's prebuilt plugin; without a fitting one it can't start. The rebuild stays a developer path on Linux.
   - The loader's progress window, errors and notifications use zenity and notify-send. Windows shows the same text in a native dialog (a P/Invoke to `MessageBoxW` hands the game no managed delegate) **[decide at implementation]**.
   - The can't-start path ends with libc's `_exit(0)` so no managed shutdown runs while Unity's threads do. The Windows equivalent is `TerminateProcess` on the current process **[test]**.
-  - `DobbyNearPages` reads `/proc/self/maps` and `libdobby.so` and is a logged no-op off Linux. Whether Windows needs its own guard against Dobby's near pages colliding with coreclr is unknown; Windows' allocator and layout differ.
+  - `DobbyNearPages` reads `/proc/self/maps` and `libdobby.so` and must become a logged no-op off Linux. Whether Windows needs its own guard against Dobby's near pages colliding with coreclr is unknown; Windows' allocator and layout differ.
+  - **Three failures in today's code on Windows** (2026-10-20; the fixes are code, not this note):
+    - The loader builds the saves folder from `UserProfile` + `My Games` (`plugins/Loader/Loader.cs`), which on Windows is `%USERPROFILE%\My Games`, not `Documents\My Games`. `LoaderCore.SavesHoldTrucks` returns false for a missing folder, so a can't-start with our trucks in the save would run stock and hang: the case the policy exists for.
+    - The plugin waits for the boot marker in the Linux `Player.log` path (`Plugin.UnityLogPath`, `$XDG_CONFIG_HOME/unity3d/…`). On Windows the log is in `%USERPROFILE%\AppData\LocalLow\Funselektor\over the hill\`, so the entry thread waits out the 60 s timeout and patches without the marker, against the entry-hook timing rule.
+    - `NearBlockPlanner.ReadSelf` reads `/proc/self/maps` unconditionally, so `DobbyNearPages.Install` fails and the plugin installs no hooks: the mod is inactive on Windows.
   - `tools/bepinex.json` has no sha256 for the win-x64 build yet, so `make bepinex` refuses it; `kollektion setup` needs one recorded first.
 - **The prebuilt plugin is matched by interop hash.** Whether the Windows build of a Steam build gives BepInEx the same interop hash as the Linux build is **[test]** on the volunteer's run; if not, a release carries one prebuilt plugin per OS, the Windows one compiled against interop from a Windows install.
 - Paths: the documents folder on Windows is `Documents\My Games\over the hill` (official livery guide); the Steam library from `libraryfolders.vdf` on both; the bundles in `StreamingAssets/aa/StandaloneWindows64/` (`tools/export_game_data.sh` already falls back to it).
@@ -619,10 +627,10 @@ The template file in the repo holds only empties, collections, materials and pro
 **Windows testing (author, 2026-10-20).**
 - **CI is the Windows check.** GitHub-hosted runners are free for public repos, `windows-latest` included. A `windows-latest` job in `checks.yml` builds and tests the win-x64 `kollektion` natively: paths and `Documents\My Games\over the hill` against a fixture game folder, Steam library discovery (`libraryfolders.vdf`), a setup, install, uninstall and status round trip, `self install|uninstall` (the HKCU PATH, the Start Menu shortcut, the Uninstall entry, the final-delete helper), and the hub's window in a UI test. The parity script, the same CLI commands, runs on both the ubuntu and the windows runners, and their outputs are compared with paths masked. The runner is Windows Server with no GPU and never gets game files, so it can't run the game.
 - **Wine, optional and local:** when wine is installed, a make target runs the win-x64 exe under Wine in a scratch `WINEPREFIX` (the same fixtures and parity script), as a fast pre-push check inside `make check`; without wine it is skipped with a notice. CI doesn't install wine.
-- **Covered without a Windows player** (Wine and the Windows CI job): the CLI, the hub, paths, self install and uninstall, `doctor`, pack import and its gates, parity.
+- **Covered without a Windows player** (Wine and the Windows CI job): the CLI, the hub, paths, self install and uninstall, `doctor`, pack import and its gates, parity, and the loader's and plugin's path choices (the saves folder, `Player.log`), tested offline through `LoaderCore` and a path helper.
 - **Left for the volunteer**, the checklist a collaborator call can quote:
-  1. BepInEx win-x64 starts through Doorstop (`winhttp.dll`, no launch option), and our loader starts the plugin.
-  2. The plugin's hooks work on the Windows build; the trucks spawn and render.
+  1. BepInEx win-x64 starts through Doorstop (`winhttp.dll`, no launch option), and our loader starts the plugin; the loader finds the saves and the plugin finds `Player.log` (the three failures above, fixed).
+  2. The plugin installs its hooks on the Windows build (`DobbyNearPages` a no-op there); the trucks spawn and render.
   3. The memory layout: whether Windows needs a counterpart to `DobbyNearPages`.
   4. The can't-start dialog shows over the game's window.
   5. Whether the Windows build's interop hash equals Linux's: one prebuilt plugin, or one per OS.
@@ -636,13 +644,13 @@ The template file in the repo holds only empties, collections, materials and pro
 ## Distribution: GitHub first, Nexus mirrors it (author, 2026-10-19)
 
 The mod is always installable straight from GitHub; Nexus is where players find it, and nothing depends on it.
-- **GitHub Releases are the source of every artifact.** The plugin compiles against the interop BepInEx generates from the game, so a maintainer with the game builds and publishes each release (`make release`, `tools/release.py build`); CI on an Ubuntu runner checks the release's tag, versions and assets, and can cross-compile the CLI for both OSes, which needs no game files. Today's release is `die-kollektion-werkstatt-<ver>.zip` (the tracked files plus the prebuilt plugin, driven by `make`), the pack zip and `SHA256SUMS`; the player-tier release (Players, tinkerers, creators) is:
-  - `DieKollektion-<ver>-linux-x64.zip` and `DieKollektion-<ver>-win-x64.zip` (the Windows one marked experimental until the volunteer's run): `kollektion` / `kollektion.exe` at the top, beside the `BepInEx/` folder holding the loader `BepInEx/plugins/DieKollektion.Loader.dll` and `BepInEx/DieKollektion/` (DLLs, our `.kpack`, README), with no BepInEx inside. The zip works both ways: unzipped anywhere, `kollektion` → Setup installs it; unzipped into the game folder over a BepInEx install, it is installed by hand and the exe is just along for the ride. The two differ only in the exe;
+- **GitHub Releases are the source of every artifact.** The plugin compiles against the interop BepInEx generates from the game, so a maintainer with the game builds and publishes each release (`make release`, `tools/release.py build`); CI checks the release's tag, versions and assets. `kollektion` needs no game files: CI builds and tests it on its own runners, and `release.py build` packs the artifact from the tagged commit's checks (Architecture). Today's release is `die-kollektion-werkstatt-<ver>.zip` (the tracked files plus the prebuilt plugin, driven by `make`), the pack zip and `SHA256SUMS`; the player-tier release (Players, tinkerers, creators) is:
+  - `DieKollektion-<ver>-linux-x64.zip` and `DieKollektion-<ver>-win-x64.zip` (the Windows one experimental, Windows): `kollektion` / `kollektion.exe` at the top, beside the `BepInEx/` folder holding the loader `BepInEx/plugins/DieKollektion.Loader.dll` and `BepInEx/DieKollektion/` (DLLs, our `.kpack`, README), with no BepInEx inside. It also carries `BepInEx/config/BepInEx.cfg` holding only `UnityLogListening = false`, which BepInEx keeps when it writes the rest. The zip works both ways: unzipped anywhere, `kollektion` → Setup installs it; unzipped into the game folder over a fresh BepInEx install, it is installed by hand and the exe is just along for the ride (over an existing `BepInEx.cfg`, set that line by hand instead, as the README says). The two zips differ in the exe, and in the prebuilt plugin if the Windows interop hash differs from Linux's (Windows);
   - `die-kollektion-<ver>.kpack` on its own, for importing with the hub or CLI;
   - `SHA256SUMS`.
 - **Nexus** gets the same zips, uploaded by `.github/workflows/nexus.yml` once the GitHub release's checks pass, with the page linking to GitHub. No Vortex-only install path and no Nexus-only files.
-- **winget, later** (author, 2026-10-20), after the first Windows release the volunteer has tested: a winget-pkgs manifest for `kollektion` of installer type `portable`, pointing at the GitHub release's win-x64 exe (per-user, on PATH, no UAC; `winget upgrade` updates it). The GitHub release already provides the stable asset URL and `SHA256SUMS` the manifest needs. The first submission is by hand, a pull request to microsoft/winget-pkgs that moderators review, with the author's go-ahead; after that `release.yml` opens the update pull request on each tag (`wingetcreate update --submit` or the winget-releaser action, the token in a repo secret), as `nexus.yml` follows the GitHub release. The GitHub zip stays the source of every artifact.
-- **The README** in the repo is the install guide, the same steps on both OSes (download the zip, run `kollektion`, Setup, Play), with the by-hand path beside it: BepInEx 6 IL2CPP version, the Linux launch option, extract, uninstall order, Steam Cloud.
+- **winget, later** (author, 2026-10-20), after the first Windows release the volunteer has tested: a winget-pkgs manifest for `kollektion` with `InstallerType: zip`, `NestedInstallerType: portable` and `NestedInstallerFiles: kollektion.exe` (with `PortableCommandAlias: kollektion`), pointing at the release's `DieKollektion-<ver>-win-x64.zip`: winget extracts the whole zip, payload included, into its per-user package folder, puts `kollektion` on PATH with no UAC, and `winget upgrade` updates it. There is no bare-exe artifact. The GitHub release already provides the stable asset URL and `SHA256SUMS` the manifest needs. The first submission is by hand, a pull request to microsoft/winget-pkgs that moderators review, with the author's go-ahead; after that `release.yml` opens the update pull request on each tag (`wingetcreate update --submit` or the winget-releaser action, the token in a repo secret), as `nexus.yml` follows the GitHub release. The GitHub zip stays the source of every artifact.
+- **The README** in the repo is the install guide, the same steps on both OSes (download the zip, run `kollektion`, Setup, Start modded), with the by-hand path beside it: BepInEx 6 IL2CPP version; on Linux, `run_bepinex.sh`'s `executable_name` line and execute bit, and the launch option; `UnityLogListening = false`; uninstall order; Steam Cloud.
 - **Third-party packs** publish on their own GitHub releases (or anywhere): `kollektion install <file|url>`, where `github:<owner>/<repo>[@tag]` fetches the release's `.kpack` asset. No central index for now.
 
 What is public: the factory (Core, plugin, CLI, add-on), our pack sources (`vehicle.json`, operations, our own OBJs, icons we drew), our Python tools, and the notes with branding removed. What never is: meshes, textures and icons extracted from the game, reference photos and drawings, and real manufacturer or model names outside the catalogue.
@@ -662,26 +670,28 @@ Done before this plan was reordered: the public GitHub repo, the release workflo
 1. **Design:** this note. *Check:* done (2026-10-20).
 2. **CLI skeleton with the lifecycle commands, on Linux, cross-built for win-x64.**
    - Golden outputs first: hash every built file (OBJs, the runtime fields of each JSON, icons) into `build/golden.json`. *Check:* a rebuild with today's commands reproduces it.
-   - `Kollektion.Core` with the definition schema, OBJ I/O, pack read/write, the platform layer (paths, Steam libraries, game-running and Steam-running checks) and the checks that move from `werkstatt.py`; `kollektion pack` packages today's built outputs, donor-derived meshes included, as a private pack (not for release). *Check:* unpacking reproduces golden.
+   - `Kollektion.Core` with the definition schema, OBJ I/O, pack read/write, the platform layer (paths, Steam libraries, game-running and Steam-running checks), the checks that move from `werkstatt.py`, and the mesh gates ported from `check_holes.py` and `check_slivers.py` plus the triangle budget; `kollektion pack` packages today's built outputs, donor-derived meshes included, as a private local pack (`origin: extracted`, not for release). *Check:* unpacking reproduces golden; the ported gates give `make check`'s results on every built LOD.
+   - The install layout moves (Install layout): the loader starts `BepInEx/DieKollektion/DieKollektion.dll` as `installed.json` records it, in place of `BepInEx/VehicleMods/` and `deployed.json`, and takes a fitting prebuilt plugin from the installed release payload, with no Werkstatt folder; the developer rebuild from a checkout stays. *Check:* `tools/loader-plan`'s scenarios pass against the new layout, an old `VehicleMods/` install moves over once, and a folder with no checkout starts the plugin.
    - The plugin reads packs, falling back to the vehicle folders for one release; per-item validation and fail-soft registration; per-item results in `<mygames>/DieKollektion/status.json` after each start. *Check:* the author spawns each truck once, and `status.json` names each as spawned.
-   - `kollektion doctor | setup | update | install | uninstall | enable | disable | list | status | stock | remove | start` (`disable` for patches only until the sidecar), refusing while the game runs, taking over `make bepinex`, `deploy`, `undeploy` and `status`; `save clean` for `uninstall` and `stock`; gates fail `pack`; the Linux launch option written or shown (Parity). *Check:* a planted hole fails; a running-game probe refuses; install then uninstall leaves the game folder as before; a `localconfig.vdf` fixture round-trips with only the one value changed.
+   - The win-x64 BepInEx sha256 recorded in `tools/bepinex.json`, which `setup` needs on Windows and the CI round trip runs.
+   - `kollektion doctor | setup | update | install | uninstall | enable | disable | list | status | stock | remove | start` (`disable` for patches only until the sidecar), refusing while the game runs, taking over `make bepinex`, `deploy`, `undeploy` and `status`; `save clean` for `uninstall` and `stock`; gates fail `pack`; Setup's BepInEx settings and the Linux launch option written or shown (Parity), and restored by `remove --bepinex`. *Check:* a planted hole fails; a running-game probe refuses; install then uninstall leaves the game folder as before; a `localconfig.vdf` fixture round-trips with only the one value changed.
    - The `windows-latest` CI job and the parity script on both runners; the optional local Wine check. *Check:* the same CLI script gives the same output on the ubuntu and windows runners; a planted path bug (a hard-coded `/`) turns the Windows job red.
-3. **The hub over the CLI** (Avalonia, the same single file): what "Landing on Linux before the in-game build" lists: the lifecycle (Check, Setup, Status, Update, Start, Stock, Remove the mod), Import of a `novel` pack, Delete, Settings with the editor launchers, self-install; the plugin's `status.json`. *Check:* each form runs the command it shows; the hub's window opens in the UI test on both runners; `self install` then `self uninstall` leaves no file, registry entry or shortcut behind on either; a portable and an installed copy keep separate settings and list the same workspace.
+3. **The hub over the CLI** (Avalonia, the same single file): what "Landing on Linux before the in-game build" lists: the lifecycle (Check, Setup, Status, Update, Start, Stock, Remove the mod), Import of a `novel` pack, Delete, Settings with the editor launchers, self-install. *Check:* each form runs the command it shows; the hub's window opens in the UI test on both runners; `self install` then `self uninstall` leaves no file, registry entry or shortcut behind on either; a portable and an installed copy keep separate settings and list the same workspace.
 4. **The plugin builds the trucks from the player's game.**
-   - Operations in Core: port `meshlib.py`; the managed bundle reader (the loaded prefab's meshes aren't readable, Research findings); the plugin builds donor-derived meshes from the player's bundles into the cache on first launch; our pack drops donor geometry. *Check:* cache OBJs match golden geometry within float tolerance; a release folder with no Python, make or .NET SDK, in a copy of the game folder, builds the cache and spawns each truck.
+   - Operations in Core: port `meshlib.py`; the managed bundle reader (Architecture); the plugin builds donor-derived meshes from the player's bundles into the cache on first launch; our pack drops donor geometry. *Check:* cache OBJs match golden geometry within float tolerance; a release folder with no Python, make or .NET SDK, in a copy of the game folder, builds the cache and spawns each truck.
    - The round-trip check in Core (the `base` block's stock snapshot) and, on it, the hub's wizard, Stats, Rebuild, Verify and Import of `based` and `patch` packs; the texture check. *Check:* a variant made in the wizard installs and shows in game; a fixture game with one stock value changed gives that one warning; a planted copy of a game texture fails `pack`.
-   - The save: the sidecar, then the unknown-current-vehicle **[test]**; only after it, the hub's vehicle Deactivate. *Check:* a save round trip (install, drive, deactivate, start, reactivate) on a copy of a real save, the game starting each time.
+   - The save: the sidecar, then the restored-current-vehicle **[test]** (Open questions); only after it, the hub's vehicle Deactivate. *Check:* a save round trip (install, drive, deactivate, start, reactivate) on a copy of a real save, the game starting each time.
    - The "Die Kollektion" category. *Check:* the author sees a fifth merchant section holding our four, and every section still navigates.
-5. **The Windows path and the volunteer's run.** Replace the Linux-only pieces (Windows), record the win-x64 BepInEx sha256, mark the Windows artifacts experimental; a volunteer collaborator runs the release on their Windows machine. *Check:* the volunteer runs `kollektion` → Setup → Play from the release zip and works through the checklist (Windows, "Left for the volunteer"), the interop hash included; spawns a truck, deletes it, and the game runs stock.
+5. **The Windows path and the volunteer's run.** Replace the Linux-only pieces (Windows), the three failures in today's code first; mark the Windows artifacts experimental; a volunteer collaborator runs the release on their Windows machine. *Check:* the volunteer runs `kollektion` → Setup → Start modded from the release zip and works through the checklist (Windows, "Left for the volunteer"), the interop hash included; spawns a truck, deletes it, and the game runs stock.
 6. **Release with both:** the two zips, the README's install guide for both, the Nexus upload; the experimental mark comes off once step 5's volunteer run passes; winget after that. *Check:* a clean BepInEx install in a copy of the game folder (not a player's own) loads the pack from the GitHub release zip, on Linux by the author and on Windows by the volunteer.
 
-Alongside, once step 3's hub exists: **the creator tier.** Edit a vehicle (the workspace copy, Blender opened with the item); each add-on action moves onto its `kollektion` command, "Build and check" first (today `make loop`), and the add-on gains `open_item(path)` and the other pieces The hub lists; then export and the vehicle template, starting with the Mammoth (the upgrade-slot audit is the first use). *Check:* the hub opens a shipped vehicle in Blender from its workspace copy with no checkout, no git and no `make` on PATH; export, import, export again without edits gives an empty patch.
+Alongside, once step 4's `kollektion extract` and `build` exist (in a developer checkout, from step 3): **the creator tier.** Edit a vehicle (the workspace copy, Blender opened with the item); each add-on action moves onto its `kollektion` command, "Build and check" first (today `make loop`), and the add-on gains `open_item(path)` and the other pieces The hub lists; then export and the vehicle template, starting with the Mammoth (the upgrade-slot audit is the first use). *Check:* the hub opens a shipped vehicle in Blender from its workspace copy with no checkout, no git and no `make` on PATH; export, import, export again without edits gives an empty patch.
 
 ## Open questions
 
-- **[test]** What the game does with a save entry for an unknown ItemId. Needs one launch with a test save; run by hand.
+- **[test]** The sidecar's restore when the current vehicle is a mod truck (`InUse` moved to a stock car on save and back on restore): what the menus show in between. An unregistered ItemId in the save hangs the game (The save); one launch with a test save, run by hand, settles the rest.
 - **[test]** Steam verify leaves extra files in the game folder.
-- **Fallback** if no Windows volunteer is found: a rehearsal of the game's Windows build under Proton (a separate folder from steamcmd, never the author's real install) or in a KVM guest. Neither is real Windows (memory layout, the Dobby question), so neither lifts the experimental mark.
+- **Fallback** if no Windows volunteer is found: a rehearsal of the game's Windows build under Proton (a separate folder from steamcmd, never the author's real install) or in a KVM guest on the author's machine, the one exception to keeping Windows off it. Neither is real Windows (memory layout, the Dobby question), so neither lifts the experimental mark.
 - **[decide]** The donor-copy check: a threshold that fails the pack, or advisory only.
 - **[decide]** Which donors after the Mammoth for templates and export.
 - **[test or disassembly]** For upgrades: whether nodes added in the `VehicleBase.Spawned` prefix register in time; whether the 256-bit mounted state indexes the car's upgrade list; whether the garage enforces one option per slot; what drives the `rollcage` and `Winch_01` nodes (no item); how the lights controller finds its lights (decides whether a cloned light works). No disassembler is installed; one logged launch would answer most.
