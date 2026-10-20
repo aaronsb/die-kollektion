@@ -42,6 +42,14 @@ public static class NearBlockPlanner
 
     public enum Kind { Gap, ReservationTop, None }
 
+    /// <summary>What claiming a block came to. Only <see cref="NoPlace"/> says the layout itself has no safe block;
+    /// <see cref="Failed"/> (mmap refused, say a mapping raced into the planned range, or the maps couldn't be read)
+    /// is worth another try before the hooks.</summary>
+    public enum Reservation { Claimed, NoPlace, Failed }
+
+    public static Reservation Outcome(Plan plan, bool mapped) =>
+        plan.Kind == Kind.None ? Reservation.NoPlace : mapped ? Reservation.Claimed : Reservation.Failed;
+
     public readonly struct Plan
     {
         public readonly Kind Kind;

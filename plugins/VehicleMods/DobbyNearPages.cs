@@ -48,26 +48,28 @@ static unsafe class DobbyNearPages
     [DllImport("libc", SetLastError = true)]
     static extern int mprotect(IntPtr addr, UIntPtr length, int prot);
 
-    /// <summary>Claims the block at plugin Load. Native calls only; failures are logged and retried at <see cref="Install"/>.</summary>
-    public static void Reserve()
+    /// <summary>Claims the block at plugin Load. Native calls only; anything short of a claim is logged and tried again
+    /// at <see cref="Install"/>.</summary>
+    public static NearBlockPlanner.Reservation Reserve()
     {
         try
         {
-            Claim(NearBlockPlanner.ReadSelf(), "at Load");
+            return Claim(NearBlockPlanner.ReadSelf(), "at Load");
         }
         catch (Exception e)
         {
             Plugin.Logger.LogWarning($"Dobby pages: reserving at Load failed ({e.Message}); trying again before the hooks");
+            return NearBlockPlanner.Reservation.Failed;
         }
     }
 
-    static bool Claim(List<NearBlockPlanner.Region> regions, string when)
+    static NearBlockPlanner.Reservation Claim(List<NearBlockPlanner.Region> regions, string when)
     {
         var plan = NearBlockPlanner.Choose(regions, Want, Need);
         if (plan.Kind == NearBlockPlanner.Kind.None)
         {
-            Plugin.Logger.LogWarning($"Dobby pages: nothing to reserve {when}: {plan.Reason}");
-            return false;
+            Plugin.Logger.LogWarning($"Dobby pages: nothing to reserve {when}: {plan.Reason}{SaveMaps(when, plan.Reason)}");
+            return NearBlockPlanner.Outcome(plan, mapped: false);
         }
         // A gap is claimed with MAP_FIXED_NOREPLACE, which fails rather than replace anything mapped since the maps
         // were read; the reservation's top is no-access memory coreclr reserved and will reach last, replaced in place.
@@ -77,13 +79,35 @@ static unsafe class DobbyNearPages
         {
             if (got != (IntPtr)(-1)) munmap(got, (UIntPtr)plan.Length);    // a kernel without MAP_FIXED_NOREPLACE treats the address as a hint
             Plugin.Logger.LogWarning($"Dobby pages: reserving {when} at 0x{plan.Start:X} failed (errno {Marshal.GetLastWin32Error()}): {plan}");
-            return false;
+            return NearBlockPlanner.Outcome(plan, mapped: false);
         }
         blockStart = plan.Start;
         blockLength = plan.Length;
         Plugin.Logger.LogInfo($"Dobby pages: reserved {when}: {plan}");
-        return true;
+        return NearBlockPlanner.Outcome(plan, mapped: true);
     }
+
+    /// <summary>Copies /proc/self/maps to BepInEx/dobby-maps.txt (each session starts it afresh) so a layout with no
+    /// safe block can be read, and turned into a tests/maps case once its paths are scrubbed (it holds the home
+    /// folder; tests/test_maps.py rejects user paths there). Returns the log line's tail.</summary>
+    static string SaveMaps(string when, string reason)
+    {
+        try
+        {
+            var path = Path.Combine(Paths.BepInExRootPath, "dobby-maps.txt");
+            var text = $"# {when}: {reason}\n" + File.ReadAllText("/proc/self/maps");
+            if (mapsSaved) File.AppendAllText(path, text); else File.WriteAllText(path, text);
+            mapsSaved = true;
+            // Relative: these lines get pasted into public reports, and the full path names the home folder.
+            return " (memory map saved to BepInEx/dobby-maps.txt)";
+        }
+        catch (Exception e)
+        {
+            return $" (the memory map couldn't be saved: {e.GetType().Name})";    // the message would name the home folder
+        }
+    }
+
+    static bool mapsSaved;
 
     /// <summary>Runs once on the entry thread before any of the plugin's hooks. False: no safe pages, install no hooks.</summary>
     public static bool Install()
@@ -109,7 +133,7 @@ static unsafe class DobbyNearPages
             Plugin.Logger.LogWarning($"Dobby pages: the block reserved at Load (0x{blockStart:X}) was changed since; choosing again");
             blockLength = 0;
         }
-        if (blockLength == 0 && !Claim(regions, "before the hooks"))
+        if (blockLength == 0 && Claim(regions, "before the hooks") != NearBlockPlanner.Reservation.Claimed)
         {
             Plugin.Logger.LogError($"Dobby pages: no safe place for the hooks' jump slots within reach of GameAssembly's code (0x{textStart:X}-0x{textEnd:X}); "
                 + "installing no hooks, so the game runs without Die Kollektion this session. Please report this with BepInEx/LogOutput.log");

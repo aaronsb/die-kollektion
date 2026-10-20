@@ -21,6 +21,12 @@ public class Loader : BasePlugin
     /// <summary>AppDomain data the real plugin's main-menu line reads: the Steam build it was rebuilt for this launch.</summary>
     public const string RebuiltForKey = "DieKollektion.RebuiltFor";
 
+    /// <summary>AppDomain data the real plugin calls when it can't place its hooks: an
+    /// <c>Action&lt;string why, string fix, bool atLoad&gt;</c> running <see cref="LoaderCore.PluginCantStart"/>, which
+    /// closes the game only when called from the plugin's Load, on the main thread before any save is read. A
+    /// delegate of framework types, so the plugin needs no reference to the loader.</summary>
+    public const string PluginCantStartKey = "DieKollektion.PluginCantStart";
+
     [DllImport("libc", EntryPoint = "_exit")]
     static extern void Exit(int status);
 
@@ -47,6 +53,15 @@ public class Loader : BasePlugin
             Ui = new DesktopUi(),
         };
 
+        // Out at once, before the save is read: no managed shutdown or destructors while Unity's threads run.
+        void Quit(string message)
+        {
+            Note($"Closing the game: {message}");
+            foreach (var listener in Logger.Listeners.OfType<DiskLogListener>().ToList())
+                listener.Dispose();
+            Exit(0);
+        }
+
         var result = LoaderCore.Prepare(setup);
         if (result.Outcome == LoaderCore.Outcome.Load)
         {
@@ -54,6 +69,12 @@ public class Loader : BasePlugin
             {
                 if (result.RebuiltFor != null)
                     AppDomain.CurrentDomain.SetData(RebuiltForKey, result.RebuiltFor);
+                AppDomain.CurrentDomain.SetData(PluginCantStartKey, (Action<string, string, bool>)((why, fix, atLoad) =>
+                {
+                    // After Load the game may be writing its save: never quit there, whatever the policy says.
+                    if (LoaderCore.PluginCantStart(setup, why, fix, atLoad).Outcome == LoaderCore.Outcome.Quit && atLoad)
+                        Quit(why);
+                }));
                 var type = Assembly.LoadFrom(result.Dll).GetType("VehicleMods.Plugin", true);
                 var plugin = (BasePlugin)Activator.CreateInstance(type);
                 Note($"Starting {type.GetCustomAttribute<BepInPlugin>()?.Name ?? type.FullName} ({result.Message})");
@@ -67,12 +88,6 @@ public class Loader : BasePlugin
             }
         }
         if (result.Outcome == LoaderCore.Outcome.Quit)
-        {
-            // Out at once, before the save is read: no managed shutdown or destructors while Unity's threads run.
-            Note($"Closing the game: {result.Message}");
-            foreach (var listener in Logger.Listeners.OfType<DiskLogListener>().ToList())
-                listener.Dispose();
-            Exit(0);
-        }
+            Quit(result.Message);
     }
 }

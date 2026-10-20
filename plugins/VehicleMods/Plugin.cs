@@ -35,6 +35,12 @@ public class Plugin : BasePlugin
 
     static bool loaded;
 
+    // Through the loader's can't-start policy (Loader.PluginCantStartKey): issue #34, after an interop regeneration.
+    const string PluginCantStartKey = "DieKollektion.PluginCantStart";
+    const string NoSafePagesWhy = "the game's memory layout after an update leaves no safe place for Die Kollektion's hooks this session";
+    const string NoSafePagesFix = "Start the game again; that usually fixes it.";
+    const string ReportFix = "Please report this with BepInEx/LogOutput.log.";
+
     public override void Load()
     {
         // Once per process: a second Load would race its own hooks. The loader refuses to start next to a stray copy
@@ -44,9 +50,29 @@ public class Plugin : BasePlugin
         loaded = true;
         Logger = Log;
         // As early as our code runs: claim the memory the hooks' jump slots will live in (native calls only).
-        DobbyNearPages.Reserve();
+        // A layout with no safe block here almost always has none before the hooks either, and this is the last
+        // point before the game reads a save, so with trucks in a save the loader closes the game now. A claim that
+        // merely failed (mmap refused, the maps unreadable) is tried again before the hooks.
+        if (DobbyNearPages.Reserve() == NearBlockPlanner.Reservation.NoPlace)
+            CantStart(NoSafePagesWhy, NoSafePagesFix, atLoad: true);
         var unityLog = UnityLogPath();
         new Thread(() => PatchEntryWhenBooted(unityLog)) { IsBackground = true, Name = "VehicleMods.Entry" }.Start();
+    }
+
+    /// <summary>The loader's policy for a plugin that can't run its hooks: at Load it may close the game, after Load
+    /// never. Without the loader, only the log line. Never throws: on the entry thread an escaping exception aborts
+    /// the game.</summary>
+    static void CantStart(string why, string fix, bool atLoad)
+    {
+        try
+        {
+            if (AppDomain.CurrentDomain.GetData(PluginCantStartKey) is Action<string, string, bool> cantStart)
+                cantStart(why, fix, atLoad);
+        }
+        catch (Exception e)
+        {
+            Logger.LogError($"The loader's can't-start policy failed: {e}");
+        }
     }
 
     // Load touches no IL2CPP types; Unity's Linux player log path is fixed.
@@ -82,6 +108,7 @@ public class Plugin : BasePlugin
             if (!pagesReady)
             {
                 Logger.LogError("No hooks installed: Die Kollektion is inactive this session");
+                CantStart(NoSafePagesWhy, NoSafePagesFix, atLoad: false);
                 return;
             }
             harmony.CreateClassProcessor(typeof(MainThreadEntry)).Patch();
@@ -90,6 +117,7 @@ public class Plugin : BasePlugin
         catch (Exception e)
         {
             Logger.LogError($"Entry patch failed: {e}");
+            CantStart($"Die Kollektion's entry hook failed ({e.GetType().Name}), so it is off this session", ReportFix, atLoad: false);
         }
     }
 
