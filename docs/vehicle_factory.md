@@ -36,7 +36,7 @@ People are picking the mod up, and most players want a turnkey mod experience li
 | `mods/` | Packs (`BepInEx/DieKollektion/packs/`) |
 | Launcher | The hub (`kollektion` with no arguments) |
 | Blockbench | The Blender add-on, opened by the hub |
-| Datapacks | Packs are data: no code, no game assets |
+| Datapacks | Packs are data: no code |
 
 **What stands between today and the player tier:**
 1. **Trucks are built on the player's machine from their game by Python tools** (`make extract`, `make build`). The plugin must build them on first launch instead: Core's operations and its managed bundle reader (Architecture; Research findings, "Reading donor meshes at run time"), run on the plugin's background thread into the cache (Packs).
@@ -83,7 +83,7 @@ Steps: kind → stock car (from `kollektion extract --list`) → fictional name 
 **Import** (`install`) runs, in order, and stops at the first failure with its reason:
 1. Unpack; the manifest and schema; the in-game names check; ItemId collisions with stock items, our block and installed packs.
 2. Mesh gates: holes, slivers, a triangle budget per LOD (**[decide]** the budget, likely relative to the template type's donor).
-3. Provenance: refuse game geometry or a copy of a game texture (the donor-copy check, Items and the two pipelines; Textures; a near-match texture only warns), except in a pack made on this machine: `installed.json` records it as made here (`extract --pack` or `pack`), or every extracted file's hash matches this install's own extraction. A pack's own `origin: extracted` (What ships) grants nothing by itself, since anyone can write it.
+3. Provenance: warn on game geometry or a copy of a game texture, naming each file and what it matches, and carry on (Game assets: help, don't police, in Items and the two pipelines; Textures). The warning is skipped for a pack made on this machine: `installed.json` records it as made here (`extract --pack` or `pack`), or every extracted file's hash matches this install's own extraction. A pack's own `origin: extracted` (What ships) grants nothing by itself, since anyone can write it.
 4. Build against the local game (`based`, `patch`) and the round-trip check (Verify).
 5. Record it in `installed.json`; the hub shows "built and checked, waiting for first play" until the next play's status turns it green (In-game status).
 
@@ -193,7 +193,7 @@ No `.ps1` files and no Windows twins of shell scripts.
 
 Goals:
 - One definition per item; everything the game reads is built from it.
-- Packs that carry no game assets: donor-derived geometry is built on the player's machine from their own install.
+- Packs that need no game assets: donor-derived geometry is built on the player's machine from their own install, and the tools warn an author whose pack carries copies.
 - A save that stays valid when a pack or the whole mod is removed.
 - One command for each authoring and lifecycle step, refusing unsafe states (game running, no backup, failed gate).
 - Authoring that starts from an exported stock vehicle in Blender.
@@ -378,7 +378,7 @@ The upgrade model: an upgrade node (`VehicleUpgradeObject`, all off in the prefa
 - `from: "<file>.obj"`: the item's own geometry (cabs, boxes, frames, beds we modelled).
 - both, merged: `add` lists own OBJs appended after the donor's ops.
 
-Gates and the pack build refuse an own OBJ that is a copy of donor geometry: Core compares vertex sets against the donor mesh and flags a high match **[decide: threshold, or advisory only]**. Textures get the same check (Textures). `make pack` already refuses any file byte-identical to one in `extracted/`.
+**Game assets: help, don't police (author, 2026-10-20).** The tools help authors keep copies of game assets out of what they share; they warn and never block. `check`, `build`, `pack` and Import compare each own OBJ with the donor meshes (Core compares vertex sets and flags a high match) and each texture with the extracted maps (Textures), and print a warning naming the file and what it matches, then carry on. Die Kollektion's own pack is held to the rule by its release gate: `make pack` refuses any file byte-identical to one in `extracted/`, and the release keeps that refusal for our pack only.
 
 **Families.** The Glyptodon-family generator (`tools/glyptodon_family.py`) stays Python on our side. It writes the item directory: `vehicle.json`, the operation lists and our own OBJs. Families are an authoring convenience; the runtime sees only items.
 
@@ -394,7 +394,7 @@ A vehicle pack can carry its own texture maps, so our geometry gets real UV-mapp
 - **[test]** A runtime material copy renders like the donor's; weather and lights survive the renderer swap; which `lights` channel drives which lamp; multiplayer livery sync; memory and load time.
 - **Authoring:** the Blender template carries the UV-layout SVG per map at the donor's resolution and a material preview of the rendered maps that mimics the mask behaviour. Textures are our own work, CC BY-SA in our packs.
 - **Size:** keep to the donor's resolution per map unless a reason is shown; textures dominate pack size.
-- **Own textures only (author, 2026-10-20).** A texture the author painted ships, including one painted on a stock car's UV layout (the official livery guide provides the UV templates): it is their texture. A texture made by editing the game's own skin is a game asset. `kollektion pack` refuses a texture identical to an extracted game map. A near match by perceptual hash is a warning, never a refusal (author, 2026-10-20): `build`, `pack` and Import print it, naming the texture and the game map it resembles, and carry on, since a livery painted on the stock UV layout can look alike without being a copy.
+- **Own textures only (author, 2026-10-20).** A texture the author painted ships, including one painted on a stock car's UV layout (the official livery guide provides the UV templates): it is their texture. A texture made by editing the game's own skin is a game asset. A texture identical to an extracted game map, or a near match by perceptual hash, is a warning (Game assets: help, don't police): `build`, `pack` and Import name the texture and the game map it matches or resembles, and carry on. A livery painted on the stock UV layout can look alike without being a copy.
 
 ## What ships (author, 2026-10-19)
 
@@ -418,7 +418,7 @@ Die Kollektion's first release:
 - **`base` can list several sources,** each with `type` (`vehicle` or `prop`), its asset path and bundle, a transform onto the vehicle (scale, offset, rotation) and which pieces are used. Exactly one source is the rig: a vehicle, or for a vehicle built only from props, the template type's donor.
 - **Attach-point validation.** Props bring no attach points, so a vehicle built from them gets its points from the rig source or the author, and `kollektion check` validates the result against the template type: wheel hubs on the wheel colliders and inside the wheel arches of the geometry, centre of mass inside the colliders, colliders enclosing the visible body, winch and water points on the body surface at plausible heights, lights on lamp faces, each upgrade-slot anchor on or near the body, nothing floating or buried beyond a tolerance. The same check runs on every kind, so a novel vehicle is held to it too.
 - Anything can become a vehicle this way, a cabin from a map included: extract it as a prop, pick a template type for the rig, place the points, and build. It is `based` (it ships as differences against the player's own extracted prop).
-- Everything extracted is marked `"origin": "extracted"` in its item and file hashes. Such packs install locally, and `kollektion pack` refuses to build a distributable pack containing any extracted file, so the tool itself enforces the rule. It reads the cars bundle (vehicle prefabs) and the scene bundles (the mechanic's truck and camper body live in the `r1_canada` scene bundle, at scale 100 with an offset; see `docs/engine.md`), and writes OBJ with bone weights and node facts in the same form `export_car_mesh.py` and `export_named_mesh.py` do today, which it replaces.
+- Everything extracted is marked `"origin": "extracted"` in its item and file hashes. Such packs install locally, and `kollektion pack` warns when a pack it builds contains an extracted file, naming each one (Game assets: help, don't police). It reads the cars bundle (vehicle prefabs) and the scene bundles (the mechanic's truck and camper body live in the `r1_canada` scene bundle, at scale 100 with an offset; see `docs/engine.md`), and writes OBJ with bone weights and node facts in the same form `export_car_mesh.py` and `export_named_mesh.py` do today, which it replaces.
 
 ## Examples and the integration test (author, 2026-10-19)
 
@@ -560,8 +560,8 @@ Authoring:
 - `kollektion preview <pack>/<item>`: the item's contact sheet; later the hub's own render.
 - `kollektion extract --list | <Car> <dir> | <Car> --pack <file>`: enumerate the install's vehicles, or extract one as an item directory or a local pack (see What ships). Output contains game assets and stays on the author's machine.
 - `kollektion build <pack>/<item>|<dir> [--install]`: run the operations against the local donor, write the cache, run the gates; `<pack>/<item>` names a workspace item, as every per-item command does, and a path works for a folder outside the workspace; `--install` then installs it (the hub's Rebuild).
-- `kollektion check`: gates only: holes, slivers, triangle budget, node paths, ItemId, codename, the donor-copy check for meshes and textures.
-- `kollektion pack <dir> -o <file>.kpack`: refuses on a failed gate.
+- `kollektion check`: gates only: holes, slivers, triangle budget, node paths, ItemId, codename; the donor-copy check for meshes and textures prints warnings, never failures.
+- `kollektion pack <dir> -o <file>.kpack`: refuses on a failed gate; donor-copy warnings don't stop it.
 - `kollektion diff <a.kpack> <b.kpack>`: item and file changes between two pack versions.
 
 Lifecycle (each refuses while the game runs):
@@ -691,7 +691,6 @@ Alongside, once step 4's `kollektion extract` and `build` exist (in a developer 
 - **[test]** The sidecar's restore when the current vehicle is a mod truck (`InUse` moved to a stock car on save and back on restore): what the menus show in between. An unregistered ItemId in the save hangs the game (The save); one launch with a test save, run by hand, settles the rest.
 - **[test]** Steam verify leaves extra files in the game folder.
 - **Fallback** if no Windows volunteer is found: a rehearsal of the game's Windows build under Proton (a separate folder from steamcmd, never the author's real install) or in a KVM guest on the author's machine, the one exception to keeping Windows off it. Neither is real Windows (memory layout, the Dobby question), so neither lifts the experimental mark.
-- **[decide]** The donor-copy check: a threshold that fails the pack, or advisory only.
 - **[decide]** Which donors after the Mammoth for templates and export.
 - **[test or disassembly]** For upgrades: whether nodes added in the `VehicleBase.Spawned` prefix register in time; whether the 256-bit mounted state indexes the car's upgrade list; whether the garage enforces one option per slot; what drives the `rollcage` and `Winch_01` nodes (no item); how the lights controller finds its lights (decides whether a cloned light works). No disassembler is installed; one logged launch would answer most.
 - Research on categories, save, patch export is done (Research findings, below). Categories: one remaining scan for every reader of `carCategorySetup` beyond the merchant, livery browser and haptics.
