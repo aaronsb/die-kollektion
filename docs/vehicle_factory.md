@@ -412,7 +412,7 @@ The template file in the repo holds only empties, collections, materials and pro
 
 ## Compatibility
 
-- We patch `GameStateManager.Transition`, `VehicleBase.Spawned`, `VehicleCustomizationController.Spawned`, `LocalVehicleCustomizationController.RefreshMountedUpgrades`, the prefab-address getters, and, depending on research, the save path. Categories need no patch.
+- We patch `GameStateManager.Transition`, `VehicleBase.Spawned`, `VehicleCustomizationController.Spawned`, `LocalVehicleCustomizationController.RefreshMountedUpgrades`, `StateMerchantMenu.RefreshToolsPanels`, the prefab-address getters, and, depending on research, the save path. Categories need no patch.
 - Mods touching the same (Air Ride's suspension, Cosmetic Stacker, camera mods reading car bounds) need a joint test.
 - BepInEx only for now. Core has no loader references, so a MelonLoader build later rewrites only the hooks.
 
