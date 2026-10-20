@@ -1099,5 +1099,9 @@
         -2.45
       ]
     }
+  },
+  "toolNodes": {
+    "notes": "The bumper winch, which the game never shows, shows while the truck carries the portable winch (its toolset ItemId).",
+    "Parts/Mammoth_CosmeticParts/Performance/Winch/Winch_01": 2317836723
   }
 }

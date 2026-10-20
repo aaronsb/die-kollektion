@@ -9460,5 +9460,8 @@
       -74.0
     ],
     "preview": "generated/spare_preview.obj"
+  },
+  "toolNodes": {
+    "Parts/Mammoth_CosmeticParts/Performance/Winch/Winch_01": 2317836723
   }
 }
