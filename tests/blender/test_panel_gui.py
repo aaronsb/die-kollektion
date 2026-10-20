@@ -117,6 +117,10 @@ def background_loop(window, root):
     took = time.monotonic() - t
     check(started == {"FINISHED"} and took < 0.5, f"Build and check returns at once ({took:.2f} s)")
     check(not bpy.ops.werkstatt.run_loop.poll(), "the button is off while the loop runs")
+    t = time.monotonic()
+    r = api.run_loop()
+    check(not r["ok"] and "start_loop" in r["error"] and time.monotonic() - t < 0.5,
+          f"with a window, the blocking run_loop() refuses at once: {r.get('error', '')[:60]}")
     ticks = [0]
 
     def watch():
@@ -145,6 +149,11 @@ def background_loop(window, root):
             ticks[0] += 1
             return 0.2
         check(job is not None and job.state == "cancelled", f"and the loop reads as cancelled: {job.state if job else None}")
+        bpy.app.timers.register(after, first_interval=loop.TICK * 3)
+        return None
+
+    def after():
+        check(not bpy.app.timers.is_registered(loop._tick), "the add-on's timer stops once the loop has ended")
         shutil.rmtree(bin_dir, ignore_errors=True)
         finish(root)
         return None

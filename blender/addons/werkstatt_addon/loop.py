@@ -17,7 +17,8 @@ TAIL_LINES = 15
 GRACE = 5.0                 # seconds between asking the job's processes to stop and killing them
 TICK = 0.25
 
-_job = None
+# Kept across a re-run of this module (importlib.reload without unregister), so a running job is never orphaned.
+_job = globals().get("_job")
 
 
 class Job:

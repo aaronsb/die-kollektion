@@ -627,8 +627,12 @@ def cancel_loop():
 
 @_api
 def run_loop(timeout=None):
-    """start_loop(), then waits for the end (or `timeout` seconds) and returns loop_status(). This blocks Blender
-    while it waits: for scripts that want the result. The panel's button starts the loop instead."""
+    """start_loop(), then waits for the end (or `timeout` seconds) and returns loop_status(). Waiting would freeze
+    Blender's window, so with a window (Blender with its UI, as over the MCP server) it refuses: use start_loop()
+    and loop_status() there. In background mode (`blender -b` scripts) it waits."""
+    if not bpy.app.background:
+        raise model.WerkstattError("run_loop() waits for the build and would freeze Blender's window: call start_loop(), "
+                                   "then loop_status() until its state isn't running")
     if timeout is not None:
         model.number(timeout, "timeout", 0.0, 86400.0)
     job, _ = _start_loop()

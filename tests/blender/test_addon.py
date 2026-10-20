@@ -416,6 +416,9 @@ def loop_job(root):
               f"it passes, with its output in the {loop.LOG_TEXT} text: {done.get('state')} {done.get('tail', [])[-1:]}")
         check(f"V={VEHICLE}" in text.as_string().splitlines()[0], "the text starts with the command it ran")
 
+        r = api.run_loop(timeout=10)
+        check(r["ok"] and r["state"] == "passed", f"in background mode run_loop() waits for the result: {r.get('state')}")
+
         os.environ["FAKE_MAKE_EXIT"] = "3"
         api.start_loop()
         done = wait_for(lambda s: s["state"] != "running", 10)
@@ -453,6 +456,23 @@ def loop_job(root):
         check(loop.current() is None and not alive(job.proc.pid) and not alive(child),
               f"unregistering stops the loop and its child: make alive {alive(job.proc.pid)}, child alive {alive(child)}")
         werkstatt_addon.register()
+
+        # Re-running loop.py without unregistering (importlib.reload) keeps the running job, so it isn't orphaned.
+        import importlib
+        api.start_loop()
+        job = loop.current()
+        importlib.reload(loop)
+        check(loop.current() is job and job.ended is None, "re-running loop.py keeps the running job")
+        loop.shutdown()
+
+        # File > New (or Open, Revert) stops a running loop and its child.
+        api.open_vehicle(VEHICLE, force=True)
+        api.start_loop()
+        wait_for(lambda s: "step 1" in s.get("tail", []), 5)
+        job, child = loop.current(), int(open(child_file).read())
+        bpy.ops.wm.read_homefile()
+        check(loop.current() is None and not alive(job.proc.pid) and not alive(child),
+              f"File > New stops the loop and its child: make alive {alive(job.proc.pid)}, child alive {alive(child)}")
         del os.environ["FAKE_MAKE_SLOW"]
     finally:
         loop.shutdown()
