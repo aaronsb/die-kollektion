@@ -83,7 +83,7 @@ Steps: kind → stock car (from `kollektion extract --list`) → fictional name 
 **Import** (`install`) runs, in order, and stops at the first failure with its reason:
 1. Unpack; the manifest and schema; the in-game names check; ItemId collisions with stock items, our block and installed packs.
 2. Mesh gates: holes, slivers, a triangle budget per LOD (**[decide]** the budget, likely relative to the template type's donor).
-3. Provenance: refuse game geometry or textures (the donor-copy check, Items and the two pipelines; Textures), except in a pack made on this machine: `installed.json` records it as made here (`extract --pack` or `pack`), or every extracted file's hash matches this install's own extraction. A pack's own `origin: extracted` (What ships) grants nothing by itself, since anyone can write it.
+3. Provenance: refuse game geometry or a copy of a game texture (the donor-copy check, Items and the two pipelines; Textures; a near-match texture only warns), except in a pack made on this machine: `installed.json` records it as made here (`extract --pack` or `pack`), or every extracted file's hash matches this install's own extraction. A pack's own `origin: extracted` (What ships) grants nothing by itself, since anyone can write it.
 4. Build against the local game (`based`, `patch`) and the round-trip check (Verify).
 5. Record it in `installed.json`; the hub shows "built and checked, waiting for first play" until the next play's status turns it green (In-game status).
 
@@ -394,7 +394,7 @@ A vehicle pack can carry its own texture maps, so our geometry gets real UV-mapp
 - **[test]** A runtime material copy renders like the donor's; weather and lights survive the renderer swap; which `lights` channel drives which lamp; multiplayer livery sync; memory and load time.
 - **Authoring:** the Blender template carries the UV-layout SVG per map at the donor's resolution and a material preview of the rendered maps that mimics the mask behaviour. Textures are our own work, CC BY-SA in our packs.
 - **Size:** keep to the donor's resolution per map unless a reason is shown; textures dominate pack size.
-- **Own textures only (author, 2026-10-20).** A texture the author painted ships, including one painted on a stock car's UV layout (the official livery guide provides the UV templates): it is their texture. A texture made by editing the game's own skin is a game asset. `kollektion pack` refuses a texture identical to an extracted game map and warns on a near match by perceptual hash **[decide: refuse or warn on a near match]**.
+- **Own textures only (author, 2026-10-20).** A texture the author painted ships, including one painted on a stock car's UV layout (the official livery guide provides the UV templates): it is their texture. A texture made by editing the game's own skin is a game asset. `kollektion pack` refuses a texture identical to an extracted game map. A near match by perceptual hash is a warning, never a refusal (author, 2026-10-20): `build`, `pack` and Import print it, naming the texture and the game map it resembles, and carry on, since a livery painted on the stock UV layout can look alike without being a copy.
 
 ## What ships (author, 2026-10-19)
 
