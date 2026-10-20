@@ -145,7 +145,7 @@ def clearance_findings(roof, rack):
     check(after["ok"] and not after["intersecting"] and not after["inside"], f"and nudging RoofSpare by it clears the rack: {after.get('gap')}")
     api.reset("RoofSpare")
     api.reset(roof)
-    r = api.clearance("RoofSpare/RoofrackFlatA", move="Winch_01")
+    r = api.clearance("RoofSpare/RoofrackFlatA", move="BashBar_01")
     check(not r["ok"] and "parents" in r["error"], f"move= must be the item or one of its parents: {r.get('error')}")
 
     # A slot group measures and renders its shown options only.
@@ -188,7 +188,7 @@ def second_round(root, path):
     """The second review of #29: ownership by rule, values Blender's keys can reach, the changed-on-disk guard
     without session state, unsaved compared as values, stricter inputs."""
     keg = "Parts/Mammoth_CosmeticParts/Visual/Bed/Party_Bed/AccessoryBeerBarrel"
-    winch = "Parts/Mammoth_CosmeticParts/Performance/Winch/Winch_01"
+    bar = "Parts/Mammoth_CosmeticParts/Visual/Front_Bumper/BashBar_01"
     if os.path.isfile(path):
         os.remove(path)
     api.open_vehicle(VEHICLE, force=True)
@@ -203,15 +203,15 @@ def second_round(root, path):
 
     # Values the plugin refuses, as Blender's G and S keys can leave them.
     api.open_vehicle(VEHICLE, force=True)
-    e = api._empty("Winch_01")
+    e = api._empty("BashBar_01")
     e.location = e.location + mathutils.Vector((0.0, -12.0, 0.0))
     r = api.save()
-    check(not r["ok"] and "Winch_01" in r["error"] and "offset" in r["error"], f"save refuses a 12 m drag: {r.get('error')}")
-    api.reset("Winch_01")
+    check(not r["ok"] and "BashBar_01" in r["error"] and "offset" in r["error"], f"save refuses a 12 m drag: {r.get('error')}")
+    api.reset("BashBar_01")
     e.scale = (-1.0, -1.0, -1.0)
     r = api.save()
     check(not r["ok"] and "mirrored" in r["error"], f"save refuses a mirrored empty (S -1): {r.get('error')}")
-    api.reset("Winch_01")
+    api.reset("BashBar_01")
     v = api._vehicle()
     turned = next(p for p, n in sorted(v.nodes.items()) if n.kind == "option" and v.is_turned(p))
     api._empty(turned).scale = (2.0, 1.0, 1.0)
@@ -220,15 +220,15 @@ def second_round(root, path):
     api.reset(turned)
 
     # The changed-on-disk guard without session state (Reload Scripts, a reopened .blend, a restart).
-    api.nudge("Winch_01", "y", 1, "cm")
+    api.nudge("BashBar_01", "y", 1, "cm")
     api.save()
     api._state["vehicle"], api._state["sha"] = None, {}
     bpy.context.window_manager[api.WM_RECORD] = {}
-    api.nudge("Winch_01", "y", 1, "cm")
+    api.nudge("BashBar_01", "y", 1, "cm")
     check(api.save()["ok"], "with the session's and window manager's records gone, the root collection's lets an unchanged file be saved")
     write(path, open(path).read().replace('"Parts', '"Lights/HeadLightL": {"offset": [0, 0.01, 0]},\n    "Parts', 1))
     api._state["vehicle"], api._state["sha"] = None, {}
-    api.nudge("Winch_01", "y", 1, "cm")
+    api.nudge("BashBar_01", "y", 1, "cm")
     r = api.save()
     check(not r["ok"] and "changed on disk" in r["error"], f"and a file changed on disk is still refused: {r.get('error')}")
     check(api.changed_on_disk()["changed"], "changed_on_disk() says so, which makes the panel's Save ask before overwriting")
@@ -242,7 +242,7 @@ def second_round(root, path):
 
     # Unsaved is compared as values: a hand-formatted file and rotations written another way aren't changes.
     for rotation in ((100.0, 0.0, 0.0), (0.0, 200.0, 0.0), (89.9999, 0.0, 0.0), (-89.95, 30.0, 10.0)):
-        write(path, json.dumps({"nodes": {winch: {"offset": [0, 0.05, 0], "rotation": list(rotation)}}}, indent=8))
+        write(path, json.dumps({"nodes": {bar: {"offset": [0, 0.05, 0], "rotation": list(rotation)}}}, indent=8))
         api.open_vehicle(VEHICLE, force=True)
         r = api.unsaved()
         check(r["ok"] and not r["unsaved"], f"a pretty-printed file with rotation {rotation} isn't unsaved right after open")
@@ -259,7 +259,7 @@ def second_round(root, path):
 
     # Stricter inputs.
     for value, what in ((b"abc", "bytes"), ({"x": 1, "y": 2, "z": 3}, "a dict"), (["1", 2, 3], "text in a list")):
-        r = api.set_placement("Winch_01", offset=value)
+        r = api.set_placement("BashBar_01", offset=value)
         check(not r["ok"], f"an offset given as {what} is refused: {r.get('error')}")
     odd = os.path.join(root, "vehicles", "odd")
     os.makedirs(odd)
@@ -272,23 +272,23 @@ def second_round(root, path):
 
 def refusals(root, path):
     """The review's findings on #29: reads that write, saves that lose entries, values that raise."""
-    winch = api._empty("Winch_01")
-    winch.rotation_mode = "XYZ"
-    winch.rotation_euler = (0.0, 0.0, 0.1)
-    r = api.placement("Winch_01")
-    check(r["ok"] and winch.rotation_mode == "XYZ" and abs(r["rotation"][1] + math.degrees(0.1)) < 1e-3,
+    bar = api._empty("BashBar_01")
+    bar.rotation_mode = "XYZ"
+    bar.rotation_euler = (0.0, 0.0, 0.1)
+    r = api.placement("BashBar_01")
+    check(r["ok"] and bar.rotation_mode == "XYZ" and abs(r["rotation"][1] + math.degrees(0.1)) < 1e-3,
           f"placement() reads an Euler-mode empty without switching its mode (Blender z is the game's -y): {r.get('rotation')}")
-    api.reset("Winch_01")
+    api.reset("BashBar_01")
 
-    for call, what in ((lambda: api.set_placement("Winch_01", offset=(1, 2)), "a two-number offset"),
-                       (lambda: api.nudge("Winch_01", "y", "2"), "steps as text"),
-                       (lambda: api.set_placement("Winch_01", rotation="10"), "a rotation as text"),
-                       (lambda: api.set_placement("Winch_01", offset=(float("nan"), 0, 0)), "a NaN offset"),
-                       (lambda: api.set_placement("Winch_01", offset=(20, 0, 0)), "an offset of 20 m"),
+    for call, what in ((lambda: api.set_placement("BashBar_01", offset=(1, 2)), "a two-number offset"),
+                       (lambda: api.nudge("BashBar_01", "y", "2"), "steps as text"),
+                       (lambda: api.set_placement("BashBar_01", rotation="10"), "a rotation as text"),
+                       (lambda: api.set_placement("BashBar_01", offset=(float("nan"), 0, 0)), "a NaN offset"),
+                       (lambda: api.set_placement("BashBar_01", offset=(20, 0, 0)), "an offset of 20 m"),
                        (lambda: api.show_slot(None), "no slot"),
                        (lambda: api.nudge(5), "a number as the node"),
                        (lambda: api.open_vehicle(["megaloceros"]), "a list as the name"),
-                       (lambda: api.scale_by("Winch_01", "2"), "a factor as text")):
+                       (lambda: api.scale_by("BashBar_01", "2"), "a factor as text")):
         r = call()
         check(isinstance(r, dict) and r.get("ok") is False and r.get("error"), f"{what} comes back as a message: {r.get('error') if isinstance(r, dict) else r}")
 
@@ -303,11 +303,11 @@ def refusals(root, path):
     # A file's entries the scene doesn't build (outside the upgrade tree) survive a save; a copy deleted here doesn't.
     head = "Lights/HeadLightL"
     keg = "Parts/Mammoth_CosmeticParts/Visual/Bed/Party_Bed/AccessoryBeerBarrel"
-    write(path, json.dumps({"nodes": {head: {"offset": [0, 0.05, 0]}, "Parts/Mammoth_CosmeticParts/Performance/Winch/Winch_01": {"offset": [0, 0, 0.02]}},
+    write(path, json.dumps({"nodes": {head: {"offset": [0, 0.05, 0]}, "Parts/Mammoth_CosmeticParts/Visual/Front_Bumper/BashBar_01": {"offset": [0, 0, 0.02]}},
                             "copies": {keg + "~2": {"source": keg}}}))
     opened = api.open_vehicle(VEHICLE, force=True)
     check(opened["ok"] and opened["not_shown"] == [head], f"open says which entries the scene doesn't show: {opened.get('not_shown')}")
-    api.nudge("Winch_01", "y", 1, "cm")
+    api.nudge("BashBar_01", "y", 1, "cm")
     api.delete_copy(keg + "~2")
     saved = api.save()
     n, c, _ = model.parse_placements(open(path).read())
@@ -315,26 +315,26 @@ def refusals(root, path):
           f"save keeps {head} and drops the deleted copy: {saved}")
 
     # The file changed on disk after it was read: save refuses, force overwrites.
-    api.nudge("Winch_01", "y", 1, "cm")
+    api.nudge("BashBar_01", "y", 1, "cm")
     write(path, open(path).read().replace("0.05", "0.06"))
     r = api.save()
     check(not r["ok"] and "changed on disk" in r["error"], f"save refuses a file changed since it was read: {r.get('error')}")
     check(api.save(force=True)["result"] == "written", "save(force=True) writes it anyway")
     # Unsaved nudges stop a reopen; force drops them.
-    api.nudge("Winch_01", "y", 1, "cm")
+    api.nudge("BashBar_01", "y", 1, "cm")
     check(api.unsaved()["unsaved"], "unsaved() sees the nudge")
     r = api.open_vehicle(VEHICLE)
     check(not r["ok"] and "unsaved" in r["error"], f"open refuses to drop unsaved changes: {r.get('error')}")
     check(api.open_vehicle(VEHICLE, force=True)["ok"] and not api.unsaved()["unsaved"], "open(force=True) drops them")
 
     # Blender's Shift+D on an empty: two empties claim one node, so save refuses; meshes don't move on their own.
-    winch = api._empty("Winch_01")
-    twin = winch.copy()
-    winch.users_collection[0].objects.link(twin)
+    bar = api._empty("BashBar_01")
+    twin = bar.copy()
+    bar.users_collection[0].objects.link(twin)
     r = api.save()
     check(not r["ok"] and "claim" in r["error"], f"save refuses two empties on one node: {r.get('error')}")
     bpy.data.objects.remove(twin, do_unlink=True)
-    mesh = next(o for o in winch.children_recursive if o.type == "MESH")
+    mesh = next(o for o in bar.children_recursive if o.type == "MESH")
     check(all(mesh.lock_location) and all(mesh.lock_rotation) and all(mesh.lock_scale), "an item's meshes are locked; its empty moves")
 
     # Another checkout than the scene's: save refuses.
@@ -596,7 +596,7 @@ def main():
 
         bad = api.open_vehicle("nosuchtruck")
         check(not bad["ok"] and "nosuchtruck" in bad["error"], f"a wrong name gives a message: {bad.get('error')}")
-        opened = api.open_vehicle(VEHICLE, show=["Winch_01"])
+        opened = api.open_vehicle(VEHICLE, show=["BashBar_01"])
         check(opened["ok"] and opened["options"] > 150, f"open_vehicle builds the scene: {opened}")
         root_c = scene.root_collection()
         names = {c.name for c in root_c.children}
@@ -606,29 +606,29 @@ def main():
         check(any(c.get("werkstatt_node") for c in root_c.children if c.name.startswith("Part: ")), "parts carry their node path")
 
         v = api._vehicle()
-        winch = "Parts/Mammoth_CosmeticParts/Performance/Winch/Winch_01"
+        bar = "Parts/Mammoth_CosmeticParts/Visual/Front_Bumper/BashBar_01"
         roof = "Parts/Mammoth_CosmeticParts/Visual/Roof"
         spare = f"{roof}/RoofSpare"
         rack = f"{spare}/RoofrackFlatA"
         keg = "Parts/Mammoth_CosmeticParts/Visual/Bed/Party_Bed/AccessoryBeerBarrel"
         empties = scene.editable_empties()
-        for path in (winch, roof, spare, rack, keg):
+        for path in (bar, roof, spare, rack, keg):
             check(path in empties, f"empty for {path.rsplit('/', 1)[-1]}")
-        check(close(world_game(empties[winch]), v.nodes[winch].position), "the winch empty sits at the node's pose after the reshape")
-        check(all(not o.hide_get() for o in empties[winch].children_recursive), "the shown option's meshes are visible")
+        check(close(world_game(empties[bar]), v.nodes[bar].position), "the bash bar empty sits at the node's pose after the reshape")
+        check(all(not o.hide_get() for o in empties[bar].children_recursive), "the shown option's meshes are visible")
         check(empties[rack].hide_get(), "options not asked for start hidden")
-        check(any(o.type == "MESH" for o in empties[winch].children_recursive), "the winch has its mesh")
+        check(any(o.type == "MESH" for o in empties[bar].children_recursive), "the bash bar has its mesh")
 
         ambiguous = api.nudge("AccessoryBeerBarrel", "y", 1, "cm")
         check(not ambiguous["ok"] and "matches" in ambiguous["error"], f"an ambiguous name says so: {ambiguous.get('error', '')[:80]}")
-        r = api.nudge("Winch_01", "z", 5, "cm")
-        r = api.nudge("Winch_01", "y", 1, "cm")
-        r = api.rotate("Winch_01", "y", 2, 1.0)
+        r = api.nudge("BashBar_01", "z", 5, "cm")
+        r = api.nudge("BashBar_01", "y", 1, "cm")
+        r = api.rotate("BashBar_01", "y", 2, 1.0)
         check(r["ok"] and close(r["offset"], (0, 0.01, 0.05)) and close(r["rotation"], (0, 2, 0), 1e-3), f"nudge and rotate: {r}")
-        check(close(world_game(empties[winch]), tuple(a + b for a, b in zip(v.nodes[winch].position, (0, 0.01, 0.05)))),
-              "the winch moved 5 cm forward and 1 cm up in game space")
-        r = bpy.ops.werkstatt.nudge(node="Winch_01", axis="x", steps=-3, unit="mm")
-        check(r == {"FINISHED"} and close(api.placement("Winch_01")["offset"], (-0.003, 0.01, 0.05)), "the operator nudges with plain arguments")
+        check(close(world_game(empties[bar]), tuple(a + b for a, b in zip(v.nodes[bar].position, (0, 0.01, 0.05)))),
+              "the bash bar moved 5 cm forward and 1 cm up in game space")
+        r = bpy.ops.werkstatt.nudge(node="BashBar_01", axis="x", steps=-3, unit="mm")
+        check(r == {"FINISHED"} and close(api.placement("BashBar_01")["offset"], (-0.003, 0.01, 0.05)), "the operator nudges with plain arguments")
 
         # The agent loop: the roof rack starts inside the Megaloceros' taller roof; one nudge of the roof slot
         # group by the measured depth brings it out, and the same review views come back for a no-op.
@@ -638,8 +638,8 @@ def main():
         api.nudge(roof, before["clear_by"][0], before["clear_by"][1] * (round(before["penetration"] * 1000) + 3), "mm")
         after = api.clearance("RoofSpare/RoofrackFlatA")
         check(after["ok"] and not after["intersecting"] and 0 < after["gap"] < 0.02, f"raised by the measured depth, it clears the roof: {after}")
-        winch_check = api.clearance("Winch_01")
-        check(winch_check["ok"] and winch_check["touches"] is not None, f"clearance of the winch: {winch_check}")
+        bar_check = api.clearance("BashBar_01")
+        check(bar_check["ok"] and bar_check["touches"] is not None, f"clearance of the bash bar: {bar_check}")
         out = tempfile.mkdtemp(prefix="werkstatt-review-")
         first = api.review_views("RoofSpare/RoofrackFlatA", out)
         check(first["ok"] and sorted(first["views"]) == ["front", "side", "three_quarter", "top"], f"review_views renders four views: {first.get('views')}")
@@ -670,14 +670,14 @@ def main():
         check(not any(o.name.startswith("AccessoryBeerBarrel~") for o in empties[dup_option["node"]].children_recursive),
               "a copy is made from its untouched source: Party_Bed~2 carries no copy of the keg copy, as in game")
 
-        nodes = {winch: model.Placement((-0.003, 0.01, 0.05), (0, 2, 0)), roof: model.Placement((0, 0.02, 0), (0, 10, 0)),
+        nodes = {bar: model.Placement((-0.003, 0.01, 0.05), (0, 2, 0)), roof: model.Placement((0, 0.02, 0), (0, 10, 0)),
                  spare: model.Placement((0, 0, 0.1), (3, 0, 0))}
         copies = {keg + "~2": model.Placement((0, 0, 0.4), source=keg)}
-        base = {p: v.nodes[p].position for p in (winch, roof, spare, rack, keg)}
+        base = {p: v.nodes[p].position for p in (bar, roof, spare, rack, keg)}
         base[keg + "~2"] = v.nodes[keg].position
         expected = emulate(base, model.steps(nodes, copies))
         empties = scene.editable_empties()
-        for path in (winch, roof, spare, rack, keg + "~2"):
+        for path in (bar, roof, spare, rack, keg + "~2"):
             check(close(world_game(empties[path]), expected[path], 1e-4), f"scene matches the plugin's steps at {path.rsplit('/', 1)[-1]}: {world_game(empties[path])} vs {expected[path]}")
 
         saved = api.save()
@@ -685,26 +685,29 @@ def main():
         path = os.path.join(root, "vehicles", VEHICLE, "placements.json")
         text = open(path).read()
         n, c, _ = model.parse_placements(text)
-        check(set(n) == {winch, roof, spare} and set(c) == {keg + "~2", dup_option["node"]}, f"the file holds exactly the edits ({sorted(n)}, {sorted(c)})")
+        check(set(n) == {bar, roof, spare} and set(c) == {keg + "~2", dup_option["node"]}, f"the file holds exactly the edits ({sorted(n)}, {sorted(c)})")
         check(api.save()["result"] == "unchanged", "saving again changes nothing")
         check(len(text.splitlines()) == 1 + 1 + 1 + 3 + 1 + 1 + 2 + 1 + 1, "one line per entry")
 
         reopened = api.open_vehicle(VEHICLE)
         check(reopened["placements"] == 3 and reopened["copies"] == 2, f"reopening reads the file back: {reopened}")
-        check(close(api.placement("Winch_01")["offset"], (-0.003, 0.01, 0.05)), "the winch keeps its placement after reopening")
+        check(close(api.placement("BashBar_01")["offset"], (-0.003, 0.01, 0.05)), "the bash bar keeps its placement after reopening")
         check(api.save()["result"] == "unchanged", "a reopened, untouched vehicle saves to the same bytes")
         check(close(api.placement("Visual/Roof")["offset"], (0, 0.02, 0)), "a unique end of a path names a node (Visual/Roof)")
-        check(api.delete_copy(keg + "~2")["ok"] and api.reset("Winch_01")["ok"], "delete a copy, reset an item")
+        check(api.delete_copy(keg + "~2")["ok"] and api.reset("BashBar_01")["ok"], "delete a copy, reset an item")
         api.save()
         n, c, _ = model.parse_placements(open(path).read())
-        check(winch not in n and keg + "~2" not in c, "reset and deleted entries leave the file")
+        check(bar not in n and keg + "~2" not in c, "reset and deleted entries leave the file")
         # The panel draws without errors and every property and operator it names exists.
         from werkstatt_addon import ui
-        problems = []
+        problems, labels, icons = [], [], []
 
         class FakeLayout:
             def __getattr__(self, name):
                 def call(*args, **kwargs):
+                    if name == "label":
+                        labels.append(kwargs.get("text", ""))
+                        icons.append(kwargs.get("icon"))
                     if name == "prop":
                         data, prop = args[0], args[1]
                         if prop not in data.bl_rna.properties:
@@ -722,14 +725,51 @@ def main():
                 return call
 
         panel = type("P", (), {"layout": FakeLayout()})()
-        api.frame("Winch_01")
+        api.frame("BashBar_01")
         ui.WERKSTATT_PT_panel.draw(panel, bpy.context)
         ui.refresh_items(bpy.context)
         check(not problems and len(bpy.context.scene.werkstatt.items) > 150, f"the panel draws and lists the items ({problems})")
         check(len(ui._vehicle_items(None, bpy.context)) >= 1, "the vehicle list fills")
         f = api.frame("RoofSpare/RoofrackFlatA")
         check(f["ok"] and close(f["centre"], v.nodes[rack].position, 0.6) and f["size"][0] > 0.5, f"frame finds the item's centre and size: {f}")
-        check(not api.delete_copy("Winch_01")["ok"], "an original can't be deleted")
+        check(not api.delete_copy("BashBar_01")["ok"], "an original can't be deleted")
+
+        # Options the game never shows (no part behind the node), or shows with a tool (the definition's toolNodes),
+        # are marked in the list and the item box (#42), and placements on them still save.
+        rollcage = "Parts/Mammoth_CosmeticParts/Performance/Rollcage"
+        winch = "Parts/Mammoth_CosmeticParts/Performance/Winch/Winch_01"
+        listed = {d["node"]: d for d in api.items()["items"]}
+        check(listed[bar]["in_game"] == "item" and not listed[bar]["in_game_note"], f"the bash bar shows with its item: {listed[bar]['in_game']}")
+        check(listed[rollcage + "/rollcage"]["in_game"] == "never" and listed[rollcage]["in_game"] == "never" and listed[rollcage]["options"] == 1,
+              f"the roll cage and its slot group are never shown: {listed[rollcage + '/rollcage']['in_game_note']!r}")
+        check(listed[winch]["in_game"] == "tool" and listed[winch]["tools"] == [2317836723] and listed[winch]["in_game_note"] == "Shown with the portable winch",
+              f"the bumper winch shows with the tool its toolNodes names: {listed[winch]['in_game_note']!r}")
+        w = bpy.context.scene.werkstatt
+        w.slot_filter = "Rollcage"
+        ui.refresh_items(bpy.context)
+        rows = []
+        for item in w.items:
+            labels.clear()
+            icons.clear()
+            ui.WERKSTATT_UL_items.draw_item(None, bpy.context, FakeLayout(), w, item, 0, w, "item_index", 0)
+            rows.append((*labels, icons[-1]))
+        check(rows == [("Rollcage", "1 option", "ERROR"), ("rollcage", "Not in game", "ERROR")],
+              f"the Rollcage group (with its options' count) and its option read as two rows, both marked: {rows}")
+        w.slot_filter = ""
+        api.frame("rollcage")
+        labels.clear()
+        ui.WERKSTATT_PT_panel.draw(panel, bpy.context)
+        check("Not shown in game" in labels, f"the item box marks the selected roll cage: {labels[:8]}")
+        api.nudge("rollcage", "y", 1, "cm")
+        saved = api.save()
+        n, _, _ = model.parse_placements(open(path).read())
+        check(saved["ok"] and close(n[rollcage + "/rollcage"].offset, (0, 0.01, 0)), f"a placement on it still saves: {saved}")
+        api.reset("rollcage")
+        copy = api.duplicate("rollcage")
+        check(copy["ok"] and copy["source"] == rollcage + "/rollcage" and copy["in_game"] == "never",
+              f"a copy of it reads through its source, never shown: {copy.get('node')} {copy.get('in_game')}")
+        api.delete_copy(copy["node"])
+        api.save()
         refusals(root, path)
         axles(root)
         loop_job(root)

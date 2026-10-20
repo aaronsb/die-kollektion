@@ -32,6 +32,14 @@ Everything sits where the game puts it after the reshape, step by step as the pl
 3. Nudge it. Pick a step (1 mm, 1 cm or 10 cm) and a multiplier (×1, ×5, ×10, ×20 or ×50), then press Left/Right, Down/Up or Back/Forward. Turn it with Pitch, Yaw and Roll, in steps of 0.1°, 0.5°, 1° or 5° times the same multiplier. Moving the item's empty with Blender's own G, R and S keys counts too; its meshes are locked, so a click on a mesh followed by G does nothing (pick the item in the list, which selects the empty).
 4. Reset puts the item back at the donor's pose.
 
+The list shows a slot group with its number of options, and an option, piece or copy with its slot, unless the game shows it otherwise:
+
+- **Not in game** (a warning sign): the node names no item and is off in the prefab, so the game never shows it. On the Mammoth and The Ding these are the roll cage (`Performance/Rollcage/rollcage`) and the bumper winch (`Performance/Winch/Winch_01`).
+- **Always shown** (an info sign): the node names no item and is on in the prefab, so the game always shows it. The Mammoth has none.
+- **With tool**: the vehicle's `toolNodes` names it or a node above it, so it shows while the tool loadout carries that tool (and its item is fitted, if it has one). The item box names the tool. Our four trucks show the bumper winch with the portable winch (`docs/engine.md`, "Upgrade nodes").
+
+A slot group whose options all show one way carries their sign beside its count. A placement on a marked item saves like any other.
+
 Ctrl+Z takes back each nudge, turn, copy and open, from the panel or a script alike.
 
 Directions are the truck's: right, up and forward. An item on a slot group moves every item in it. On Das Megaloceros, for example, every roof item sits about 22 cm into the taller square-cab roof, so one nudge of the `Roof` group fixes them all. Turns are about the item's own pivot. A child's moves happen in its group's frame: turn the group and its items' moves turn with it, as in game.
@@ -64,13 +72,13 @@ Every panel action has a scriptable equivalent, so an agent can look, nudge, mea
 
 - **Operators** take plain arguments:
   - `bpy.ops.werkstatt.open_vehicle(name="megaloceros")`
-  - `bpy.ops.werkstatt.nudge(node="Winch_01", axis="y", steps=2, unit="cm")`
+  - `bpy.ops.werkstatt.nudge(node="BashBar_01", axis="y", steps=2, unit="cm")`
   - `rotate(node=..., axis=..., steps=..., degrees=...)`
   - `duplicate(node=...)`, `delete_copy(node=...)`, `reset(node=...)`
   - `show(node=..., shown=...)`, `show_slot(slot=..., shown=...)`
   - `frame(node=...)`, `save()`, `run_loop()` (starts the loop in the background), `cancel_loop()`
 - **The Python API** (`from werkstatt_addon import api`) returns plain dicts that read back as JSON. A problem, a wrong value included, comes back as `{"ok": False, "error": "..."}` with a plain message, never a traceback. Each call that changes the scene is one undo step:
-  - `status(refresh=False)`, `vehicles()`, `open_vehicle(name, show=[...], force=False)`, `unsaved()`, `changed_on_disk()`, `items(slot=None, kind=None)`
+  - `status(refresh=False)`, `vehicles()`, `open_vehicle(name, show=[...], force=False)`, `unsaved()`, `changed_on_disk()`, `items(slot=None, kind=None)`; each item carries `in_game` (`"item"`, `"tool"`, `"always"` or `"never"`), `tools` (the toolset ItemIds it needs, when any) and `in_game_note`, and a slot group its `options`
   - `placement(node)`, `set_placement(node, offset=, rotation=, scale=)`
   - `nudge(node, axis, steps, unit)`, `rotate(node, axis, steps, degrees)`, `scale_by(node, factor, axis=None)`
   - `reset(node)`, `show(node, shown)`, `show_slot(slot, shown)`
@@ -80,7 +88,7 @@ Every panel action has a scriptable equivalent, so an agent can look, nudge, mea
   - `start_loop()` starts `make loop` in the background and returns at once: `{"started": True, "state": "running", ...}`, or `"started": False` with the running loop's status. `loop_status()` returns `{"state": "running" | "cancelling" | "passed" | "failed" | "cancelled" | "idle", "elapsed", "code", "tail"}`, and `cancel_loop()` stops it. `run_loop(timeout=None)` starts it and waits for the end, for `blender -b` scripts that want the result in one call; with Blender's window open (over the MCP server, say) it refuses, since waiting would freeze the window.
   - `clearance(node, reach=0.5, move=None)` and `review_views(node, out_dir)`, for the loop below
 
-  A node is a full node path or any unique end of one (`Winch_01`, `RoofSpare/RoofrackFlatA`); an ambiguous name lists its matches.
+  A node is a full node path or any unique end of one (`BashBar_01`, `RoofSpare/RoofrackFlatA`); an ambiguous name lists its matches.
 
 Worked example over MCP:
 

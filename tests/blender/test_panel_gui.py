@@ -20,7 +20,7 @@ from checkout import scratch_checkout  # noqa: E402
 
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 VEHICLE = argv[0] if argv else "megaloceros"
-failures, draws, loop_draws = [], [], []
+failures, draws, loop_draws, rows = [], [], [], []
 
 
 def check(cond, what):
@@ -48,6 +48,20 @@ class WERKSTATT_PT_gui_test(ui.WERKSTATT_PT_panel):
             raise
 
 
+def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+    """The real row draw, recording each row's label and any error (Blender prints a row's exception and goes on)."""
+    try:
+        real_draw_item(self, context, layout, data, item, icon, active_data, active_propname, index)
+        rows.append((item.label, item.detail))
+    except Exception as e:
+        rows.append(f"{type(e).__name__}: {e}")
+        raise
+
+
+real_draw_item = ui.WERKSTATT_UL_items.draw_item
+ui.WERKSTATT_UL_items.draw_item = draw_item
+
+
 def view3d():
     for window in bpy.context.window_manager.windows:
         for area in window.screen.areas:
@@ -71,11 +85,12 @@ def main():
     os.environ["WERKSTATT_DIR"] = root
     werkstatt_addon.register()
     bpy.utils.register_class(WERKSTATT_PT_gui_test)
-    opened = api.open_vehicle(VEHICLE, show=["Winch_01"])
+    opened = api.open_vehicle(VEHICLE, show=["BashBar_01"])
     check(opened["ok"], f"the vehicle opens in a window: {opened.get('error')}")
-    api.frame("Winch_01")
-    winch = api._empty("Winch_01")
-    winch.rotation_mode = "XYZ"                          # as Blender's R key can leave it
+    ui.refresh_items(bpy.context)                        # the list's first rows: the Performance slot groups and options
+    api.frame("BashBar_01")
+    bar = api._empty("BashBar_01")
+    bar.rotation_mode = "XYZ"                            # as Blender's R key can leave it
     window, area = view3d()
     check(area is not None, "Blender has a 3D view")
     area.spaces.active.show_region_ui = True
@@ -92,7 +107,9 @@ def main():
             errors = [d for d in draws if d]
             check(len(draws) > 0, f"Blender drew the panel ({len(draws)} draws)")
             check(not errors, f"the panel draws with an item selected and reads its placement, without errors ({errors[:1]})")
-            check(winch.rotation_mode == "XYZ", "drawing left the selected empty's rotation mode alone")
+            check(bar.rotation_mode == "XYZ", "drawing left the selected empty's rotation mode alone")
+            check({("Rollcage", "1 option"), ("rollcage", "Not in game")} <= set(rows) and all(isinstance(r, tuple) for r in rows),
+                  f"the list draws its rows, the Rollcage group and its option apart: {sorted(set(rows), key=str)[:8]}")
             undo(window, area)
             background_loop(window, root)
         except Exception:
@@ -165,18 +182,18 @@ def undo(window, area):
     """Ctrl+Z after API calls (as an agent makes them over MCP) and after the panel's operators."""
     region = next(r for r in area.regions if r.type == "WINDOW")
     with bpy.context.temp_override(window=window, area=area, region=region):
-        start = api.placement("Winch_01")["offset"]
-        api.nudge("Winch_01", "y", 1, "cm")
-        api.nudge("Winch_01", "y", 1, "cm")
+        start = api.placement("BashBar_01")["offset"]
+        api.nudge("BashBar_01", "y", 1, "cm")
+        api.nudge("BashBar_01", "y", 1, "cm")
         bpy.ops.ed.undo()
-        after = api.placement("Winch_01")
+        after = api.placement("BashBar_01")
         check(after["ok"] and abs(after["offset"][1] - start[1] - 0.01) < 1e-6, f"undo takes back one API nudge: {after.get('offset')}")
-        bpy.ops.werkstatt.nudge(node="Winch_01", axis="z", steps=3, unit="cm")
+        bpy.ops.werkstatt.nudge(node="BashBar_01", axis="z", steps=3, unit="cm")
         bpy.ops.ed.undo()
-        after = api.placement("Winch_01")
+        after = api.placement("BashBar_01")
         check(after["ok"] and abs(after["offset"][2] - start[2]) < 1e-6, f"undo takes back the panel's nudge: {after.get('offset')}")
         bpy.ops.ed.undo()
-        check(abs(api.placement("Winch_01")["offset"][1] - start[1]) < 1e-6, "and the API nudge before it")
+        check(abs(api.placement("BashBar_01")["offset"][1] - start[1]) < 1e-6, "and the API nudge before it")
         # A copy saved, then undone: the scene owns it by rule, so the undo is an unsaved change and the next
         # save takes it out of the file.
         keg = "Parts/Mammoth_CosmeticParts/Visual/Bed/Party_Bed/AccessoryBeerBarrel"
@@ -189,7 +206,7 @@ def undo(window, area):
         check(r["ok"] and (not os.path.isfile(path) or copy not in open(path).read()), f"and the save drops it from the file: {r}")
         # Save, then undo past it, then lose the session's record (Reload Scripts): undo puts the older hash back
         # on the root collection, but the window manager's record, which undo leaves alone, still knows the file.
-        api.nudge("Winch_01", "y", 1, "cm")
+        api.nudge("BashBar_01", "y", 1, "cm")
         api.save()
         bpy.ops.ed.undo()
         api._state["sha"] = {}

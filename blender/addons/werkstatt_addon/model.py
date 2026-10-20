@@ -264,11 +264,21 @@ def file_hash(path):
         return hashlib.sha256(f.read()).hexdigest()
 
 
+class _RepeatedKeys(dict):
+    """A JSON object that repeated a key (holding the last value, as json.load would)."""
+
+
+def _mark_repeats(pairs):
+    out = dict(pairs)
+    return _RepeatedKeys(out) if len(out) < len(pairs) else out
+
+
 def read_json(path, root=None):
-    """A JSON file's content; a broken file is a WerkstattError naming it."""
+    """A JSON file's content, an object that repeats a key read as a _RepeatedKeys; a broken file is a WerkstattError
+    naming it."""
     try:
         with open(path, encoding="utf-8") as f:
-            return json.load(f)
+            return json.load(f, object_pairs_hook=_mark_repeats)
     except (OSError, ValueError) as e:
         raise WerkstattError(f"can't read {os.path.relpath(path, root) if root else path}: {e}") from None
 
@@ -385,11 +395,12 @@ def steps(nodes, copies):
 class Node:
     """A prefab node at its pose after the reshape (game space)."""
 
-    __slots__ = ("path", "position", "rotation", "scale", "kind", "part", "file", "lod_group", "children")
+    __slots__ = ("path", "position", "rotation", "scale", "kind", "part", "file", "lod_group", "active", "children")
 
-    def __init__(self, path, position, rotation=(0, 0, 0, 1), scale=(1, 1, 1), kind="node", part=None, file=None, lod_group=False):
+    def __init__(self, path, position, rotation=(0, 0, 0, 1), scale=(1, 1, 1), kind="node", part=None, file=None, lod_group=False,
+                 active=True):
         self.path, self.position, self.rotation, self.scale = path, tuple(position), tuple(rotation), tuple(scale)
-        self.kind, self.part, self.file, self.lod_group, self.children = kind, part, file, lod_group, []
+        self.kind, self.part, self.file, self.lod_group, self.active, self.children = kind, part, file, lod_group, active, []
 
     @property
     def name(self):
@@ -470,7 +481,8 @@ class Vehicle:
             q, _ = self.pose(n["path"])
             kind = "option" if "part" in n else ("piece" if n.get("lodGroup") else "node")
             self.nodes[n["path"]] = Node(n["path"], self.place(n["path"], n["position"]), quat_mul(q, tuple(n["rotation"])),
-                                         n["scale"], kind, n.get("part"), n.get("file"), bool(n.get("lodGroup")))
+                                         n["scale"], kind, n.get("part"), n.get("file"), bool(n.get("lodGroup")),
+                                         n.get("active", True))
         for path, node in self.nodes.items():
             parent = self.nodes.get(parent_path(path))
             if parent is not None:
@@ -487,7 +499,19 @@ class Vehicle:
             types = {c["type"] for c in f["components"]}
             if self._is_attach_point(f["path"], types):
                 self.attach_points[f["path"]] = self.place(f["path"], f["position"])
+        self.tool_nodes = self._tool_nodes()
         self.placements, self.copies, self.notes = read_placements(os.path.join(self.folder, PLACEMENTS))
+
+    def _tool_nodes(self):
+        """The definition's toolNodes ({node path: toolset ItemId}) as the plugin reads them (ToolNodes.cs): none on
+        a patch, which is the stock car, and none when the block is malformed (a repeated key included)."""
+        block = self.manifest.get("toolNodes")
+        if self.manifest.get("patch") or not isinstance(block, dict) or isinstance(block, _RepeatedKeys):
+            return {}
+        tools = {p: t for p, t in block.items() if p != "notes"}
+        if not all(_is_path(p) and isinstance(t, int) and not isinstance(t, bool) and 0 < t < 2 ** 32 for p, t in tools.items()):
+            return {}
+        return tools
 
     @staticmethod
     def _is_attach_point(path, types):
@@ -656,6 +680,33 @@ class Vehicle:
 
     def options(self):
         return [n for n in self.nodes.values() if n.kind == "option"]
+
+    def options_below(self, path):
+        return [n for p, n in self.nodes.items() if n.kind == "option" and p.startswith(path + "/")]
+
+    def in_game(self, path):
+        """How the game shows a node, as (how, toolset ItemIds). It shows while every node on its path is active: one
+        the definition's toolNodes names while the loadout carries that tool (the plugin's ToolNodes.cs), an option
+        with a part while its item is fitted (the game's), any other node as the prefab has it. So "never" when a node
+        on the path is inactive and nothing turns it on (Performance/Winch/Winch_01 and Performance/Rollcage/rollcage
+        on the Mammoth: no part, inactive, unless a toolNodes entry names them, as our trucks' does the winch); else
+        "item" when an item is needed, with the tools also needed; "tool" when only tools are; "always" when nothing
+        is (an option without a part that the prefab shows). A slot group reads as its options when they all agree,
+        else ("item", ())."""
+        node = self.nodes.get(path)
+        if node is not None and node.kind == "group":
+            found = {self.in_game(o.path) for o in self.options_below(path)}
+            return found.pop() if len(found) == 1 else ("item", ())
+        item, tools = False, set()
+        while node is not None:
+            if node.path in self.tool_nodes:
+                tools.add(self.tool_nodes[node.path])
+            elif node.kind == "option" and (node.part or {}).get("name"):
+                item = True
+            elif not node.active:
+                return ("never", ())
+            node = self.nodes.get(parent_path(node.path))
+        return ("item" if item else "tool" if tools else "always", tuple(sorted(tools)))
 
     def placement(self, path):
         return self.copies.get(path) or self.placements.get(path) or Placement()
