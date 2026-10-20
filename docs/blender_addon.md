@@ -101,16 +101,16 @@ For an agent fitting an item, the loop is: measure, nudge by what the measuremen
   - **Clear:** `{"intersecting": False, "inside": False, "gap": 0.004, "touches": "body_LOD0", "at": [...]}`. The gap is measured from vertices to surfaces both ways, so where an edge passes an edge it can read a little more than the true gap.
   - **Crossing or inside:** `{"intersecting": True, "penetration": 0.223, "direction": "up", "clear_by": ["y", 1], "offset_delta": [0, 0.223, 0], "depths": {...}}`. `intersecting` means surfaces cross. `inside` means the item sits wholly inside something (a rack lowered into the cab) with no surface crossing, and then no gap is reported. The penetration is the smallest move along one truck axis after which the item neither crosses nor sits inside anything, checked by moving it and testing again. A thin shell such as the cab roof can't be "cleared" by dropping the item into the hollow cab: that candidate is refused. With no such move within `reach` (default 0.5 m), `penetration` is None and a `note` says so.
 
-  `clear_by` is the axis and sign for `api.nudge` and `offset_delta` the change to the offset, both in the frame of the node you'll move: the item, or `move=` (its slot group, say), whose placed ancestors may turn or scale its nudges. When the move isn't along one axis of that frame, `clear_by` is None: add `offset_delta` to its offset with `set_placement`. `depths` holds every direction's move (None where none within `reach` clears).
+  `clear_by` is the axis and sign for `api.nudge`, `nudge_by` the nudge's length in metres, and `offset_delta` the change to the offset, all in the frame of the node you'll move: the item, or one of its parents given as `move=` (its slot group, say), whose placed ancestors may turn or scale its nudges. Under a scaled frame `nudge_by` differs from `penetration`. When the move isn't along one axis of that frame, `clear_by` is None: add `offset_delta` to its offset with `set_placement`. `depths` holds every direction's move (None where none within `reach` clears).
 - `api.review_views(node, out_dir)` renders front, side, top and three-quarter views framed on the item, always as 1200×900 PNGs with the same studio lighting, colour management and no dither, border or date stamps, whatever the scene was set to (its own settings come back afterwards). The same pose gives byte-identical files, so successive nudges compare like with like.
 
 ```python
 from werkstatt_addon import api
 api.open_vehicle("megaloceros", show=["Roof/RoofSpare"])
-c = api.clearance("RoofSpare/RoofrackFlatA")
-# {'intersecting': True, 'penetration': 0.2228, 'direction': 'up', 'clear_by': ['y', 1], ...}
+c = api.clearance("RoofSpare/RoofrackFlatA", move="Visual/Roof")
+# {'intersecting': True, 'penetration': 0.2228, 'direction': 'up', 'clear_by': ['y', 1], 'nudge_by': 0.2228, ...}
 axis, sign = c["clear_by"]
-api.nudge("Visual/Roof", axis, sign * (round(c["penetration"] * 1000) + 3), "mm")   # the whole roof slot, plus 3 mm
+api.nudge("Visual/Roof", axis, sign * (round(c["nudge_by"] * 1000) + 3), "mm")   # the whole roof slot, plus 3 mm
 api.clearance("RoofSpare/RoofrackFlatA")     # {'intersecting': False, 'gap': 0.003, ...}
 api.review_views("RoofSpare/RoofrackFlatA", "/tmp/rack")   # read the four PNGs; compare with the last round
 api.save()

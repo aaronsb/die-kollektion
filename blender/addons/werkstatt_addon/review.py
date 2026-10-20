@@ -130,6 +130,14 @@ def _any_inside(points, tree, ray):
     return False
 
 
+def _ancestors(obj):
+    out, e = [], obj.parent
+    while e is not None:
+        out.append(e)
+        e = e.parent
+    return out
+
+
 def _nudge_frame(mover):
     """Blender's map from a nudge of `mover` (an offset in its parent's frame, as api.nudge applies it) to the
     world: the parent's turns and scales."""
@@ -137,14 +145,17 @@ def _nudge_frame(mover):
 
 
 def _move_for(mover, world_move):
-    """(offset delta in game axes of mover's nudge frame, [axis, sign] when that is along one axis, else None)."""
+    """(offset delta in game axes of mover's nudge frame, [axis, sign] when that is along one axis, else None, and
+    the nudge's length along that axis in metres, which a scaled frame makes differ from the move)."""
     local = model.blender_to_game(tuple(_nudge_frame(mover).inverted_safe() @ world_move))
     size = max(abs(v) for v in local)
     if size == 0:
-        return [0.0, 0.0, 0.0], None
+        return [0.0, 0.0, 0.0], None, None
     axes = [i for i, v in enumerate(local) if abs(v) > 1e-6 * max(1.0, size)]
-    single = ["xyz"[axes[0]], 1 if local[axes[0]] > 0 else -1] if len(axes) == 1 else None
-    return model.clean(local, model.OFFSET_DIGITS), single
+    if len(axes) != 1:
+        return model.clean(local, model.OFFSET_DIGITS), None, None
+    return (model.clean(local, model.OFFSET_DIGITS), ["xyz"[axes[0]], 1 if local[axes[0]] > 0 else -1],
+            round(abs(local[axes[0]]), model.OFFSET_DIGITS))
 
 
 def clearance(empty, reach=0.5, mover=None):
@@ -155,11 +166,16 @@ def clearance(empty, reach=0.5, mover=None):
     than the true gap.
     Crossing an obstacle ("intersecting") or sitting inside one ("inside", e.g. a rack buried in a roof):
     {"penetration": the smallest move along one truck axis that clears it, "direction": "up", "forward", ...,
-    "offset_delta": that move as an offset change of `mover` (default: the item) in its nudge frame, "clear_by":
-    [axis, sign] for api.nudge on `mover` when the move is along one of its axes, "depths": every direction's
-    move, "touches", "at"}. Inside is told by ray casts, so it needs the obstacles' faces to point outward."""
+    "offset_delta": that move as an offset change of `mover` (default: the item, or one of its parents) in its
+    nudge frame, "clear_by": [axis, sign] and "nudge_by": metres for api.nudge on `mover` when the move is along
+    one of its axes (a scaled frame makes nudge_by differ from penetration), "depths": every direction's move,
+    "touches", "at"}. Inside is told by ray casts, so it needs the obstacles' faces to point outward."""
     bpy.context.view_layer.update()
     mover = mover or empty
+    if mover is not empty and mover not in _ancestors(empty):
+        raise model.WerkstattError(f"{mover['werkstatt_node'].rsplit('/', 1)[-1]} isn't "
+                                   f"{empty['werkstatt_node'].rsplit('/', 1)[-1]} or one of its parents, so moving it "
+                                   "doesn't move the item")
     items = item_meshes(empty)
     if not items:
         raise model.WerkstattError(f"{empty['werkstatt_node']} shows no meshes to measure (show one of its options)")
@@ -203,10 +219,10 @@ def clearance(empty, reach=0.5, mover=None):
             depths[name] = _clearing_move(iv, ifaces, body_tree, d, start, reach, ray)
         clearing = {k: v for k, v in depths.items() if v is not None}
         direction = min(clearing, key=lambda k: (clearing[k], list(AXIS_DIRECTIONS).index(k))) if clearing else None
-        delta, single = (_move_for(mover, mathutils.Vector(AXIS_DIRECTIONS[direction]) * clearing[direction])
-                         if direction else (None, None))
+        delta, single, along = (_move_for(mover, mathutils.Vector(AXIS_DIRECTIONS[direction]) * clearing[direction])
+                                if direction else (None, None, None))
         out.update({"penetration": clearing[direction] if direction else None, "direction": direction,
-                    "offset_delta": delta, "clear_by": single, "depths": depths, "gap": None,
+                    "offset_delta": delta, "clear_by": single, "nudge_by": along, "depths": depths, "gap": None,
                     "at": model.clean(model.blender_to_game(tuple(nearest_at or iv[0])), 4),
                     **({} if direction else {"note": f"no move along one axis up to {reach} m clears it"})})
         if direction and single is None:
@@ -253,6 +269,9 @@ PINNED = [
     (lambda sc: sc.render.image_settings, "color_mode", "RGB"),
     (lambda sc: sc.render.image_settings, "color_depth", "8"),
     (lambda sc: sc.render.image_settings, "compression", 15),
+    (lambda sc: sc.render.image_settings, "color_management", "FOLLOW_SCENE"),
+    (lambda sc: sc.render, "use_compositing", False),
+    (lambda sc: sc.render, "use_sequencer", False),
     (lambda sc: sc.view_settings, "view_transform", "Standard"),
     (lambda sc: sc.view_settings, "look", "None"),
     (lambda sc: sc.view_settings, "exposure", 0.0),
@@ -272,15 +291,13 @@ PINNED = [
 
 def _pin(sc):
     """Pins the output settings; returns what to put back."""
-    saved = []
+    # Every old value is read before any is set: setting the file format resets the colour mode and depth.
+    saved = [(owner(sc), attr, getattr(owner(sc), attr)) for owner, attr, _ in PINNED if hasattr(owner(sc), attr)]
     for owner, attr, value in PINNED:
-        target = owner(sc)
         try:
-            old = getattr(target, attr)
-            setattr(target, attr, value)
+            setattr(owner(sc), attr, value)
         except (AttributeError, TypeError, ValueError):   # a setting this Blender lacks or names differently
-            continue
-        saved.append((target, attr, old))
+            pass
     for k in dir(sc.render):                             # nor a date or render time in the PNG's metadata
         if k.startswith("use_stamp"):
             saved.append((sc.render, k, getattr(sc.render, k)))
@@ -345,6 +362,10 @@ def review_views(empty, out_dir, margin=0.6):
         for obj in hidden:
             obj.hide_render = True
         sc.camera, sc.render.filepath = saved_camera, saved_path
-        for target, attr, old in reversed(saved):
-            setattr(target, attr, old)
+        # In pin order: the file format first, since setting it resets the colour mode and depth that follow.
+        for target, attr, old in saved:
+            try:
+                setattr(target, attr, old)
+            except (TypeError, ValueError):     # a value its format no longer offers
+                pass
     return paths

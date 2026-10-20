@@ -110,6 +110,19 @@ def clearance_findings(roof, rack):
     api.reset("RoofSpare")
     api.reset(roof)
 
+    # Under a scaled frame the nudge is longer than the move: nudge_by is the nudge, and it clears.
+    api.set_placement(roof, scale=(0.5, 0.5, 0.5))
+    r = api.clearance("RoofSpare/RoofrackFlatA", move="RoofSpare")
+    check(r["ok"] and r["clear_by"] == ["y", 1] and abs(r["nudge_by"] - 2 * r["penetration"]) < 1e-3,
+          f"with the roof slot at half scale, RoofSpare's nudge is twice the move: {r.get('nudge_by')} for {r.get('penetration')}")
+    api.nudge("RoofSpare", r["clear_by"][0], r["clear_by"][1] * (round(r["nudge_by"] * 1000) + 3), "mm")
+    after = api.clearance("RoofSpare/RoofrackFlatA")
+    check(after["ok"] and not after["intersecting"] and not after["inside"], f"and nudging RoofSpare by it clears the rack: {after.get('gap')}")
+    api.reset("RoofSpare")
+    api.reset(roof)
+    r = api.clearance("RoofSpare/RoofrackFlatA", move="Winch_01")
+    check(not r["ok"] and "parents" in r["error"], f"move= must be the item or one of its parents: {r.get('error')}")
+
     # A slot group measures and renders its shown options only.
     group = api._empty(roof)
     api.show_slot("Roof", False)
@@ -136,6 +149,12 @@ def clearance_findings(roof, rack):
           f"review_views writes the PNGs it names, whatever the scene's format: {sorted(os.listdir(out))}")
     check(sc.render.image_settings.file_format == "JPEG" and sc.render.use_border and sc.view_settings.view_transform == "AgX",
           "and puts the scene's own output settings back")
+    sc.render.image_settings.file_format = "OPEN_EXR"
+    sc.render.image_settings.color_depth = "32"
+    sc.render.use_compositing = True
+    r = api.review_views(rack, out)
+    check(r["ok"] and sc.render.image_settings.file_format == "OPEN_EXR" and sc.render.image_settings.color_depth == "32"
+          and sc.render.use_compositing, f"an EXR scene gets its 32-bit depth back: {sc.render.image_settings.color_depth}")
     sc.render.image_settings.file_format, sc.render.use_border = "PNG", False
     shutil.rmtree(out, ignore_errors=True)
 

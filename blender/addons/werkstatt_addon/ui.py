@@ -253,7 +253,10 @@ class WERKSTATT_OT_clearance(_NodeOp, bpy.types.Operator):
     def execute(self, context):
         result = api.clearance(self.node or None)
         if result.get("ok"):
-            if (result["intersecting"] or result["inside"]) and result["penetration"] is not None:
+            if (result["intersecting"] or result["inside"]) and result["nudge_by"] is not None:
+                axis, sign = result["clear_by"]
+                text = f"nudge {axis} {'+' if sign > 0 else '-'}{result['nudge_by'] * 1000:.0f} mm to clear {result['touches']}"
+            elif (result["intersecting"] or result["inside"]) and result["penetration"] is not None:
                 text = f"{result['penetration'] * 1000:.0f} mm {result['direction']} clears {result['touches']}"
             elif result["intersecting"] or result["inside"]:
                 text = f"{'inside' if result['inside'] else 'into'} {result['touches']}: {result.get('note', '')}"
