@@ -33,8 +33,15 @@ public class Plugin : BasePlugin
     // crashed the main thread in roughly a third of launches, so the thread stays idle first.
     static readonly TimeSpan StartupQuiet = TimeSpan.FromSeconds(2);
 
+    static bool loaded;
+
     public override void Load()
     {
+        // Once per process: a second Load would race its own hooks. The loader refuses to start next to a stray copy
+        // under plugins/, so this is only a backstop.
+        if (loaded)
+            return;
+        loaded = true;
         Logger = Log;
         // As early as our code runs: claim the memory the hooks' jump slots will live in (native calls only).
         DobbyNearPages.Reserve();

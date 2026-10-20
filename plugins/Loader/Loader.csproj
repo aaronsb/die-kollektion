@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Die Kollektion's loader: the one DLL in BepInEx/plugins/. It references BepInEx's own assemblies only (no
+       game interop), so it survives game updates and can rebuild the real plugin for the new interop first. -->
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>DieKollektion.Loader</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <Deterministic>true</Deterministic>
+    <PathMap>$(MSBuildProjectDirectory)=/werkstatt/Loader</PathMap>
+    <GameDir Condition="'$(GameDir)' == '' And $([MSBuild]::IsOSPlatform('Windows'))">C:\Program Files (x86)\Steam\steamapps\common\over the hill</GameDir>
+    <GameDir Condition="'$(GameDir)' == ''">$(HOME)/.local/share/Steam/steamapps/common/over the hill</GameDir>
+    <BepInExDir>$(GameDir)/BepInEx</BepInExDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="$(BepInExDir)/core/BepInEx.Core.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/core/BepInEx.Unity.IL2CPP.dll" Private="false" />
+  </ItemGroup>
+
+</Project>

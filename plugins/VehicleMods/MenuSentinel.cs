@@ -36,6 +36,9 @@ static class MenuSentinel
     internal static (string Text, bool Incomplete) Status()
     {
         var parts = new List<string> { $"{Marker} {Version}" };
+        // Set by Die Kollektion's loader when it rebuilt this plugin for the game this launch (plugins/Loader).
+        if (AppDomain.CurrentDomain.GetData("DieKollektion.RebuiltFor") is string build)
+            parts.Add($"rebuilt for build {build}");
         if (VehiclesDefined + PatchesDefined == 0)
             parts.Add("no vehicles found");
         else if (PatchesDefined == 0)

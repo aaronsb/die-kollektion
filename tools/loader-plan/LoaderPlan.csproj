@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Offline check of Die Kollektion's loader: runs the same LoaderCore the loader runs over fake game folders, with
+       a stub dotnet. `make check` runs it (`scenarios`); `sources` and `references` serve the Python tests. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <!-- Runs on any installed .NET 6 or newer: `make deploy` checks the loader's references with it. -->
+    <RollForward>LatestMajor</RollForward>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../plugins/Loader/LoaderCore.cs" />
+  </ItemGroup>
+</Project>

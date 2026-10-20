@@ -120,6 +120,7 @@ def cmd_ci(_args):
         ("placements reader", ["dotnet", "run", "--project", "tools/placement-check", "-v", "quiet", "--",
                                "tests/placements/fixture.json", "tests/placements/expect.json"]
          + sorted(os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "tests", "placements", "bad", "*.json")))),
+        ("loader decisions", ["dotnet", "run", "--project", "tools/loader-plan", "-v", "quiet", "--", "scenarios"]),
     ]
     # The tests build fake game folders; folders exported by the Makefile and FORCE stay out of their way.
     env = {k: v for k, v in os.environ.items() if k not in ("DEPLOY_DIR", "FORCE", "GAME_DIR", "MY_GAMES")}
@@ -174,9 +175,13 @@ def cmd_build(args):
         return 1
 
     # 2. Compile the plugin and describe it.
-    print("Compiling the plugin ...")
-    if subprocess.run(["dotnet", "build", "-c", "Release", "-nologo", "-v", "minimal", "-p:Deploy=false",
-                       f"-p:GameDir={game}"], cwd=os.path.join(ROOT, "plugins", "VehicleMods")).returncode:
+    print("Compiling the plugin and the loader ...")
+    for project in ("VehicleMods", "Loader"):
+        if subprocess.run(["dotnet", "build", "-c", "Release", "-nologo", "-v", "minimal", "-p:Deploy=false",
+                           f"-p:GameDir={game}"], cwd=os.path.join(ROOT, "plugins", project)).returncode:
+            return 1
+    if not ws.loader_references_ok(ws.LOADER_SOURCE_DLL):
+        print("The loader references game interop; nothing released.")
         return 1
     head = sh("git", "rev-parse", "HEAD").stdout.strip()
     info = {
@@ -188,6 +193,8 @@ def cmd_build(args):
         "builtFrom": head,
         "builtAgainst": {"gameAssemblyHash": ws.interop_hash(game), "steamBuild": ws.steam_build(game),
                          "bepinex": ws.bepinex_installed_version(game)},
+        # The loader references BepInEx's own assemblies only, so it fits every game version.
+        "loader": {"sha256": sha256(ws.LOADER_SOURCE_DLL)},
     }
 
     # 3. The release zip: tracked files plus prebuilt/, nothing from the game.
@@ -208,6 +215,7 @@ def cmd_build(args):
         # Without git, the name gate and `make pack` read the shipped file list from here.
         z.writestr(f"{prefix}/RELEASE-FILES.txt", "\n".join(sorted(files)) + "\n")
         z.write(ws.SOURCE_DLL, f"{prefix}/prebuilt/VehicleMods.dll")
+        z.write(ws.LOADER_SOURCE_DLL, f"{prefix}/prebuilt/{ws.LOADER_NAME}")
         z.writestr(f"{prefix}/prebuilt/VehicleMods.json", json.dumps(info, indent=1) + "\n")
     print(f"Wrote {os.path.relpath(werk_zip, ROOT)} ({len(files)} tracked files + prebuilt plugin)")
 
