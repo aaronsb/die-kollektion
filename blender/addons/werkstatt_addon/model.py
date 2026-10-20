@@ -235,9 +235,9 @@ def read_placements(path):
         return parse_placements(f.read(), os.path.basename(os.path.dirname(path)) + "/" + PLACEMENTS)
 
 
-DEFAULT_NOTES = ("Placements of this vehicle's upgrade nodes, written by the Werkstatt Blender add-on "
-                 "(docs/blender_addon.md). Each entry is a delta from the node's pose after the reshape: offset in "
-                 "metres and rotation in Euler degrees (Unity order z, x, y) in car-root axes (x right, y up, "
+DEFAULT_NOTES = ("Placements of this vehicle's upgrade nodes, written by the Werkstatt Blender add-on (format: "
+                 "docs/engine.md, \"Upgrade nodes\"). Each entry is a delta from the node's pose after the reshape: "
+                 "offset in metres and rotation in Euler degrees (Unity order z, x, y) in car-root axes (x right, y up, "
                  "z forward) as turned by the node's placed ancestors, about the node's pivot; scale multiplies "
                  "its local scale. Copies add a copy of an upgrade option or of a piece inside one, shown with it.")
 

@@ -919,6 +919,27 @@ def cmd_compile_plugin(_args):
     return compile_plugin(game_dir())
 
 
+def remove_retired(folder, sources):
+    """Remove the files the last deploy copied from the repo whose source is gone (a deleted placements.json),
+    unless they changed since. `make deploy` has removed the whole record by now; a bare copy-deploy has not."""
+    record = os.path.join(folder, "deployed.json")
+    if not os.path.isfile(record):
+        return
+    for f in json.load(open(record)).get("files", []):
+        p = os.path.join(folder, *f["path"].split("/"))
+        if not f.get("source") or f["path"] in sources or not os.path.isfile(p):
+            continue
+        if sha256(p) != f["sha256"]:
+            print(f"Kept {f['path']}: its source {f['source']} is gone, but the file changed since the last deploy.")
+            continue
+        os.remove(p)
+        print(f"Removed {f['path']}: its source {f['source']} is gone.")
+        parent = os.path.dirname(p)
+        while parent != folder and not os.listdir(parent):
+            os.rmdir(parent)
+            parent = os.path.dirname(parent)
+
+
 def cmd_copy_deploy(args):
     """Copy what expected_sources() lists (the plugin and each vehicle's manifest, meshes and icon) into place."""
     folder = deploy_dir_arg(args)
@@ -927,6 +948,7 @@ def cmd_copy_deploy(args):
     if missing:
         print("Not built yet, so not deployed:\n  " + "\n  ".join(missing) + "\nRun `make all`.")
         return 1
+    remove_retired(folder, sources)
     for dest, src in sorted(sources.items()):
         target = os.path.join(folder, *dest.split("/"))
         os.makedirs(os.path.dirname(target), exist_ok=True)
