@@ -2,7 +2,7 @@
 
 Every function returns a plain dict (or a list of them) that reads back as JSON. Success carries "ok": True;
 a problem returns {"ok": False, "error": "<plain message>"} instead of raising, so a caller sees what to fix.
-Node arguments take a full node path or any unique suffix of one ("Winch_01", "Roof/RoofSpare"). Axes are the
+Node arguments take a full node path or any unique suffix of one ("BashBar_01", "Roof/RoofSpare"). Axes are the
 game's: x right, y up, z forward.
 
     from werkstatt_addon import api
@@ -250,10 +250,14 @@ def _describe(empty, vehicle):
     source = empty.get("werkstatt_source")
     part = (node.part if node else None) or (vehicle.nodes[source].part if source and source in vehicle.nodes else None)
     option = _option_of(empty)
-    return {"node": path, "kind": empty.get("werkstatt_kind"), "slot": vehicle.slot_of(source or path),
+    kind = empty.get("werkstatt_kind")
+    in_game, tool = vehicle.in_game(source or path)
+    return {"node": path, "kind": kind, "slot": vehicle.slot_of(source or path),
             "part": (part or {}).get("name"), "shown": scene.is_shown(option) if option else True,
+            "in_game": in_game, "in_game_note": vehicle.in_game_note(source or path),
             "offset": model.clean(pl.offset, model.OFFSET_DIGITS), "rotation": model.clean(pl.rotation, model.ROTATION_DIGITS),
-            "scale": model.clean(pl.scale, model.SCALE_DIGITS), **({"source": source} if source else {})}
+            "scale": model.clean(pl.scale, model.SCALE_DIGITS), **({"source": source} if source else {}),
+            **({"tool": tool} if tool else {}), **({"options": len(vehicle.options_below(path))} if kind == "group" else {})}
 
 
 def _option_of(empty):
@@ -348,7 +352,9 @@ def _resolve_option(v, name):
 
 @_api
 def items(slot=None, kind=None):
-    """Placeable nodes with their slot, part, visibility and placement; filter by slot or kind."""
+    """Placeable nodes with their slot, part, visibility and placement; filter by slot or kind. "in_game" says how
+    the game shows one: "item" (with its item), "tool" (with the toolset "tool" the definition's toolNodes names)
+    or "never" (an option without a part); "in_game_note" says it in words. A slot group carries its "options"."""
     _text(slot, "slot", optional=True)
     _text(kind, "kind", optional=True)
     v = _vehicle()

@@ -128,6 +128,11 @@ class Vehicles(unittest.TestCase):
                                    (f"{cosmetic}/Visual/Bed", [0, 1.2, -1.9], []),
                                    (f"{cosmetic}/Visual/Bed/Kegs", [0, 1.2, -1.9], [{"type": "MB:VehicleUpgradeObject"}]),
                                    (f"{cosmetic}/Visual/Bed/Kegs/Keg", [0.3, 1.3, -1.8], [{"type": "LODGroup"}]),
+                                   (f"{cosmetic}/Performance", [0, 0, 0], []),
+                                   (f"{cosmetic}/Performance/Rollcage", [0, 1.0, 0.1], []),
+                                   (f"{cosmetic}/Performance/Rollcage/rollcage", [0, 1.0, 0.1], [{"type": "MB:VehicleUpgradeObject"}, {"type": "LODGroup"}]),
+                                   (f"{cosmetic}/Performance/Winch", [0, 0.6, 2.2], []),
+                                   (f"{cosmetic}/Performance/Winch/Winch_01", [0, 0.6, 2.2], [{"type": "MB:VehicleUpgradeObject"}, {"type": "LODGroup"}]),
                                    ("Winch", [0, 0, 0], []),
                                    ("Winch/WinchAttachPoints", [0, 0, 0], []),
                                    ("Winch/WinchAttachPoints/Front", [0, 0.8, 2.1], [{"type": "MB:CarWinchPoint"}]),
@@ -138,6 +143,9 @@ class Vehicles(unittest.TestCase):
                                     if any(c["type"] == "MB:VehicleUpgradeObject" for c in f["components"]) else {}),
              **({"lodGroup": True} if any(c["type"] == "LODGroup" for c in f["components"]) else {})}
             for f in facts if f["path"].startswith(cosmetic)]}
+        for n in upgrades["nodes"]:
+            if "/Performance/" in n["path"] and "part" in n:
+                n["part"] = {"name": None}          # as the exporter writes a node with no part reference
         os.makedirs(os.path.join(self.root, "extracted", "car"))
         with open(os.path.join(self.root, "extracted", "car", "nodes.json"), "w") as f:
             json.dump({"root": "Car_Car", "nodes": facts}, f)
@@ -190,6 +198,48 @@ class Vehicles(unittest.TestCase):
         v = model.Vehicle(self.root, "longcar")
         self.assertEqual(v.options(), [])
         self.assertIn("Winch/WinchAttachPoints/Front", v.attach_points)
+
+    def manifest(self, **changes):
+        path = os.path.join(self.folder, "vehicle.json")
+        with open(path) as f:
+            m = json.load(f)
+        m.update(changes)
+        with open(path, "w") as f:
+            json.dump(m, f)
+
+    def test_an_option_without_a_part_is_never_shown(self):
+        v = model.Vehicle(self.root, "longcar")
+        rollcage = f"{self.cosmetic}/Performance/Rollcage"
+        self.assertEqual(v.in_game(f"{self.cosmetic}/Visual/Bed/Kegs"), ("item", None))
+        self.assertEqual(v.in_game(f"{self.cosmetic}/Visual/Bed/Kegs/Keg"), ("item", None))      # a piece goes with its option
+        self.assertEqual(v.in_game(f"{rollcage}/rollcage"), ("never", None))
+        self.assertEqual(v.in_game(rollcage), ("never", None))                  # a slot group whose options never show
+        self.assertEqual(v.in_game(f"{self.cosmetic}/Performance/Winch/Winch_01"), ("never", None))
+        self.assertEqual(v.in_game(f"{self.cosmetic}/Performance"), ("never", None))
+        self.assertEqual(v.in_game(f"{self.cosmetic}/Visual"), ("item", None))
+        self.assertEqual(v.in_game(self.cosmetic), ("item", None))              # mixed: the items show
+        self.assertEqual(v.in_game_note(f"{rollcage}/rollcage"), "Not shown in game")
+        self.assertEqual(v.in_game_note(f"{self.cosmetic}/Visual/Bed/Kegs"), "")
+        self.assertEqual(v.options_below(rollcage), [v.nodes[f"{rollcage}/rollcage"]])
+
+    def test_tool_nodes_show_an_option_with_its_tool(self):
+        winch = f"{self.cosmetic}/Performance/Winch/Winch_01"
+        self.manifest(toolNodes={"notes": "the bumper winch", winch: 2317836723})
+        v = model.Vehicle(self.root, "longcar")
+        self.assertEqual(v.in_game(winch), ("tool", 2317836723))
+        self.assertEqual(v.in_game(f"{self.cosmetic}/Performance/Winch"), ("tool", 2317836723))
+        self.assertEqual(v.in_game_note(winch), "Shown with the portable winch")
+        self.assertEqual(v.in_game(f"{self.cosmetic}/Performance/Rollcage/rollcage"), ("never", None))
+        self.assertEqual(v.in_game(f"{self.cosmetic}/Performance"), ("item", None))   # never and tool: mixed
+        self.manifest(toolNodes={winch: 1234})
+        self.assertEqual(model.Vehicle(self.root, "longcar").in_game_note(winch), "Shown with tool 1234")
+
+    def test_tool_nodes_are_ignored_as_the_plugin_ignores_them(self):
+        winch = f"{self.cosmetic}/Performance/Winch/Winch_01"
+        for block, patch in (({winch: 2317836723}, True), ({winch: 0}, False), ({winch: "2317836723"}, False),
+                             ({winch: 2317836723, "A//B": 1}, False), ([winch], False)):
+            self.manifest(toolNodes=block, patch=patch)
+            self.assertEqual(model.Vehicle(self.root, "longcar").in_game(winch), ("never", None), (block, patch))
 
     def test_listing_vehicles(self):
         listed = model.list_vehicles(self.root)

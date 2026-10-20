@@ -1,5 +1,5 @@
 """The Werkstatt sidebar panel (3D view > N panel > Werkstatt) and its operators. Every operator calls api.py with
-plain arguments, so scripts can run them too: bpy.ops.werkstatt.nudge(node="Winch_01", axis="y", steps=2, unit="cm").
+plain arguments, so scripts can run them too: bpy.ops.werkstatt.nudge(node="BashBar_01", axis="y", steps=2, unit="cm").
 The panel's draw only reads (Blender refuses writes to objects while drawing); anything slow (git, reading every
 vehicle folder) happens on open, save and the refresh button. Undo steps come from the API calls, so an operator
 run from a script undoes like a button press; the operators carry no UNDO flag, which would add a second step."""
@@ -50,9 +50,14 @@ def _vehicle_items(self, context):
 class WerkstattItem(bpy.types.PropertyGroup):
     node: StringProperty()
     label: StringProperty()
-    slot: StringProperty()
+    detail: StringProperty()        # the row's second column: the slot, a group's options or how the game shows it
     kind: StringProperty()
     shown: BoolProperty()
+    in_game: StringProperty()
+
+
+IN_GAME_ICONS = {"never": "ERROR", "tool": "TOOL_SETTINGS"}
+IN_GAME_MARKS = {"never": "Not in game", "tool": "With tool"}       # the list's short words; the item box says more
 
 
 def _select_item(self, context):
@@ -104,9 +109,15 @@ def refresh_items(context):
         item = w.items.add()
         item.node = d["node"]
         item.label = d["node"].rsplit("/", 1)[-1]
-        item.slot = d["slot"] or ""
+        # A slot group's slot is mostly its own name, so it shows its options' count instead; otherwise the Rollcage
+        # group and its one option, rollcage, read alike.
+        if d["kind"] == "group":
+            item.detail = f"{d['options']} option{'' if d['options'] == 1 else 's'}"
+        else:
+            item.detail = IN_GAME_MARKS.get(d["in_game"]) or d["slot"] or ""
         item.kind = d["kind"]
         item.shown = d["shown"]
+        item.in_game = d["in_game"]
 
 
 class WERKSTATT_UL_items(bpy.types.UIList):
@@ -114,7 +125,7 @@ class WERKSTATT_UL_items(bpy.types.UIList):
         icon_for = {"option": "OBJECT_DATA", "copy": "DUPLICATE", "group": "GROUP", "piece": "MESH_CUBE"}
         row = layout.row(align=True)
         row.label(text=item.label, icon=icon_for.get(item.kind, "DOT"))
-        row.label(text=item.slot)
+        row.label(text=item.detail, icon=IN_GAME_ICONS.get(item.in_game, "NONE"))
         if item.kind in ("option", "copy", "piece"):
             op = row.operator("werkstatt.show", text="", icon="HIDE_OFF" if item.shown else "HIDE_ON", emboss=False)
             op.node = item.node
@@ -384,6 +395,8 @@ class WERKSTATT_PT_panel(bpy.types.Panel):
         info = api.placement() if active is not None else {"ok": False}
         if info.get("ok"):
             box.label(text=info["node"].rsplit("/", 1)[-1], icon="EMPTY_ARROWS")
+            if info["in_game"] in IN_GAME_ICONS:
+                box.label(text=info["in_game_note"], icon=IN_GAME_ICONS[info["in_game"]])
             box.label(text="offset " + ", ".join(f"{v * 100:+.1f}" for v in info["offset"]) + " cm")
             box.label(text="rotation " + ", ".join(f"{v:+.1f}" for v in info["rotation"]) + "°")
         else:

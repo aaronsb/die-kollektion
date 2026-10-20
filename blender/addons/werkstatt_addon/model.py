@@ -430,6 +430,8 @@ def list_vehicles(root):
 
 
 IDENTITY_POSE = ((0.0, 0.0, 0.0, 1.0), (0.0, 0.0, 0.0))
+# The toolsets a definition's toolNodes names, for the panel (the save's VehicleItem.ToolsetIDs).
+TOOLS = {2317836723: "the portable winch", 3771754783: "the portable plank"}
 
 
 def _add(a, b):
@@ -487,7 +489,19 @@ class Vehicle:
             types = {c["type"] for c in f["components"]}
             if self._is_attach_point(f["path"], types):
                 self.attach_points[f["path"]] = self.place(f["path"], f["position"])
+        self.tool_nodes = self._tool_nodes()
         self.placements, self.copies, self.notes = read_placements(os.path.join(self.folder, PLACEMENTS))
+
+    def _tool_nodes(self):
+        """The definition's toolNodes ({node path: toolset ItemId}) as the plugin reads them (ToolNodes.cs): none on
+        a patch, which is the stock car, and none when the block is malformed."""
+        block = self.manifest.get("toolNodes")
+        if self.manifest.get("patch") or not isinstance(block, dict):
+            return {}
+        tools = {p: t for p, t in block.items() if p != "notes"}
+        if not all(_is_path(p) and isinstance(t, int) and not isinstance(t, bool) and 0 < t < 2 ** 32 for p, t in tools.items()):
+            return {}
+        return tools
 
     @staticmethod
     def _is_attach_point(path, types):
@@ -656,6 +670,33 @@ class Vehicle:
 
     def options(self):
         return [n for n in self.nodes.values() if n.kind == "option"]
+
+    def options_below(self, path):
+        return [n for p, n in self.nodes.items() if n.kind == "option" and p.startswith(path + "/")]
+
+    def in_game(self, path):
+        """How the game shows a node: ("item", None) for an option whose part the garage fits, ("tool", ItemId)
+        for one the definition's toolNodes shows while the loadout carries that tool, ("never", None) for one
+        without a part (Performance/Winch/Winch_01, Performance/Rollcage/rollcage), which the game never
+        activates. A piece goes with its option; a slot group with its options when they all agree, else "item"."""
+        node = self.nodes.get(path)
+        if node is not None and node.kind == "group":
+            found = {self.in_game(o.path) for o in self.options_below(path)}
+            return found.pop() if len(found) == 1 else ("item", None)
+        while node is not None and node.kind != "option":
+            node = self.nodes.get(parent_path(node.path))
+        if node is None:
+            return ("item", None)
+        if node.path in self.tool_nodes:
+            return ("tool", self.tool_nodes[node.path])
+        return ("item", None) if (node.part or {}).get("name") else ("never", None)
+
+    def in_game_note(self, path):
+        """in_game() in a few words for the panel; "" for an item."""
+        how, tool = self.in_game(path)
+        if how == "tool":
+            return f"Shown with {TOOLS.get(tool, f'tool {tool}')}"
+        return "Not shown in game" if how == "never" else ""
 
     def placement(self, path):
         return self.copies.get(path) or self.placements.get(path) or Placement()
