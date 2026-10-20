@@ -26,7 +26,7 @@ Dobby keeps each hook's 8-byte jump slot and relocated prologue in near pages th
 - `Dobby pages: 0x… holds 64 bytes of slots` (all eight hooks)
 - `Main menu: Die Kollektion <version> | 4 vehicles, 2 patches registered (label enabled True, active in hierarchy True)` when the menu first shows
 
-`No hooks installed: Die Kollektion is inactive this session` means no safe place was found: the game runs without the mod (with our trucks in a save, the loader closes it at Load instead; docs/engine.md). The layout is in `BepInEx/dobby-maps.txt`; scrub its paths to `/game/...` (it holds the home folder, and `tests/test_maps.py` rejects user paths), add it to `tests/maps/` and fix `NearBlockPlanner`. Change the planner only with `make check` green over every captured layout.
+`No hooks installed: Die Kollektion is inactive this session` means no safe place was found: the game runs without the mod (with our trucks in a save, the loader closes it at Load instead; docs/engine.md). The layout is in `BepInEx/dobby-maps.txt`; scrub its paths to `/game/...` (it holds the home folder, and `tests/test_maps.py` rejects user paths), add it to `tests/maps/` and fix `NearBlockPlanner`. The file can hold two sections, `# at Load` and `# before the hooks`: put each in its own `.maps` file (the test rejects a region listed twice). Change the planner only with `make check` green over every captured layout.
 
 ## Crashes
 

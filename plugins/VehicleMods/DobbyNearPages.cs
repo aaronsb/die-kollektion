@@ -103,7 +103,7 @@ static unsafe class DobbyNearPages
         }
         catch (Exception e)
         {
-            return $" (the memory map couldn't be saved: {e.Message})";
+            return $" (the memory map couldn't be saved: {e.GetType().Name})";    // the message would name the home folder
         }
     }
 
