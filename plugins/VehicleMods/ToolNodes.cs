@@ -46,6 +46,12 @@ sealed class ToolNodes
         return carries == active ? Change.None : carries ? Change.Show : Change.Hide;
     }
 
+    /// <summary>A display dummy refreshed for <paramref name="current"/> after it showed <paramref name="previous"/>
+    /// (either null for a car without a definition): the vehicle whose tool nodes must be hidden first, or null.
+    /// The game may refresh one dummy for another car, and the stock donor shares our trucks' dummy prefab.</summary>
+    public static T Superseded<T>(T previous, T current) where T : class =>
+        previous != null && !ReferenceEquals(previous, current) ? previous : null;
+
     /// <summary>A loadout for the log: its ItemIds, "empty", or "no VehicleItem".</summary>
     public static string Describe(IReadOnlyCollection<uint> loadout) =>
         loadout == null ? "no VehicleItem" : loadout.Count == 0 ? "empty" : string.Join(", ", loadout);

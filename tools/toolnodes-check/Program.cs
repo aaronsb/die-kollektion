@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using VehicleMods;
@@ -69,6 +70,23 @@ foreach (var (active, loadout, expected, what) in cases)
 Check(ToolNodes.Describe(null) == "no VehicleItem" && ToolNodes.Describe(new uint[0]) == "empty"
       && ToolNodes.Describe(new[] { Other, Winch }) == $"{Other}, {Winch}", "loadouts read as the log writes them");
 
+// A dummy that showed one car and is refreshed for another: the old car's nodes are hidden first.
+var truckA = "truck A"; var truckB = "truck B"; var stock = "stock Mammoth (its patch)";
+var refreshes = new (string Previous, string Current, string Hidden, string What)[]
+{
+    (truckA, stock, truckA, "truck, then the stock car: the truck's nodes hidden"),
+    (truckA, truckB, truckA, "truck A, then truck B: A's nodes hidden"),
+    (truckA, null, truckA, "truck, then a car without a definition: the truck's nodes hidden"),
+    (truckA, truckA, null, "the same truck again: nothing hidden"),
+    (null, truckA, null, "a new dummy: nothing hidden"),
+    (null, null, null, "an unknown car twice: nothing hidden"),
+};
+foreach (var (previous, current, hidden, what) in refreshes)
+{
+    var got = ToolNodes.Superseded(previous, current);
+    Check(ReferenceEquals(got, hidden), $"{what}{(!ReferenceEquals(got, hidden) ? $" (got {got ?? "nothing"})" : "")}");
+}
+
 foreach (var path in args)
 {
     using var document = JsonDocument.Parse(File.ReadAllText(path));
@@ -84,6 +102,20 @@ foreach (var path in args)
     {
         var tools = ToolNodes.Read(block);
         Check(true, $"{path}: {tools.Nodes.Count} tool node(s)");
+        // Each node must exist on the donor: extracted/<donor>/upgrades.json (make extract) lists its nodes.
+        var donor = root.GetProperty("donor").GetString().ToLowerInvariant();
+        var upgrades = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(path)), "..", "..", "extracted", donor, "upgrades.json");
+        if (!File.Exists(upgrades))
+        {
+            Console.WriteLine($"skip {path}: no extracted/{donor}/upgrades.json (make extract), node paths not checked");
+            continue;
+        }
+        using var nodes = JsonDocument.Parse(File.ReadAllText(upgrades));
+        var known = new HashSet<string>();
+        foreach (var node in nodes.RootElement.GetProperty("nodes").EnumerateArray())
+            known.Add(node.GetProperty("path").GetString());
+        foreach (var (node, _) in tools.Nodes)
+            Check(known.Contains(node), $"{path}: {node} {(known.Contains(node) ? "is" : "is not")} a node of {donor} ({known.Count} nodes)");
     }
     catch (FormatException x)
     {
