@@ -66,10 +66,12 @@ static class Program
     sealed class Recorder : LoaderCore.IUi
     {
         public readonly List<string> Calls = new();
+        /// <summary>The title and text of each error and notification.</summary>
+        public readonly List<string> Shown = new();
         public void Begin(string text) => Calls.Add("begin");
         public void End() => Calls.Add("end");
-        public void Error(string title, string text) => Calls.Add("error");
-        public void Notify(string title, string text) => Calls.Add("notify");
+        public void Error(string title, string text) { Calls.Add("error"); Shown.Add($"{title}: {text}"); }
+        public void Notify(string title, string text) { Calls.Add("notify"); Shown.Add($"{title}: {text}"); }
         public override string ToString() => string.Join(",", Calls);
     }
 
@@ -98,14 +100,15 @@ static class Program
             Write(Path.Combine(Werkstatt, "plugins", "VehicleMods", "VehicleMods.csproj"), "<Project/>\n");
             Write(Path.Combine(Saves, "Player1.json"), trucks ? "{\"VehicleItemId\":3000000004}" : "{\"VehicleItemId\":2186553413}");
             WriteRecord("hash-v1");
-            // A stand-in for `dotnet build ... -o <dir>`: writes the DLL there, or fails, hangs, or leaves a child
-            // holding its output on request.
+            // A stand-in for `dotnet build ... -o <dir>`: writes the DLL there, or fails, hangs, leaves a child
+            // holding its output, or leaves a folder in it that can't be removed, on request.
             Dotnet = Path.Combine(Root, "dotnet");
             Write(Dotnet, "#!/bin/sh\nhere=$(dirname \"$0\")\n" +
                           "[ -f \"$here/fail\" ] && { echo 'error CS0246: boom'; exit 1; }\n" +
                           "[ -f \"$here/hang\" ] && sleep 30\n" +
                           "out=; prev=; for a in \"$@\"; do [ \"$prev\" = -o ] && out=$a; prev=$a; done\n" +
                           "mkdir -p \"$out\"; echo 'plugin built for v2' > \"$out/VehicleMods.dll\"; echo \"  VehicleMods -> $out/VehicleMods.dll\"\n" +
+                          "[ -f \"$here/stuck\" ] && { mkdir -p \"$out/stuck\"; : > \"$out/stuck/x\"; chmod 555 \"$out/stuck\"; }\n" +
                           "[ -f \"$here/linger\" ] && sleep 20 &\nexit 0\n");
             Process.Start("chmod", new[] { "+x", Dotnet }).WaitForExit();
         }
@@ -147,10 +150,11 @@ static class Program
         }
     }
 
-    static int failures;
+    static int failures, checks;
 
     static void Check(string scenario, bool ok, string detail)
     {
+        checks++;
         Console.WriteLine($"{(ok ? "ok  " : "FAIL")} {scenario}{(ok ? "" : ": " + detail)}");
         if (!ok) failures++;
     }
@@ -238,12 +242,28 @@ static class Program
         Check("a grandchild left holding the build's output doesn't hold the start", r.Outcome == LoaderCore.Outcome.Load
               && clock.Elapsed < TimeSpan.FromSeconds(10), $"{r.Outcome} {r.Message} {clock.Elapsed.TotalSeconds:F1}s");
 
+        var stuck = F("build-folder-stuck");
+        stuck.Flag("stuck");
+        r = stuck.Run();
+        Check("a build folder that can't be removed is logged and leaves a good rebuild loading", r.Outcome == LoaderCore.Outcome.Load
+              && stuck.Installed == "plugin built for v2" && stuck.Log.Any(l => l.StartsWith("Couldn't remove", StringComparison.Ordinal)),
+              $"{r.Outcome} {r.Message}");
+
         var stray = F("stray-copy");
         stray.WriteRecord("hash-v2");
         Fake.Write(Path.Combine(stray.Plugins, "VehicleMods", "VehicleMods.dll"), "an old install");
         r = stray.Run();
         Check("a copy of the plugin under plugins/ stops ours from starting twice", r.Outcome == LoaderCore.Outcome.Quit && r.Message.Contains("plugins/"),
               $"{r.Outcome} {r.Message}");
+
+        var strayStock = F("stray-copy-no-trucks", trucks: false);
+        strayStock.WriteRecord("hash-v2");
+        Fake.Write(Path.Combine(strayStock.Plugins, "VehicleMods.dll"), "an old install");
+        r = strayStock.Run();
+        Check("a stray copy without trucks names the file and doesn't claim the mod is off", r.Outcome == LoaderCore.Outcome.Stock
+              && strayStock.Ui.Shown.Count == 1 && strayStock.Ui.Shown[0].Contains("BepInEx/plugins/VehicleMods.dll")
+              && strayStock.Ui.Shown[0].Contains("may still load") && !strayStock.Ui.Shown[0].Contains("is off"),
+              $"{r.Outcome} [{string.Join(" | ", strayStock.Ui.Shown)}]");
 
         var locked = F("locked");
         locked.WriteRecord("hash-v2");
@@ -282,8 +302,11 @@ static class Program
         Check("a record without its Werkstatt folder can't be rebuilt", r.Outcome == LoaderCore.Outcome.Quit, $"{r.Outcome} {r.Message}");
 
         foreach (var f in all)
+        {
+            Process.Start("chmod", new[] { "-R", "u+w", f.Root }).WaitForExit();
             Directory.Delete(f.Root, true);
-        Console.WriteLine(failures == 0 ? $"loader: all {all.Count + 1} scenarios pass" : $"loader: {failures} scenario(s) failed");
+        }
+        Console.WriteLine(failures == 0 ? $"loader: all {checks} scenarios pass" : $"loader: {failures} scenario(s) failed");
         return failures == 0 ? 0 : 1;
     }
 }

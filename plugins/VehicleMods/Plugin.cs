@@ -37,7 +37,8 @@ public class Plugin : BasePlugin
 
     public override void Load()
     {
-        // Once per process: a second start (a stray copy under plugins/ next to the loader's) would race its own hooks.
+        // Once per process: a second Load would race its own hooks. The loader refuses to start next to a stray copy
+        // under plugins/, so this is only a backstop.
         if (loaded)
             return;
         loaded = true;

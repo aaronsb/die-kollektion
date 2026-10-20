@@ -88,8 +88,13 @@ public static class LoaderCore
     {
         var stray = StrayCopies(s.PluginsDir);
         if (stray.Count > 0)
-            return CantStart(s, $"another copy of the plugin is under BepInEx/plugins/ ({string.Join(", ", stray)}), and BepInEx would load it " +
-                                "too; delete it, or run `make deploy`, which moves an old install out of plugins/");
+        {
+            var files = string.Join(", ", stray.Select(f => "BepInEx/plugins/" + f));
+            return CantStart(s, $"another copy of the plugin is in BepInEx/plugins/ ({files}), which BepInEx loads by itself",
+                             $"Delete {files}, or run `make deploy` in the Werkstatt folder, which moves an old install out of plugins/. " +
+                             "Until then the mod may still load from that copy, which may not fit this game.",
+                             "Die Kollektion: remove a stray copy");
+        }
         var record = ReadJson(Path.Combine(s.PluginDir, Record));
         var dll = Path.Combine(s.PluginDir, PluginDll);
         if (record == null || !File.Exists(dll))
@@ -123,8 +128,7 @@ public static class LoaderCore
         finally
         {
             s.Ui?.End();
-            try { Directory.Delete(Path.Combine(s.BepInExDir, BuildDir), true); }
-            catch (DirectoryNotFoundException) { }
+            RemoveBuildDir(s);
         }
         if (candidate == null)
             return CantStart(s, why);
@@ -132,11 +136,13 @@ public static class LoaderCore
         return new Result { Outcome = Outcome.Load, Dll = dll, RebuiltFor = build, Message = $"rebuilt for Steam build {build} ({how})" };
     }
 
+    public const string UpdateFix = "In the Werkstatt folder, run `make update` (it needs the .NET SDK, or a release built for this game version).";
+
     /// <summary>Every way the plugin can't be started ends here: a save holding our trucks would hang the game at
-    /// load without it, so then the game quits with a dialog naming the fix; otherwise it runs stock.</summary>
-    public static Result CantStart(Setup s, string why)
+    /// load without it, so then the game quits with a dialog naming the fix; otherwise it runs stock, with a
+    /// notification titled <paramref name="stockTitle"/>.</summary>
+    public static Result CantStart(Setup s, string why, string fix = UpdateFix, string stockTitle = "Die Kollektion is off this session")
     {
-        const string fix = "In the Werkstatt folder, run `make update` (it needs the .NET SDK, or a release built for this game version).";
         bool trucks;
         try { trucks = SavesHoldTrucks(s.SavesDir); }
         catch (Exception) { trucks = true; }      // can't read the saves: assume the worst rather than hang
@@ -147,8 +153,8 @@ public static class LoaderCore
                 $"{why}.\n\nYour save holds Die Kollektion's trucks, and the game can't load it without the plugin, so it will close now. Nothing was changed.\n\n{fix}");
             return new Result { Outcome = Outcome.Quit, Message = why };
         }
-        s.Log($"Die Kollektion can't start: {why}. Starting the game without it");
-        s.Ui?.Notify("Die Kollektion is off this session", $"{why}. {fix}");
+        s.Log($"Die Kollektion can't start: {why}. The loader doesn't start the plugin; the game goes on. {fix}");
+        s.Ui?.Notify(stockTitle, $"{why}. {fix}");
         return new Result { Outcome = Outcome.Stock, Message = why };
     }
 
@@ -189,8 +195,7 @@ public static class LoaderCore
                 ? "no .NET SDK is visible inside Steam's runtime container (looked in ~/.dotnet and the host's /usr; a Flatpak Steam can't see the host's)"
                 : "the .NET SDK wasn't found");
         var output = Path.Combine(s.BepInExDir, BuildDir);
-        if (Directory.Exists(output))
-            Directory.Delete(output, true);
+        RemoveBuildDir(s);
         var args = new[] { "build", project, "-c", "Release", "-nologo", "-v", "minimal", "-m:1", "-nodeReuse:false",
                            "-p:UseSharedCompilation=false", "-p:Deploy=false", $"-p:GameDir={s.GameDir}", "-o", output };
         s.Log($"Compiling with {dotnet}{(container ? " (the host's SDK, from inside Steam's runtime)" : "")}");
@@ -208,8 +213,12 @@ public static class LoaderCore
     {
         var dll = Path.Combine(s.PluginDir, PluginDll);
         var temp = dll + ".loader-new";
-        File.Copy(candidate, temp, true);
-        using (var f = new FileStream(temp, FileMode.Open, FileAccess.Read)) f.Flush(true);
+        using (var from = File.OpenRead(candidate))
+        using (var to = new FileStream(temp, FileMode.Create, FileAccess.Write))
+        {
+            from.CopyTo(to);
+            to.Flush(true);
+        }
         File.Move(temp, dll, true);
         var hash = Sha256(dll);
         foreach (var entry in record["files"] as JsonArray ?? new JsonArray())
@@ -228,6 +237,22 @@ public static class LoaderCore
             ["rebuiltAt"] = DateTimeOffset.Now.ToString("yyyy-MM-ddTHH:mm:sszzz"),
         };
         WriteJson(Path.Combine(s.PluginDir, Record), record);
+    }
+
+    /// <summary>A leftover build folder costs nothing but space, so failing to remove it (a killed build's child still
+    /// writing into it) is logged and never changes the outcome.</summary>
+    static void RemoveBuildDir(Setup s)
+    {
+        var dir = Path.Combine(s.BepInExDir, BuildDir);
+        try
+        {
+            if (Directory.Exists(dir))
+                Directory.Delete(dir, true);
+        }
+        catch (Exception e)
+        {
+            s.Log($"Couldn't remove BepInEx/{BuildDir} ({e.GetType().Name}: {e.Message}); leaving it");
+        }
     }
 
     // ------------------------------------------------------------------ the SDK, inside or outside Steam's runtime
@@ -460,8 +485,9 @@ public sealed class DesktopUi : LoaderCore.IUi
         try
         {
             var zenity = Find("zenity");
+            // --no-markup is a dialog option, not a --progress one (an older zenity may refuse it), so the text holds no markup.
             if (zenity != null)
-                progress = Start(zenity, "--progress", "--pulsate", "--no-cancel", "--auto-close", "--no-markup", "--width=460",
+                progress = Start(zenity, "--progress", "--pulsate", "--no-cancel", "--auto-close", "--width=460",
                                  "--title=Die Kollektion", $"--text={text}");
             else
                 Notify("Die Kollektion", text);
