@@ -65,7 +65,7 @@ In the game every vehicle has a fictional name. Here is the real vehicle behind 
 
 ## Making your own
 
-Most people will want to tweak a stock car rather than build a new one, so that is the shortest path in Werkstatt: `kollektion new patch <Car>` writes a patch listing every chassis and suspension value, with the car's current numbers in a `stock` block beside them. Change a number, build, install; no Blender. Geometry and upgrade changes add Blender on top of the same patch. The CLI isn't built yet; [`docs/vehicle_factory.md`](docs/vehicle_factory.md) has the design.
+Most people will want to tweak a stock car rather than build a new one, so that is the shortest path in Werkstatt: `kollektion new patch <Car>` writes a patch listing every chassis and suspension value, with the car's current numbers in a `stock` block beside them. Change a number, build, install; no Blender. Geometry and upgrade changes add Blender on top of the same patch. The CLI isn't built yet; [`docs/vehicle_factory.md`](docs/vehicle_factory.md) has the design. Fitting upgrade parts (a winch, a roof rack, a second keg pile) to a vehicle works today, in the Blender add-on ([`docs/blender_addon.md`](docs/blender_addon.md)).
 
 ## Setup in detail
 
