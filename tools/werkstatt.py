@@ -703,6 +703,12 @@ def holes(obj, culled, gap):
 IN_TESTS = "WERKSTATT_IN_TESTS"
 
 
+# tests/placements/: the fixture both the plugin's PlacementPlan and the add-on's model must resolve to expect.json,
+# then malformed files both must refuse.
+PLACEMENT_FIXTURES = ["tests/placements/fixture.json", "tests/placements/expect.json"] + sorted(
+    os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "tests", "placements", "bad", "*.json")))
+
+
 def cmd_gates(args):
     """Every gate, or only the named vehicles' mesh gates plus the repo-wide ones (`make loop` passes one)."""
     if os.environ.get(IN_TESTS):
@@ -747,9 +753,14 @@ def cmd_gates(args):
         if r.returncode:
             print(r.stdout + r.stderr)
             failed.append("nearplan")
+        r = run(["dotnet", "run", "--project", "tools/placement-check", "-v", "quiet", "--"] + PLACEMENT_FIXTURES, cwd=ROOT)
+        print(f"placing  {'ok  ' if r.returncode == 0 else 'FAIL'} the plugin's placements reader agrees with the add-on's model")
+        if r.returncode:
+            print(r.stdout + r.stderr)
+            failed.append("placing")
     else:
-        print("nearplan skip the plugin's hook-page placement test needs the .NET 10 SDK; it tests the plugin's "
-              "source, which CI and every release already ran")
+        print("nearplan skip the plugin's hook-page placement and placements tests need the .NET 10 SDK; they test "
+              "the plugin's source, which CI and every release already ran")
     # The tests build fake game folders; the Makefile's exported folders and FORCE stay out of their way.
     test_env = {k: v for k, v in os.environ.items() if k not in ("DEPLOY_DIR", "FORCE", "GAME_DIR", "MY_GAMES")}
     test_env[IN_TESTS] = "1"
@@ -787,6 +798,9 @@ def expected_sources():
         out[f"vehicles/{name}.json"] = os.path.join(v, "vehicle.json")
         for obj in glob.glob(os.path.join(v, "build", "*.obj")):
             out[f"vehicles/{name}/{os.path.basename(obj)}"] = obj
+        placements = os.path.join(v, "placements.json")
+        if os.path.isfile(placements):
+            out[f"vehicles/{name}/placements.json"] = placements
         icon = os.path.join(v, "icon.png")
         code = manifest(v).get("codename")
         if os.path.isfile(icon) and code:
@@ -905,6 +919,27 @@ def cmd_compile_plugin(_args):
     return compile_plugin(game_dir())
 
 
+def remove_retired(folder, sources):
+    """Remove the files the last deploy copied from the repo whose source is gone (a deleted placements.json),
+    unless they changed since. `make deploy` has removed the whole record by now; a bare copy-deploy has not."""
+    record = os.path.join(folder, "deployed.json")
+    if not os.path.isfile(record):
+        return
+    for f in json.load(open(record)).get("files", []):
+        p = os.path.join(folder, *f["path"].split("/"))
+        if not f.get("source") or f["path"] in sources or not os.path.isfile(p):
+            continue
+        if sha256(p) != f["sha256"]:
+            print(f"Kept {f['path']}: its source {f['source']} is gone, but the file changed since the last deploy.")
+            continue
+        os.remove(p)
+        print(f"Removed {f['path']}: its source {f['source']} is gone.")
+        parent = os.path.dirname(p)
+        while parent != folder and not os.listdir(parent):
+            os.rmdir(parent)
+            parent = os.path.dirname(parent)
+
+
 def cmd_copy_deploy(args):
     """Copy what expected_sources() lists (the plugin and each vehicle's manifest, meshes and icon) into place."""
     folder = deploy_dir_arg(args)
@@ -913,6 +948,7 @@ def cmd_copy_deploy(args):
     if missing:
         print("Not built yet, so not deployed:\n  " + "\n  ".join(missing) + "\nRun `make all`.")
         return 1
+    remove_retired(folder, sources)
     for dest, src in sorted(sources.items()):
         target = os.path.join(folder, *dest.split("/"))
         os.makedirs(os.path.dirname(target), exist_ok=True)

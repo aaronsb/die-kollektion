@@ -1,0 +1,97 @@
+{
+  "notes": "Test fixture for the placements format: tests/test_placements.py (the add-on's model) and tools/placement-check (the plugin's PlacementPlan) must both resolve it to the steps in expect.json. Visual/Side is turned and scaled non-uniformly: its child's offset goes through both exactly.",
+  "nodes": {
+    "Parts/Mammoth_CosmeticParts/Performance/Winch/Winch_01": {
+      "offset": [
+        0.0,
+        0.012,
+        0.085
+      ]
+    },
+    "Parts/Mammoth_CosmeticParts/Visual/Bed": {
+      "scale": [
+        1.0,
+        1.0,
+        1.2
+      ]
+    },
+    "Parts/Mammoth_CosmeticParts/Visual/Bed/Party_Bed/AccessoryBeerBarrel": {
+      "offset": [
+        0.1,
+        0.0,
+        -0.2
+      ]
+    },
+    "Parts/Mammoth_CosmeticParts/Visual/Roof": {
+      "offset": [
+        0.0,
+        0.035,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        90.0,
+        0.0
+      ]
+    },
+    "Parts/Mammoth_CosmeticParts/Visual/Roof/Camper": {
+      "offset": [
+        0.0,
+        0.0,
+        0.1
+      ],
+      "rotation": [
+        5.0,
+        0.0,
+        0.0
+      ]
+    },
+    "Parts/Mammoth_CosmeticParts/Visual/Side": {
+      "rotation": [
+        0.0,
+        30.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        2.0
+      ]
+    },
+    "Parts/Mammoth_CosmeticParts/Visual/Side/Side_Jerrycan": {
+      "offset": [
+        0.0,
+        0.0,
+        0.1
+      ]
+    }
+  },
+  "copies": {
+    "Parts/Mammoth_CosmeticParts/Visual/Bed/Party_Bed/AccessoryBeerBarrel~2": {
+      "source": "Parts/Mammoth_CosmeticParts/Visual/Bed/Party_Bed/AccessoryBeerBarrel",
+      "offset": [
+        0.0,
+        0.0,
+        0.5
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        12.5
+      ]
+    },
+    "Parts/Mammoth_CosmeticParts/Visual/Roof/Camper/Camper~2": {
+      "source": "Parts/Mammoth_CosmeticParts/Visual/Roof/Camper",
+      "offset": [
+        0.25,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    }
+  }
+}

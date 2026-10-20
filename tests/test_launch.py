@@ -160,6 +160,33 @@ class FakeGame(unittest.TestCase):
         self.assertEqual(self.quiet(ws.cmd_launch_before, []), 0)
         self.assertEqual(ws.deploy_record(self.folder)["game"]["files"]["gameAssembly"]["mtime"], os.stat(path).st_mtime_ns)
 
+    def deploy_with_placements(self):
+        """Deploys a placements.json, then deletes its source; returns the sources a deploy now expects."""
+        placements = os.path.join(self.tmp, "placements.json")
+        open(placements, "w").write("{}")
+        sources = {"VehicleMods.dll": self.dll, "vehicles/glyptodon.json": self.vehicle}
+        with mock.patch.object(ws, "expected_sources",
+                               side_effect=lambda: dict(sources, **{"vehicles/glyptodon/placements.json": placements})):
+            self.assertEqual(self.quiet(ws.cmd_deploy, []), 0)
+        os.remove(placements)
+        return sources
+
+    def test_a_deleted_placements_file_leaves_the_game_with_make_deploy(self):
+        self.deploy_with_placements()
+        self.assertEqual(self.quiet(ws.cmd_deploy, []), 0)
+        self.assertEqual(sorted(ws.listing(self.folder)), ["VehicleMods.dll", "vehicles/glyptodon.json"])
+
+    def test_copy_deploy_removes_a_retired_file_unless_it_changed(self):
+        self.deploy_with_placements()
+        deployed = os.path.join(self.folder, "vehicles", "glyptodon", "placements.json")
+        self.assertEqual(self.quiet(ws.cmd_copy_deploy, []), 0)
+        self.assertFalse(os.path.exists(deployed))
+        self.assertFalse(os.path.exists(os.path.dirname(deployed)))
+        self.deploy_with_placements()
+        open(deployed, "w").write('{"edited": "by hand"}')
+        self.assertEqual(self.quiet(ws.cmd_copy_deploy, []), 0)
+        self.assertTrue(os.path.isfile(deployed))
+
     def test_unchanged_game_launches_normally(self):
         self.assertEqual(self.quiet(ws.cmd_launch_before, []), 0)
         self.assertTrue(os.path.isdir(self.folder))
