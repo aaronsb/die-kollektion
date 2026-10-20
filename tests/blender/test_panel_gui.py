@@ -115,6 +115,16 @@ def undo(window, area):
         check(after["ok"] and abs(after["offset"][2] - start[2]) < 1e-6, f"undo takes back the panel's nudge: {after.get('offset')}")
         bpy.ops.ed.undo()
         check(abs(api.placement("Winch_01")["offset"][1] - start[1]) < 1e-6, "and the API nudge before it")
+        # A copy saved, then undone: the scene owns it by rule, so the undo is an unsaved change and the next
+        # save takes it out of the file.
+        keg = "Parts/Mammoth_CosmeticParts/Visual/Bed/Party_Bed/AccessoryBeerBarrel"
+        copy = api.duplicate(keg)["node"]
+        api.save()
+        path = os.path.join(api._vehicle().folder, "placements.json")
+        bpy.ops.ed.undo()
+        check(copy not in api.items()["items"].__repr__() and api.unsaved()["unsaved"], "undoing a saved copy is an unsaved change")
+        r = api.save()
+        check(r["ok"] and (not os.path.isfile(path) or copy not in open(path).read()), f"and the save drops it from the file: {r}")
 
 
 try:

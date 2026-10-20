@@ -23,7 +23,7 @@ Pick the vehicle and press Open (the button beside it re-reads the vehicle folde
 | `Upgrades/<slot>` | An empty for every upgrade node, mirroring the game's tree: slot groups (plain axes), options (arrows), pieces inside an option (cubes), and copies. Each option's meshes hang under its pieces, coloured by slot. Options start hidden. |
 | `Ghost` | The donor's stock body as a wireframe, beside the truck when "Ghost of the donor" is on. Set "Beside by" to 0 to overlay it. |
 
-Everything sits where the game puts it after the reshape: the wheelbase sweep moves the nodes behind the body cut back with the rear, the rear axle and its springs included, and the wheels sit at the truck's wheelbase and track. On Das Megaloceros the rear axle is 1.17 m behind the Mammoth's.
+Everything sits where the game puts it after the reshape, step by step as the plugin does it. The wheelbase sweep moves the nodes behind the body cut back with the rear, the rear axle and its springs included. The centre of mass moves to its share of the new wheelbase, and the wheels sit at the truck's track. Last, the definition's `transforms` place their nodes: the rear lights, the winch points and, on the Glyptodon family and Das Mastodon, the whole `Visual/Rear` slot with its spare wheels. On Das Megaloceros the rear axle is 1.17 m behind the Mammoth's.
 
 ## Fit an item
 
@@ -44,7 +44,13 @@ Duplicate adds a copy of the selected option, or of a piece inside one: a second
 
 Save placements writes `vehicles/<name>/placements.json`. Only nodes that moved are written, one line per entry, keys sorted and numbers rounded (0.1 mm, 0.001°). A nudge changes one line of the diff, and saving without changes changes no byte. With nothing moved and no copies, the file is removed. Entries in the file for nodes the scene doesn't show (a light, say, written by hand) are kept as they are; the save's message counts them.
 
-Save refuses, with a message, when the file changed on disk since the vehicle was opened or last saved (open it again to see the change, or `save(force=True)` to overwrite it), and when the add-on's Werkstatt folder isn't the one the vehicle was opened from (open it again).
+Save refuses, with a message, in these cases:
+
+- The file changed on disk since the vehicle was opened or last saved. The scene keeps the file's hash, so this holds after an undo, Reload Scripts or a restart. Open the vehicle again to see the change, or press Overwrite (`save(force=True)` in a script), which asks first.
+- The add-on's Werkstatt folder isn't the one the vehicle was opened from. Open it again.
+- An item holds values the plugin would refuse, as Blender's G and S keys can leave it: moved more than 10 m, mirrored by a negative scale, or scaled unevenly while the car turns it. The message names the items; Reset them, or move them back.
+
+"Unsaved" compares values, not text: a file formatted by hand, or a rotation written another way (200° for -160°), isn't a change.
 
 To see it in game:
 

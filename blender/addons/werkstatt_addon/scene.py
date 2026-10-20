@@ -16,8 +16,10 @@ werkstatt_rest (its location at the base pose, relative to its parent empty, in 
 werkstatt_source. Its location minus rest, rotation and scale are the node's placement in Blender axes. Meshes
 under the empties, and the pieces inside a copy, have their transforms locked: the empty is what moves.
 
-The root collection records werkstatt_built, every node and copy path the scene was built with, so a save knows
-which of the file's entries the scene owns (a copy deleted here) and which it never showed (kept as they are).
+The scene owns, by rule (model.Vehicle.is_built), every slot group, option and piece and every copy of one, in it
+now or not (a copy deleted or undone); a save keeps the file's entries for anything else as they are. The root
+collection carries werkstatt_file_sha, the placements file's hash when it was last read or written, so a save
+can tell a file changed on disk even after an undo, a reload of the add-on or a restart.
 """
 import os
 
@@ -80,6 +82,23 @@ def mesh_object(name, verts, faces, collection, colour_name, rgba, offset=(0.0, 
     return obj
 
 
+def pose_matrix(pose):
+    """A reshape pose (q, t) in game space as a Blender matrix."""
+    (x, y, z, w), t = pose
+    qx, qy, qz, qw = model.quat_game_to_blender((x, y, z, w))
+    return (mathutils.Matrix.Translation(model.game_to_blender(t))
+            @ mathutils.Quaternion((qw, qx, qy, qz)).to_matrix().to_4x4())
+
+
+def posed(vehicle, path, verts):
+    """Blender-space vertices of a mesh at the node path, where the reshape puts them."""
+    q, t = vehicle.pose(path)
+    if q == model.IDENTITY_POSE[0]:
+        dx, dy, dz = model.game_to_blender(t)
+        return [(v[0] + dx, v[1] + dy, v[2] + dz) for v in verts]
+    return [model.game_to_blender(vehicle.place(path, model.blender_to_game(v))) for v in verts]
+
+
 def lock(obj):
     """Blender's G, R and S do nothing on obj; its empty carries the placement."""
     obj.lock_location = obj.lock_rotation = obj.lock_scale = (True, True, True)
@@ -134,7 +153,9 @@ def build(vehicle, show=()):
         part["werkstatt_source"] = os.path.relpath(file, vehicle.root)
         for obj_name, (verts, faces) in read_obj(file).items():
             obj = mesh_object(name, verts, faces, part, f"werkstatt.{kind}", KIND_COLOURS[kind])
-            obj.location = model.game_to_blender((0.0, 0.0, vehicle.part_shift(path)))
+            # Built meshes are in the donor's root space, and the plugin maps them through the donor's layout
+            # before the reshape moves their node (the rear axle and its springs go back with the sweep).
+            obj.matrix_world = pose_matrix(vehicle.pose(path))
             obj["werkstatt_part"] = kind
             obj["werkstatt_node"] = path
             if kind == "collider":
@@ -177,8 +198,7 @@ def build(vehicle, show=()):
                 obj.hide_select = True
                 obj["werkstatt_reference"] = os.path.relpath(file, vehicle.root)
 
-    built = _build_upgrades(vehicle, child_collection(root, "Upgrades"), set(show))
-    root["werkstatt_built"] = sorted(built)
+    _build_upgrades(vehicle, child_collection(root, "Upgrades"), set(show))
 
     ghost = child_collection(root, "Ghost")
     ghost["werkstatt_ghost"] = True
@@ -195,7 +215,7 @@ def build(vehicle, show=()):
 
 def _build_upgrades(vehicle, upgrades, show):
     nodes = vehicle.nodes
-    wanted = {p for p, n in nodes.items() if n.kind in ("group", "option", "piece")}
+    wanted = {p for p in nodes if vehicle.is_built(p)}
     slots, empties = {}, {}
 
     def empty_parent(path):
@@ -249,8 +269,7 @@ def _build_upgrades(vehicle, upgrades, show):
             owner = empties.get(mesh_path) or empty_parent(mesh_path)
             if owner is None:
                 continue
-            dz = vehicle.sweep.get(mesh_path, 0.0)
-            verts = [(v[0], v[1] - dz, v[2]) for v in verts]       # game z back = Blender +y
+            verts = posed(vehicle, mesh_path, verts)
             owner_base = base(owner["werkstatt_node"])
             obj = mesh_object(mesh_path.rsplit("/", 1)[-1], verts, faces, owner.users_collection[0],
                               f"werkstatt.slot.{slot}", colour_of[slot], owner_base)
@@ -273,7 +292,6 @@ def _build_upgrades(vehicle, upgrades, show):
 
     for option in vehicle.options():
         set_shown(empties.get(option.path), option.path in show)
-    return set(empties)
 
 
 def add_copy(vehicle, path, source, empties=None):
@@ -366,16 +384,13 @@ def shared_nodes():
     return {path: sorted(names) for path, names in seen.items() if len(names) > 1}
 
 
-def collect(base_nodes, base_copies):
+def collect(vehicle, base_nodes, base_copies):
     """What save writes: (nodes, copies, kept). The scene's own placements, plus the file's entries (base_*) for
-    nodes the scene was never built with (kept, as the file has them). A built node now missing, such as a
-    deleted copy, is dropped."""
-    root = root_collection()
-    owned = set(root.get("werkstatt_built", [])) if root is not None else set()
+    nodes the scene doesn't build (kept, as the file has them). An entry the scene owns but no longer shows, such
+    as a deleted copy, is dropped."""
     empties = editable_empties()
-    owned |= set(empties)
-    nodes = {p: pl for p, pl in base_nodes.items() if p not in owned}
-    copies = {p: pl for p, pl in base_copies.items() if p not in owned}
+    nodes = {p: pl for p, pl in base_nodes.items() if p not in empties and not vehicle.is_built(p)}
+    copies = {p: pl for p, pl in base_copies.items() if p not in empties and not vehicle.is_built(p, pl.source)}
     kept = len(nodes) + len(copies)
     for path, empty in empties.items():
         pl = read_placement(empty)

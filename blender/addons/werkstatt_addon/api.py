@@ -23,9 +23,10 @@ UNITS = {"mm": 0.001, "cm": 0.01, "dm": 0.1, "m": 1.0}
 AXES = {"x": (1.0, 0.0, 0.0), "y": (0.0, 1.0, 0.0), "z": (0.0, 0.0, 1.0)}
 MAX_STEPS = 1000
 
-# The open vehicle's model, its placements file's hash when the scene read it (save refuses a file changed
-# since), and per checkout whether vehicles/ has uncommitted changes.
-_state = {"vehicle": None, "sha": None, "dirty": {}}
+# The open vehicle's model; per (checkout, vehicle) the placements file's hash when this session last read or
+# wrote it (the root collection keeps one too, which survives a reload or a restart); per checkout whether
+# vehicles/ has uncommitted changes, once git was asked.
+_state = {"vehicle": None, "sha": {}, "dirty": {}}
 
 
 def _api(fn=None, *, undo=None):
@@ -106,15 +107,16 @@ def branch(root):
 
 
 def uncommitted(root, refresh=False):
-    """Whether vehicles/ has uncommitted changes. Asked of git only on refresh (open, save, the panel's refresh
-    button), never while Blender draws."""
-    if refresh or root not in _state["dirty"]:
-        try:
-            r = subprocess.run(["git", "status", "--porcelain", "--", "vehicles"], cwd=root, capture_output=True,
-                               text=True, timeout=10)
-            _state["dirty"][root] = r.returncode == 0 and bool(r.stdout.strip())
-        except (OSError, subprocess.SubprocessError):
-            _state["dirty"][root] = False
+    """Whether vehicles/ has uncommitted changes, or None before git was asked. Git is asked only on refresh
+    (open, save, the panel's refresh button), never while Blender draws."""
+    if not refresh:
+        return _state["dirty"].get(root)
+    try:
+        r = subprocess.run(["git", "status", "--porcelain", "--", "vehicles"], cwd=root, capture_output=True,
+                           text=True, timeout=10)
+        _state["dirty"][root] = r.returncode == 0 and bool(r.stdout.strip())
+    except (OSError, subprocess.SubprocessError):
+        _state["dirty"][root] = False
     return _state["dirty"][root]
 
 
@@ -126,7 +128,6 @@ def _vehicle():
     if v is None or v.name != root.get("werkstatt_vehicle") or v.root != root.get("werkstatt_root"):
         v = model.Vehicle(root["werkstatt_root"], root["werkstatt_vehicle"])
         _state["vehicle"] = v
-        _state["sha"] = model.file_hash(_placements_file(v))      # no record of the open: the file as it is now
     return v
 
 
@@ -134,17 +135,64 @@ def _placements_file(v):
     return os.path.join(v.folder, model.PLACEMENTS)
 
 
-def _pending(v):
-    """(nodes, copies, kept) a save would write now, from the file as it is on disk."""
-    base_nodes, base_copies, _ = model.read_placements(_placements_file(v))
-    return scene.collect(base_nodes, base_copies)
+def _read(v, sha):
+    """Records that the scene's vehicle matches its placements file as it is now (on open and save)."""
+    _state["sha"][(v.root, v.name)] = sha
+    scene.root_collection()["werkstatt_file_sha"] = sha
+
+
+def _known_file(v):
+    """Whether the placements file is one this scene has read or written: its hash matches the one this session
+    recorded, or the one on the root collection (after Reload Scripts, a reopened .blend or a restart)."""
+    now = model.file_hash(_placements_file(v))
+    known = {_state["sha"].get((v.root, v.name)), scene.root_collection().get("werkstatt_file_sha")} - {None}
+    if not known:
+        raise model.WerkstattError(f"the scene has no record of reading {v.name}'s placements file: open the vehicle "
+                                   "again, or overwrite the file (Overwrite in the panel, save(force=True) in a script)")
+    return now in known
+
+
+def _pending(v, force=False):
+    """(nodes, copies, kept) a save would write now, from the file as it is on disk (with force, an unreadable
+    file counts as empty)."""
+    try:
+        base_nodes, base_copies, _ = model.read_placements(_placements_file(v))
+    except model.WerkstattError:
+        if not force:
+            raise
+        base_nodes, base_copies = {}, {}
+    return scene.collect(v, base_nodes, base_copies)
 
 
 def _unsaved(v):
+    """Whether the scene holds placements the file doesn't, compared as values (a hand-formatted file, or a
+    rotation written another way, is not a change)."""
     nodes, copies, _ = _pending(v)
-    path = _placements_file(v)
-    old = open(path, encoding="utf-8").read() if os.path.isfile(path) else None
-    return model.dump_placements(nodes, copies, v.notes) != old
+    old_nodes, old_copies, _ = model.read_placements(_placements_file(v))
+    moved = lambda entries: {p: pl for p, pl in entries.items() if not pl.is_identity()}   # noqa: E731
+    nodes, old_nodes = moved(nodes), moved(old_nodes)
+    return not (model.same_entries(nodes, old_nodes) and model.same_entries(copies, old_copies))
+
+
+def _invalid(v):
+    """Problems with what the scene would save, as messages: values the plugin's reader refuses (Blender's G or
+    S can go past them), a mirrored empty, a non-uniform scale on a turned node."""
+    problems = []
+    for path, empty in sorted(scene.editable_empties().items()):
+        name = path.rsplit("/", 1)[-1]
+        if empty.matrix_basis.to_3x3().determinant() <= 0:
+            problems.append(f"{name} is mirrored (a negative scale)")
+            continue
+        pl = scene.read_placement(empty)
+        try:
+            model.vector3(pl.offset, "offset", -model.MAX_OFFSET, model.MAX_OFFSET)
+            model.vector3(pl.scale, "scale", model.MIN_SCALE, model.MAX_SCALE)
+        except model.WerkstattError as e:
+            problems.append(f"{name}: {e}")
+            continue
+        if max(pl.scale) - min(pl.scale) > 1e-6 and v.is_turned(empty.get("werkstatt_source") or path):
+            problems.append(f"{name}: a non-uniform scale on a node the car turns")
+    return problems
 
 
 def _empty(node):
@@ -215,8 +263,14 @@ def vehicles():
 
 @_api
 def unsaved():
-    """Whether the open vehicle has changes its placements.json doesn't hold yet."""
-    return {"unsaved": scene.root_collection() is not None and _unsaved(_vehicle())}
+    """Whether the open vehicle has changes its placements.json doesn't hold yet. When the file can't be read,
+    that can't be told: unsaved is True and "why" says so."""
+    if scene.root_collection() is None:
+        return {"unsaved": False}
+    try:
+        return {"unsaved": _unsaved(_vehicle())}
+    except model.WerkstattError as e:
+        return {"unsaved": True, "why": str(e)}
 
 
 @_api(undo="open vehicle")
@@ -227,20 +281,25 @@ def open_vehicle(name, show=(), force=False):
     if isinstance(show, str) or not all(isinstance(s, str) for s in show):
         raise model.WerkstattError(f"show must be a list of option names, got {show!r}")
     root = werkstatt_root()
-    if not force and scene.root_collection() is not None and _unsaved(_vehicle()):
-        raise model.WerkstattError(f"{_vehicle().name} has unsaved changes: save them, or open with force=True to drop them")
+    if not force:
+        state = unsaved()
+        if state.get("unsaved"):
+            raise model.WerkstattError(f"{_vehicle().name} has unsaved changes" + (f" (can't tell: {state['why']})" if state.get("why") else "")
+                                       + ": save them, or open with force=True to drop them")
     v = model.Vehicle(root, name)
     if not v.manifest.get("patch") and not os.path.isfile(os.path.join(v.folder, "build", "body_LOD0.obj")):
         raise model.WerkstattError(f"{name} isn't built yet: run `make build` (or `make loop V={name}`) in {root}")
     show = [_resolve_option(v, s) for s in show]
+    sha = model.file_hash(_placements_file(v))
     scene.build(v, show)
-    _state["vehicle"], _state["sha"] = v, model.file_hash(_placements_file(v))
+    _state["vehicle"] = v
+    _read(v, sha)
     uncommitted(root, refresh=True)
-    built = set(scene.root_collection()["werkstatt_built"])
     # Entries on nodes the scene doesn't build (outside the upgrade tree, or a copy of one): save keeps them.
     return {"vehicle": name, "codename": v.codename, "donor": v.donor, "options": len(v.options()),
             "placements": len(v.placements), "copies": len(v.copies),
-            "not_shown": sorted(p for p in list(v.placements) + list(v.copies) if p not in built)}
+            "not_shown": sorted([p for p in v.placements if not v.is_built(p)]
+                                + [p for p, pl in v.copies.items() if not v.is_built(p, pl.source)])}
 
 
 def _resolve_option(v, name):
@@ -444,7 +503,8 @@ def save(force=False):
     """Writes the open vehicle's placements.json from the scene (only offsets that differ from the base pose),
     keeping the file's entries for nodes the scene doesn't show ("kept"). Refuses when the file changed on disk
     since the vehicle was opened or last saved (force=True writes anyway), when the vehicle came from another
-    checkout than the add-on's, and when two empties claim one node. Only writes the file: committing it is yours."""
+    checkout than the add-on's, when two empties claim one node, and when an item's values are ones the plugin
+    would refuse. Only writes the file: committing it is yours."""
     v = _vehicle()
     root = werkstatt_root()
     if v.root != root:
@@ -454,14 +514,18 @@ def save(force=False):
         path, names = next(iter(sorted(shared.items())))
         raise model.WerkstattError(f"{len(names)} empties claim {path} ({', '.join(names)}), as Blender's Shift+D makes "
                                    "them: delete the extra ones (Werkstatt's Duplicate makes copies the game knows)")
+    problems = _invalid(v)
+    if problems:
+        raise model.WerkstattError(f"not saved, {len(problems)} item(s) the game would refuse: " + "; ".join(problems[:5])
+                                   + ("; ..." if len(problems) > 5 else "") + " (Reset them, or move them back)")
     path = _placements_file(v)
-    if not force and model.file_hash(path) != _state["sha"]:
+    if not force and not _known_file(v):
         raise model.WerkstattError(f"{os.path.relpath(path, v.root)} changed on disk since it was read: open the vehicle "
-                                   "again to see the change, or save with force=True to overwrite it")
-    nodes, copies, kept = _pending(v)
+                                   "again to see the change, or overwrite it (Overwrite in the panel, save(force=True) in a script)")
+    nodes, copies, kept = _pending(v, force)
     v.placements, v.copies = nodes, copies
     result = v.save()
-    _state["sha"] = model.file_hash(path)
+    _read(v, model.file_hash(path))
     uncommitted(root, refresh=True)
     return {"file": os.path.relpath(path, v.root), "result": result, "placements": len(nodes), "copies": len(copies),
             "kept": kept}

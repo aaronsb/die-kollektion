@@ -80,6 +80,88 @@ def arch(body_points, x, y, z, r, reach=1.0):
     return max((q for q in low if q < z), default=z - reach), min((q for q in low if q > z), default=z + reach)
 
 
+def second_round(root, path):
+    """The second review of #29: ownership by rule, values Blender's keys can reach, the changed-on-disk guard
+    without session state, unsaved compared as values, stricter inputs."""
+    keg = "Parts/Mammoth_CosmeticParts/Visual/Bed/Party_Bed/AccessoryBeerBarrel"
+    winch = "Parts/Mammoth_CosmeticParts/Performance/Winch/Winch_01"
+    if os.path.isfile(path):
+        os.remove(path)
+    api.open_vehicle(VEHICLE, force=True)
+    copy = api.duplicate(keg)["node"]
+    check(api.save()["result"] == "written" and copy in open(path).read(), "a copy made in the session is saved")
+    api.delete_copy(copy)
+    check(api.unsaved()["unsaved"], "deleting a saved copy is an unsaved change")
+    saved = api.save()
+    check(saved["ok"] and saved["kept"] == 0 and (not os.path.isfile(path) or copy not in open(path).read()),
+          f"and the save takes it out of the file: {saved}")
+
+    # Values the plugin refuses, as Blender's G and S keys can leave them.
+    api.open_vehicle(VEHICLE, force=True)
+    e = api._empty("Winch_01")
+    e.location = e.location + mathutils.Vector((0.0, -12.0, 0.0))
+    r = api.save()
+    check(not r["ok"] and "Winch_01" in r["error"] and "offset" in r["error"], f"save refuses a 12 m drag: {r.get('error')}")
+    api.reset("Winch_01")
+    e.scale = (-1.0, -1.0, -1.0)
+    r = api.save()
+    check(not r["ok"] and "mirrored" in r["error"], f"save refuses a mirrored empty (S -1): {r.get('error')}")
+    api.reset("Winch_01")
+    v = api._vehicle()
+    turned = next(p for p, n in sorted(v.nodes.items()) if n.kind == "option" and v.is_turned(p))
+    api._empty(turned).scale = (2.0, 1.0, 1.0)
+    r = api.save()
+    check(not r["ok"] and "non-uniform" in r["error"], f"save refuses S on one axis of a turned node: {r.get('error')}")
+    api.reset(turned)
+
+    # The changed-on-disk guard without session state (Reload Scripts, a reopened .blend, a restart).
+    api.nudge("Winch_01", "y", 1, "cm")
+    api.save()
+    api._state["vehicle"], api._state["sha"] = None, {}
+    api.nudge("Winch_01", "y", 1, "cm")
+    check(api.save()["ok"], "with the session's record gone, the root collection's lets an unchanged file be saved")
+    write(path, open(path).read().replace('"Parts', '"Lights/HeadLightL": {"offset": [0, 0.01, 0]},\n    "Parts', 1))
+    api._state["vehicle"], api._state["sha"] = None, {}
+    api.nudge("Winch_01", "y", 1, "cm")
+    r = api.save()
+    check(not r["ok"] and "changed on disk" in r["error"], f"and a file changed on disk is still refused: {r.get('error')}")
+    del scene.root_collection()["werkstatt_file_sha"]
+    api._state["sha"] = {}
+    r = api.save()
+    check(not r["ok"] and "no record" in r["error"], f"with no record at all, save refuses: {r.get('error')}")
+    check(bpy.ops.werkstatt.save(force=True) == {"FINISHED"} and "HeadLightL" in open(path).read(),
+          "the panel's Overwrite writes anyway, keeping the hand-added light")
+
+    # Unsaved is compared as values: a hand-formatted file and rotations written another way aren't changes.
+    for rotation in ((100.0, 0.0, 0.0), (0.0, 200.0, 0.0), (89.9999, 0.0, 0.0), (-89.95, 30.0, 10.0)):
+        write(path, json.dumps({"nodes": {winch: {"offset": [0, 0.05, 0], "rotation": list(rotation)}}}, indent=8))
+        api.open_vehicle(VEHICLE, force=True)
+        r = api.unsaved()
+        check(r["ok"] and not r["unsaved"], f"a pretty-printed file with rotation {rotation} isn't unsaved right after open")
+    q = model.euler_to_quat((89.9999, 0.0, 0.0))
+    check(model.quat_angle(q, model.euler_to_quat(model.quat_to_euler(q))) < 1e-4, "a pitch of 89.9999° survives the round trip")
+    write(path, "{ broken <<<<<<< HEAD")
+    r = api.unsaved()
+    check(r["ok"] and r["unsaved"] and "why" in r, f"a broken file can't be compared, so it counts as unsaved: {r}")
+    r = api.open_vehicle(VEHICLE)
+    check(not r["ok"] and "can't tell" in r["error"], f"reopening says why it can't tell: {r.get('error', '')[:100]}")
+    check(api.open_vehicle(VEHICLE, force=True)["ok"] is False, "and a broken file still stops the open itself")
+    os.remove(path)
+    check(api.open_vehicle(VEHICLE, force=True)["ok"], "a removed file opens again")
+
+    # Stricter inputs.
+    for value, what in ((b"abc", "bytes"), ({"x": 1, "y": 2, "z": 3}, "a dict"), (["1", 2, 3], "text in a list")):
+        r = api.set_placement("Winch_01", offset=value)
+        check(not r["ok"], f"an offset given as {what} is refused: {r.get('error')}")
+    odd = os.path.join(root, "vehicles", "odd")
+    os.makedirs(odd)
+    write(os.path.join(odd, "vehicle.json"), "[1, 2]")
+    listed = api.vehicles()
+    check(listed["ok"] and any(x["name"] == "odd" and "object" in x.get("error", "") for x in listed["vehicles"]),
+          "a vehicle.json holding a list is listed with its error")
+    shutil.rmtree(odd)
+
+
 def refusals(root, path):
     """The review's findings on #29: reads that write, saves that lose entries, values that raise."""
     winch = api._empty("Winch_01")
@@ -166,6 +248,8 @@ def refusals(root, path):
     finally:
         subprocess.run = real_run
 
+    second_round(root, path)
+
     # Broken files are messages: a malformed vehicle.json, a malformed placements.json.
     broken = os.path.join(root, "vehicles", "broken")
     os.makedirs(broken)
@@ -221,6 +305,45 @@ def axles(root):
             point = v.attach_points.get(f"Axles/WheelMeshes/{corner}")
             check(point is not None and close(point, (hub[0], point[1], hub[2]), 0.01), f"{name}: the {corner} wheel's attach point is on the hub")
         check(len(refs) >= 4, f"{name}: four wheels shown")
+        transformed(name, v)
+
+
+def transformed(name, v):
+    """The definition's transforms, which the plugin applies after the sweep: each node at its position, an upgrade
+    group's items and meshes carried along, and the centre of mass at its share of the new wheelbase. Expected
+    values come from vehicle.json and the extracted files, not from the add-on's model."""
+    raw = {n["path"]: n for n in json.load(open(os.path.join(v.extracted, "upgrades.json")))["nodes"]}
+    facts = {f["path"]: f for f in json.load(open(os.path.join(v.extracted, "nodes.json")))["nodes"]}
+    empties = scene.editable_empties()
+    bpy.context.view_layer.update()
+    m = v.manifest
+    for path, t in m.get("transforms", {}).items():
+        if "position" not in t:
+            continue
+        if path in empties:
+            at = world_game(empties[path])
+            check(close(at, t["position"], 1e-3), f"{name}: {path.rsplit('/', 1)[-1]} at its transform {t['position']} ({tuple(round(a, 3) for a in at)})")
+            kids = [p for p in raw if model.parent_path(p) == path and p in empties]
+            moved = [p for p in kids if close(tuple(a - b for a, b in zip(world_game(empties[p]), at)),
+                                              tuple(a - b for a, b in zip(raw[p]["position"], raw[path]["position"])), 1e-3)]
+            check(kids and moved == kids, f"{name}: its {len(kids)} items keep their offsets from it")
+            option = next((p for p in kids if raw[p].get("file") and raw[p].get("part")), None)
+            if option:
+                own = scene.read_obj(v.option_file(v.nodes[option]))       # the option's own meshes, not nested options'
+                meshes = [o for o in empties[option].children_recursive if o.type == "MESH" and o.get("werkstatt_mesh_of") in own]
+                lo, hi = game_box(meshes)
+                centre = [(a + b) / 2 for a, b in zip(lo, hi)]
+                verts = [model.blender_to_game(p) for _, (vs, _f) in own.items() for p in vs]
+                donor_centre = [(min(p[i] for p in verts) + max(p[i] for p in verts)) / 2 for i in range(3)]
+                shift = [a - b for a, b in zip(world_game(empties[option]), raw[option]["position"])]
+                check(close(centre, [c + d for c, d in zip(donor_centre, shift)], 2e-3),
+                      f"{name}: {option.rsplit('/', 1)[-1]}'s meshes move with it ({[round(c, 3) for c in centre]} vs {[round(c + d, 3) for c, d in zip(donor_centre, shift)]})")
+        elif path in facts and path in v.attach_points:
+            check(close(v.attach_points[path], t["position"], 1e-4), f"{name}: the attach point {path} at its transform")
+    front, rear = facts["Axles/WheelMeshes/FL"]["position"][2], facts["Axles/WheelMeshes/RL"]["position"][2]
+    shift = -(m["wheelbase"] - (front - rear))
+    target = rear + shift + (facts["CoM"]["position"][2] - rear) * m["wheelbase"] / (front - rear)
+    check(abs(v.attach_points["CoM"][2] - target) < 1e-4, f"{name}: the centre of mass at z {v.attach_points['CoM'][2]:.3f}, the plugin's {target:.3f}")
 
 
 def main():

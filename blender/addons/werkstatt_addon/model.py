@@ -68,9 +68,10 @@ def quat_to_matrix(q):
 def quat_to_euler(q):
     """The inverse of euler_to_quat (R = Ry Rx Rz), in degrees; x within [-90, 90]."""
     r = quat_to_matrix(q)
-    sx = max(-1.0, min(1.0, -r[1][2]))
-    x = math.asin(sx)
-    if abs(sx) < 0.9999999:
+    # atan2 rather than asin(-r12): asin loses about 0.01° within a degree of a quarter turn of pitch
+    cx = math.hypot(r[0][2], r[2][2])
+    x = math.atan2(-r[1][2], cx)
+    if cx > 1e-9:
         y = math.atan2(r[0][2], r[2][2])
         z = math.atan2(r[1][0], r[1][1])
     else:                                  # gimbal lock: put the whole turn about y
@@ -165,12 +166,11 @@ def _vector(value, where, name, lo, hi):
 
 def vector3(value, name, lo=-math.inf, hi=math.inf):
     """Three finite numbers within [lo, hi] from a caller's value (a tuple, list or Blender vector)."""
-    try:
-        values = [float(v) for v in value]
-    except (TypeError, ValueError):
-        raise WerkstattError(f"{name} must be three numbers, got {value!r}") from None
-    if len(values) != 3 or any(isinstance(v, (str, bytes, bool)) for v in value):
+    if isinstance(value, (str, bytes, bytearray, dict, set)) or not hasattr(value, "__len__") or len(value) != 3:
         raise WerkstattError(f"{name} must be three numbers, got {value!r}")
+    if not all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in value):
+        raise WerkstattError(f"{name} must be three numbers, got {value!r}")
+    values = [float(v) for v in value]
     if not all(math.isfinite(v) for v in values):
         raise WerkstattError(f"{name} must be finite numbers, got {value!r}")
     if any(v < lo or v > hi for v in values):
@@ -297,6 +297,31 @@ def dump_placements(nodes, copies, notes=None):
     return "{\n" + ",\n".join(sections) + "\n}\n"
 
 
+def quat_angle(a, b):
+    """The angle in degrees between two rotations (x, y, z, w)."""
+    dot = abs(sum(x * y for x, y in zip(a, b)))
+    return math.degrees(2 * math.acos(min(1.0, dot)))
+
+
+def same_entries(a, b):
+    """Whether two {path: Placement} hold the same placements, as the game would show them: offsets and scales
+    within half the file's last digit, rotations within 0.01° however they are written ((0, 200, 0) and
+    (0, -160, 0) are one turn)."""
+    if set(a) != set(b):
+        return False
+    for path, pa in a.items():
+        pb = b[path]
+        if pa.source != pb.source:
+            return False
+        if any(abs(x - y) > 0.5 * 10 ** -OFFSET_DIGITS for x, y in zip(pa.offset, pb.offset)):
+            return False
+        if any(abs(x - y) > 0.5 * 10 ** -SCALE_DIGITS for x, y in zip(pa.scale, pb.scale)):
+            return False
+        if quat_angle(euler_to_quat(pa.rotation), euler_to_quat(pb.rotation)) > 0.01:
+            return False
+    return True
+
+
 def write_placements(path, nodes, copies, notes=None):
     """Writes (or, with nothing to say, removes) the placements file. Returns 'written', 'unchanged' or 'removed'
     or 'absent'."""
@@ -388,6 +413,8 @@ def list_vehicles(root):
             continue
         try:
             m = read_json(manifest, root)
+            if not isinstance(m, dict):
+                raise WerkstattError(f"vehicles/{name}/vehicle.json must hold an object")
             donor = m.get("donor", "")
             nodes, copies, _ = read_placements(os.path.join(root, "vehicles", name, PLACEMENTS))
         except WerkstattError as e:
@@ -402,9 +429,21 @@ def list_vehicles(root):
     return out
 
 
+IDENTITY_POSE = ((0.0, 0.0, 0.0, 1.0), (0.0, 0.0, 0.0))
+
+
+def _add(a, b):
+    return tuple(x + y for x, y in zip(a, b))
+
+
+def _sub(a, b):
+    return tuple(x - y for x, y in zip(a, b))
+
+
 class Vehicle:
     """A vehicle folder read as the scene shows it: parts, attach points and upgrade nodes, all in game space
-    after the reshape's wheelbase sweep, plus its placements."""
+    where the plugin's reshape puts them at spawn (wheelbase sweep, centre of mass, track, the definition's
+    transforms), plus its placements."""
 
     def __init__(self, root, name):
         self.root, self.name = root, name
@@ -425,16 +464,13 @@ class Vehicle:
         facts = read_json(os.path.join(self.extracted, "nodes.json"), root)["nodes"]
         upgrades = read_json(os.path.join(self.extracted, "upgrades.json"), root)
         self.cosmetic_root = upgrades.get("cosmeticRoot") or ""      # empty: the donor has no upgrade nodes
-        self.shift, self.cut = self._sweep_parameters()
-        moved = self._swept(facts)
-        self.sweep = moved          # path -> metres moved back with the rear (meshes move with their node)
+        self.poses = self._reshape(facts)
         self.nodes = {}
         for n in upgrades["nodes"]:
-            dz = moved.get(n["path"], 0.0)
-            p = n["position"]
+            q, _ = self.pose(n["path"])
             kind = "option" if "part" in n else ("piece" if n.get("lodGroup") else "node")
-            self.nodes[n["path"]] = Node(n["path"], (p[0], p[1], p[2] + dz), n["rotation"], n["scale"], kind,
-                                         n.get("part"), n.get("file"), bool(n.get("lodGroup")))
+            self.nodes[n["path"]] = Node(n["path"], self.place(n["path"], n["position"]), quat_mul(q, tuple(n["rotation"])),
+                                         n["scale"], kind, n.get("part"), n.get("file"), bool(n.get("lodGroup")))
         for path, node in self.nodes.items():
             parent = self.nodes.get(parent_path(path))
             if parent is not None:
@@ -443,15 +479,12 @@ class Vehicle:
             if node.kind == "node" and any(self._has_option_below(c) for c in node.children):
                 node.kind = "group"
         self.attach_points = {}
-        widen = self._track_widening(facts)
         for f in facts:
             if self.cosmetic_root and f["path"].startswith(self.cosmetic_root):
                 continue
             types = {c["type"] for c in f["components"]}
             if self._is_attach_point(f["path"], types):
-                p = f["position"]
-                dx = widen.get(f["path"], 0.0)
-                self.attach_points[f["path"]] = (p[0] + dx, p[1], p[2] + moved.get(f["path"], 0.0))
+                self.attach_points[f["path"]] = self.place(f["path"], f["position"])
         self.placements, self.copies, self.notes = read_placements(os.path.join(self.folder, PLACEMENTS))
 
     @staticmethod
@@ -462,46 +495,82 @@ class Vehicle:
     def _has_option_below(self, node):
         return node.kind == "option" or any(self._has_option_below(c) for c in node.children)
 
-    def _track_widening(self, facts):
-        """dx per wheel node from the plugin's track change (Reshape): each corner's wheel mesh moves out (or in)
-        to half the track, measured from the donor's front right wheel."""
-        if "track" not in self.manifest:
-            return {}
-        fr = next((f for f in facts if f["path"] == "Axles/WheelMeshes/FR"), None)
-        if fr is None:
-            return {}
-        widen = self.manifest["track"] / 2 - abs(fr["position"][0])
-        return {f"Axles/WheelMeshes/{c}": (-widen if c[1] == "L" else widen) for c in ("FL", "FR", "RL", "RR")}
-
-    def _sweep_parameters(self):
+    def _reshape(self, facts):
+        """The plugin's Reshape (DerivedVehicles.cs) on the donor's nodes, step by step in its order: the wheelbase
+        sweep (a node behind the body cut moves back with its subtree, otherwise its children are looked at), the
+        centre of mass to its share of the new wheelbase, each corner's wheel nodes out to half the track, then the
+        definition's transforms (a node to its position, then turned by its yaw about the car's up, its subtree
+        with it). Returns {path: (q, t)}: a donor-space point x in that node's subtree lands at q x + t."""
         m = self.manifest
-        cut = max((s[1] for s in m.get("bodyCut", [])), default=float("-inf"))
-        donor_wheelbase = m["donorAxleZ"]["front"] - m["donorAxleZ"]["rear"]
-        return -(m["wheelbase"] - donor_wheelbase), cut
-
-    def _swept(self, facts):
-        """dz per path from the plugin's Sweep: a child of the root behind the cut moves with its subtree,
-        otherwise its children are looked at in turn."""
+        donor = {f["path"]: tuple(f["position"]) for f in facts}
         children = {}
-        for f in facts:
-            children.setdefault(parent_path(f["path"]), []).append(f)
-        moved = {}
+        for path in donor:
+            children.setdefault(parent_path(path), []).append(path)
+        poses = {}
 
-        def carry(path):
-            moved[path] = self.shift
+        def subtree(path):
+            yield path
             for c in children.get(path, []):
-                carry(c["path"])
+                yield from subtree(c)
 
-        def visit(parent):
+        def where(path):
+            q, t = poses.get(path, IDENTITY_POSE)
+            return _add(quat_rotate(q, donor[path]), t)
+
+        def move(path, q_op, t_op):
+            for p in subtree(path):
+                q, t = poses.get(p, IDENTITY_POSE)
+                poses[p] = (quat_mul(q_op, q), _add(quat_rotate(q_op, t), t_op))
+
+        still = IDENTITY_POSE[0]
+        front = donor.get("Axles/WheelMeshes/FL", (0.0, 0.0, m["donorAxleZ"]["front"]))[2]
+        rear = donor.get("Axles/WheelMeshes/RL", (0.0, 0.0, m["donorAxleZ"]["rear"]))[2]
+        self.shift = -(m["wheelbase"] - (front - rear))
+        self.cut = max((step[1] for step in m.get("bodyCut", [])), default=float("-inf"))
+        com = donor.get("CoM")
+        com_target = rear + self.shift + (com[2] - rear) * (m["wheelbase"] / (front - rear)) if com else None
+        self.com_target = com_target
+
+        def sweep(parent):
             for c in children.get(parent, []):
-                if c["position"][2] < self.cut:
-                    carry(c["path"])
+                if where(c)[2] < self.cut:
+                    move(c, still, (0.0, 0.0, self.shift))
                 else:
-                    visit(c["path"])
+                    sweep(c)
 
-        if self.shift:
-            visit("")
-        return moved
+        sweep("")
+        if com is not None:
+            move("CoM", still, (0.0, 0.0, com_target - where("CoM")[2]))
+        if "track" in m and "Axles/WheelMeshes/FR" in donor:
+            widen = m["track"] / 2 - abs(where("Axles/WheelMeshes/FR")[0])
+            for corner in ("FL", "FR", "RL", "RR"):
+                dx = -widen if corner[1] == "L" else widen
+                for path in (f"Axles/WheelColliders/Wheel{corner}", f"Axles/WheelMeshes/{corner}",
+                             f"Effects/TerrainParticles/{corner}Wheel", f"Audio/{corner}Wheel"):
+                    if path in donor:
+                        move(path, still, (dx, 0.0, 0.0))
+        for path, transform in m.get("transforms", {}).items():
+            if path not in donor:
+                continue                                # the plugin skips a node the prefab lacks too
+            if "position" in transform:
+                move(path, still, _sub(tuple(transform["position"]), where(path)))
+            if transform.get("yaw"):
+                turn, pivot = quat_axis((0.0, 1.0, 0.0), transform["yaw"]), where(path)
+                move(path, turn, _sub(pivot, quat_rotate(turn, pivot)))
+        return poses
+
+    def pose(self, path):
+        """(q, t) of the reshape for a node: its own, or its nearest ancestor's among the donor's nodes."""
+        while path:
+            if path in self.poses:
+                return self.poses[path]
+            path = parent_path(path)
+        return IDENTITY_POSE
+
+    def place(self, path, point):
+        """A donor-space point of the node at path (its pivot, or a vertex of its mesh) where the reshape puts it."""
+        q, t = self.pose(path)
+        return _add(quat_rotate(q, tuple(point)), t)
 
     # -- files the scene shows
     def part_files(self):
@@ -548,12 +617,6 @@ class Vehicle:
         wheel = self.manifest.get("wheel", {})
         return wheel.get("radius") or 1.0, wheel.get("width") or 1.0
 
-    def part_shift(self, path):
-        """Metres a part's node moves back with the rear in the sweep. Built meshes are in the donor's root space
-        and the plugin maps them through the donor's layout before the sweep, so the rear axle and its springs
-        move with their node, as in game."""
-        return self.sweep.get(path, 0.0)
-
     def is_turned(self, path):
         """Whether the game turns this node relative to the car at its base pose. Scale applies along a node's own
         axes in game, and the add-on's empties carry no base rotation, so a non-uniform scale shows right only
@@ -564,6 +627,15 @@ class Vehicle:
         # A half turn about an axis only flips signs, so a scale along the car's axes still lands on the node's.
         m = quat_to_matrix(node.rotation)
         return any(abs(abs(m[i][i]) - 1.0) > 1e-4 for i in range(3))
+
+    BUILT_KINDS = ("group", "option", "piece")
+
+    def is_built(self, path, source=None):
+        """Whether the scene builds this node (a slot group, an option or a piece inside one), or, for a copy, its
+        source. The scene owns these entries whether or not they are in it now (a copy deleted or undone); a
+        file's entries for anything else are kept as they are."""
+        node = self.nodes.get(source or path)
+        return node is not None and node.kind in self.BUILT_KINDS
 
     def option_file(self, node):
         return os.path.join(self.extracted, node.file) if node.file else None

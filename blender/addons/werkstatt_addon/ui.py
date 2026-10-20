@@ -251,6 +251,14 @@ class WERKSTATT_OT_save(bpy.types.Operator):
     force: BoolProperty(name="Overwrite", description="Write even when the file changed on disk since it was read",
                         options={"SKIP_SAVE"})
 
+    def invoke(self, context, event):
+        if self.force:
+            return context.window_manager.invoke_confirm(
+                self, event, title="Overwrite placements.json",
+                message="Write the scene's placements over the file, even if it changed on disk since it was read?",
+                confirm_text="Overwrite", icon="WARNING")
+        return self.execute(context)
+
     def execute(self, context):
         result = api.save(force=self.force)
         refresh_vehicles()
@@ -354,7 +362,10 @@ class WERKSTATT_PT_panel(bpy.types.Panel):
         row = layout.row(align=True)
         row.prop(w, "ghost")
         row.prop(w, "ghost_offset", text="")
-        layout.operator("werkstatt.save", icon="FILE_TICK")
+        row = layout.row(align=True)
+        row.operator("werkstatt.save", icon="FILE_TICK")
+        op = row.operator("werkstatt.save", text="Overwrite", icon="ERROR")
+        op.force = True
         layout.operator("werkstatt.run_loop", icon="PLAY")
         if w.last_loop:
             layout.label(text=w.last_loop)
