@@ -17,6 +17,8 @@ It started as "better trucks in the game" and grew into the system those trucks 
 [/list]
 Each vehicle's folder on GitHub opens as its contact sheet: four isometric renders, a rig view of its colliders and attach points, and the results of the mesh checks. The README's catalogue lists what each truck is modelled on.
 
+[b]Fitting accessories in Blender.[/b] A Blender add-on fits accessories (a winch, a roof rack) with stepped nudges and saves them for the plugin to apply in game. The design for packs and a cross-platform CLI is in the repository.
+
 [size=4][b]What you need[/b][/size]
 [list]
 [*][i]Over the Hill[/i] on Steam. Werkstatt runs on the [b]native Linux build today[/b]. Windows support is planned (a cross-platform command-line tool and a Windows plugin build are in the design) but not ready yet.
@@ -40,7 +42,7 @@ Each vehicle's folder on GitHub opens as its contact sheet: four isometric rende
 [b]Your save:[/b] back up ~/My Games/over the hill/Saves/ before you start. A save that holds one of these trucks keeps listing it after the mod is removed; how the game treats that isn't tested yet.
 
 [size=4][b]After a game update[/b][/size]
-Nothing to do. At the next start Die Kollektion's loader rebuilds the plugin for the new version (a few seconds, with a small progress window; it needs the .NET SDK), then starts it. The plugin also reserves its own memory for its hooks as soon as it loads, and runs the game without the mod rather than crash if it can't.
+With the .NET SDK installed, nothing to do: at the next start Die Kollektion's loader rebuilds the plugin (a few seconds, a small progress window). Without it, the loader says so, and closes the game if your save holds our trucks: install the SDK and start again, or wait for a release built for the new game version. The plugin also reserves its own memory for its hooks as soon as it loads, and if it can't, runs the game without the mod, or closes it with a dialog when your save holds our trucks.
 
 [size=4][b]Known limits[/b][/size]
 [list]

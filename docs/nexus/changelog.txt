@@ -1,11 +1,11 @@
 0.7.0 (2026-10-20): a Blender add-on for fitting accessories, the bumper winch with the portable winch, game updates handled inside the game.
 - The bumper winch now shows on the four trucks while the portable winch is in their tool loadout, on the truck and on the mechanic's display. Not yet checked in game; if it misbehaves, please report it on GitHub with the log's Tools: lines.
 - Blender add-on (make blender-addon): open a vehicle in its donor's livery (from your own game files), show a slot, nudge or turn an accessory into place and save the truck's placements.json, which the plugin applies in game and in the mechanic's preview. The list marks the options the game never shows (the roll cage) and those a tool shows (the bumper winch). Scriptable for AI agents over the Blender MCP server.
-- Game updates are handled inside the game: Die Kollektion's loader rebuilds the plugin for the new version at the next start, with a small progress window. Run make deploy once to switch over; the launch option is plain "./run_bepinex.sh" %command% again (the old one keeps working).
+- Game updates are handled inside the game: with the .NET SDK installed, Die Kollektion's loader rebuilds the plugin for the new version at the next start, with a small progress window. Without it, the loader says so, and closes the game if your save holds our trucks: install the SDK and start again, or wait for a release built for the new game version. Run make deploy once to switch over; the launch option is plain "./run_bepinex.sh" %command% again (the old one keeps working).
 - make save-test swaps in a test save where every car, our trucks included, owns every part, to preview each in the garage; make save-real puts your own save back.
 - Fixed: with our trucks in a save, the game no longer runs silently without the mod after a game update; it closes with a dialog saying to start again.
 - Fixed: make save-add now gives the trucks the cosmetics already unlocked before they were registered.
-- Windows is still planned, not supported; this release has no Windows build.
+- Windows is planned; this release has no Windows build.
 
 0.6.0 (2026-10-19): halogen headlights, a main-menu status line, update-safe launches.
 - Halogen headlights on the four trucks: a warmer, slightly dimmer beam (3200 K, 0.8 of the game's intensity), set per truck in its manifest; stock cars keep theirs.

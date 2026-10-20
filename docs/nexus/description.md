@@ -32,7 +32,7 @@ Uninstall: `make undeploy` removes exactly the files the install put in the game
 
 Back up `~/My Games/over the hill/Saves/` before you start. A save that holds one of these trucks keeps listing it after the mod is removed.
 
-After a game update: nothing to do. At the next start Die Kollektion's loader rebuilds the plugin for the new version (a few seconds, with a small progress window; it needs the .NET SDK).
+After a game update: with the .NET SDK installed, nothing to do: at the next start Die Kollektion's loader rebuilds the plugin (a few seconds, a small progress window). Without it, the loader says so, and closes the game if your save holds our trucks: install the SDK and start again, or wait for a release built for the new game version.
 
 ## Main features
 
@@ -47,7 +47,7 @@ After a game update: nothing to do. At the next start Die Kollektion's loader re
 - **A workshop, not just a mod.** One command (`make start`) sets everything up; `make all` rebuilds and installs; `make undeploy` removes exactly what was installed.
 - **Contact sheets.** Every vehicle's folder on GitHub opens as its contact sheet: four isometric renders, a rig view of its colliders and attach points, and the results of the mesh checks.
 - **Built for modders.** Vehicles are portable folders with a JSON manifest; changes arrive as pull requests with before-and-after contact sheets. A Blender add-on fits accessories (a winch, a roof rack) with stepped nudges and saves them for the plugin to apply in game. The design for packs and a cross-platform CLI is in the repository.
-- **Durable.** The plugin reserves its own memory for its hooks as it loads, and runs the game without the mod rather than crash if it can't.
+- **Durable.** The plugin reserves its own memory for its hooks as it loads, and if it can't, runs the game without the mod, or closes it with a dialog when your save holds our trucks.
 - **Made with AI, agent-friendly on purpose.** AGENTS.md tells an AI agent how to help, whether you want it to just make things work or to coach you while you keep creative control.
 
 ## Requirements
