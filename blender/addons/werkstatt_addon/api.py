@@ -17,7 +17,7 @@ import functools, hashlib, os, shutil, subprocess, time
 import bpy
 import mathutils
 
-from . import loop, model, review, scene
+from . import loop, model, review, scene, wording
 
 UNITS = {"mm": 0.001, "cm": 0.01, "dm": 0.1, "m": 1.0}
 AXES = {"x": (1.0, 0.0, 0.0), "y": (0.0, 1.0, 0.0), "z": (0.0, 0.0, 1.0)}
@@ -251,13 +251,13 @@ def _describe(empty, vehicle):
     part = (node.part if node else None) or (vehicle.nodes[source].part if source and source in vehicle.nodes else None)
     option = _option_of(empty)
     kind = empty.get("werkstatt_kind")
-    in_game, tool = vehicle.in_game(source or path)
+    how, tools = vehicle.in_game(source or path)
     return {"node": path, "kind": kind, "slot": vehicle.slot_of(source or path),
             "part": (part or {}).get("name"), "shown": scene.is_shown(option) if option else True,
-            "in_game": in_game, "in_game_note": vehicle.in_game_note(source or path),
+            "in_game": how, "in_game_note": wording.note(how, tools),
             "offset": model.clean(pl.offset, model.OFFSET_DIGITS), "rotation": model.clean(pl.rotation, model.ROTATION_DIGITS),
             "scale": model.clean(pl.scale, model.SCALE_DIGITS), **({"source": source} if source else {}),
-            **({"tool": tool} if tool else {}), **({"options": len(vehicle.options_below(path))} if kind == "group" else {})}
+            **({"tools": list(tools)} if tools else {}), **({"options": len(vehicle.options_below(path))} if kind == "group" else {})}
 
 
 def _option_of(empty):
@@ -353,8 +353,9 @@ def _resolve_option(v, name):
 @_api
 def items(slot=None, kind=None):
     """Placeable nodes with their slot, part, visibility and placement; filter by slot or kind. "in_game" says how
-    the game shows one: "item" (with its item), "tool" (with the toolset "tool" the definition's toolNodes names)
-    or "never" (an option without a part); "in_game_note" says it in words. A slot group carries its "options"."""
+    the game shows one (model.Vehicle.in_game): "item" (with its item), "tool" (with the toolsets in "tools", which
+    the definition's toolNodes names; an item may need them too), "always" or "never"; "in_game_note" says it in
+    words. A slot group carries its "options"."""
     _text(slot, "slot", optional=True)
     _text(kind, "kind", optional=True)
     v = _vehicle()

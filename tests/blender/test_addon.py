@@ -742,7 +742,7 @@ def main():
         check(listed[bar]["in_game"] == "item" and not listed[bar]["in_game_note"], f"the bash bar shows with its item: {listed[bar]['in_game']}")
         check(listed[rollcage + "/rollcage"]["in_game"] == "never" and listed[rollcage]["in_game"] == "never" and listed[rollcage]["options"] == 1,
               f"the roll cage and its slot group are never shown: {listed[rollcage + '/rollcage']['in_game_note']!r}")
-        check(listed[winch]["in_game"] == "tool" and listed[winch]["tool"] == 2317836723 and listed[winch]["in_game_note"] == "Shown with the portable winch",
+        check(listed[winch]["in_game"] == "tool" and listed[winch]["tools"] == [2317836723] and listed[winch]["in_game_note"] == "Shown with the portable winch",
               f"the bumper winch shows with the tool its toolNodes names: {listed[winch]['in_game_note']!r}")
         w = bpy.context.scene.werkstatt
         w.slot_filter = "Rollcage"
@@ -765,6 +765,10 @@ def main():
         n, _, _ = model.parse_placements(open(path).read())
         check(saved["ok"] and close(n[rollcage + "/rollcage"].offset, (0, 0.01, 0)), f"a placement on it still saves: {saved}")
         api.reset("rollcage")
+        copy = api.duplicate("rollcage")
+        check(copy["ok"] and copy["source"] == rollcage + "/rollcage" and copy["in_game"] == "never",
+              f"a copy of it reads through its source, never shown: {copy.get('node')} {copy.get('in_game')}")
+        api.delete_copy(copy["node"])
         api.save()
         refusals(root, path)
         axles(root)

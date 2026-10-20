@@ -6,7 +6,7 @@ run from a script undoes like a button press; the operators carry no UNDO flag, 
 import bpy
 from bpy.props import BoolProperty, CollectionProperty, EnumProperty, FloatProperty, IntProperty, PointerProperty, StringProperty
 
-from . import api, loop, scene
+from . import api, loop, scene, wording
 
 UNIT_ITEMS = [("mm", "1 mm", ""), ("cm", "1 cm", ""), ("dm", "10 cm", "")]
 MULT_ITEMS = [(str(n), f"×{n}", "") for n in (1, 5, 10, 20, 50)]
@@ -53,11 +53,14 @@ class WerkstattItem(bpy.types.PropertyGroup):
     detail: StringProperty()        # the row's second column: the slot, a group's options or how the game shows it
     kind: StringProperty()
     shown: BoolProperty()
-    in_game: StringProperty()
+    mark: StringProperty()          # how the game shows it, when not just with its item (wording.mark)
 
 
-IN_GAME_ICONS = {"never": "ERROR", "tool": "TOOL_SETTINGS"}
-IN_GAME_MARKS = {"never": "Not in game", "tool": "With tool"}       # the list's short words; the item box says more
+MARK_ICONS = {"never": "ERROR", "always": "INFO", "tool": "TOOL_SETTINGS"}
+
+
+def _mark(d):
+    return wording.mark(d["in_game"], d.get("tools", ()))
 
 
 def _select_item(self, context):
@@ -111,13 +114,14 @@ def refresh_items(context):
         item.label = d["node"].rsplit("/", 1)[-1]
         # A slot group's slot is mostly its own name, so it shows its options' count instead; otherwise the Rollcage
         # group and its one option, rollcage, read alike.
+        mark = _mark(d)
         if d["kind"] == "group":
             item.detail = f"{d['options']} option{'' if d['options'] == 1 else 's'}"
         else:
-            item.detail = IN_GAME_MARKS.get(d["in_game"]) or d["slot"] or ""
+            item.detail = wording.MARKS[mark] if mark else d["slot"] or ""
         item.kind = d["kind"]
         item.shown = d["shown"]
-        item.in_game = d["in_game"]
+        item.mark = mark or ""
 
 
 class WERKSTATT_UL_items(bpy.types.UIList):
@@ -125,7 +129,7 @@ class WERKSTATT_UL_items(bpy.types.UIList):
         icon_for = {"option": "OBJECT_DATA", "copy": "DUPLICATE", "group": "GROUP", "piece": "MESH_CUBE"}
         row = layout.row(align=True)
         row.label(text=item.label, icon=icon_for.get(item.kind, "DOT"))
-        row.label(text=item.detail, icon=IN_GAME_ICONS.get(item.in_game, "NONE"))
+        row.label(text=item.detail, icon=MARK_ICONS.get(item.mark, "NONE"))
         if item.kind in ("option", "copy", "piece"):
             op = row.operator("werkstatt.show", text="", icon="HIDE_OFF" if item.shown else "HIDE_ON", emboss=False)
             op.node = item.node
@@ -395,8 +399,9 @@ class WERKSTATT_PT_panel(bpy.types.Panel):
         info = api.placement() if active is not None else {"ok": False}
         if info.get("ok"):
             box.label(text=info["node"].rsplit("/", 1)[-1], icon="EMPTY_ARROWS")
-            if info["in_game"] in IN_GAME_ICONS:
-                box.label(text=info["in_game_note"], icon=IN_GAME_ICONS[info["in_game"]])
+            mark = _mark(info)
+            if mark:
+                box.label(text=info["in_game_note"], icon=MARK_ICONS[mark])
             box.label(text="offset " + ", ".join(f"{v * 100:+.1f}" for v in info["offset"]) + " cm")
             box.label(text="rotation " + ", ".join(f"{v:+.1f}" for v in info["rotation"]) + "°")
         else:

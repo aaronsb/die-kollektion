@@ -34,10 +34,11 @@ Everything sits where the game puts it after the reshape, step by step as the pl
 
 The list shows a slot group with its number of options, and an option, piece or copy with its slot, unless the game shows it otherwise:
 
-- **Not in game** (a warning sign): the node names no item, so the game never shows it. On the stock cars these are the roll cage (`Performance/Rollcage/rollcage`) and the bumper winch (`Performance/Winch/Winch_01`).
-- **With tool**: the vehicle's `toolNodes` shows it while its tool loadout carries that tool, and the item box names the tool. Our four trucks show the bumper winch with the portable winch (`docs/engine.md`, "Upgrade nodes").
+- **Not in game** (a warning sign): the node names no item and is off in the prefab, so the game never shows it. On the Mammoth and The Ding these are the roll cage (`Performance/Rollcage/rollcage`) and the bumper winch (`Performance/Winch/Winch_01`).
+- **Always shown** (an info sign): the node names no item and is on in the prefab, so the game always shows it. The Mammoth has none.
+- **With tool**: the vehicle's `toolNodes` names it or a node above it, so it shows while the tool loadout carries that tool (and its item is fitted, if it has one). The item box names the tool. Our four trucks show the bumper winch with the portable winch (`docs/engine.md`, "Upgrade nodes").
 
-A slot group whose options all show one way carries that mark too. A placement on a marked item saves like any other.
+A slot group whose options all show one way carries their sign beside its count. A placement on a marked item saves like any other.
 
 Ctrl+Z takes back each nudge, turn, copy and open, from the panel or a script alike.
 
@@ -77,7 +78,7 @@ Every panel action has a scriptable equivalent, so an agent can look, nudge, mea
   - `show(node=..., shown=...)`, `show_slot(slot=..., shown=...)`
   - `frame(node=...)`, `save()`, `run_loop()` (starts the loop in the background), `cancel_loop()`
 - **The Python API** (`from werkstatt_addon import api`) returns plain dicts that read back as JSON. A problem, a wrong value included, comes back as `{"ok": False, "error": "..."}` with a plain message, never a traceback. Each call that changes the scene is one undo step:
-  - `status(refresh=False)`, `vehicles()`, `open_vehicle(name, show=[...], force=False)`, `unsaved()`, `changed_on_disk()`, `items(slot=None, kind=None)`; each item carries `in_game` (`"item"`, `"tool"` with the toolset's ItemId in `tool`, or `"never"`) and `in_game_note`, and a slot group its `options`
+  - `status(refresh=False)`, `vehicles()`, `open_vehicle(name, show=[...], force=False)`, `unsaved()`, `changed_on_disk()`, `items(slot=None, kind=None)`; each item carries `in_game` (`"item"`, `"tool"`, `"always"` or `"never"`), `tools` (the toolset ItemIds it needs, when any) and `in_game_note`, and a slot group its `options`
   - `placement(node)`, `set_placement(node, offset=, rotation=, scale=)`
   - `nudge(node, axis, steps, unit)`, `rotate(node, axis, steps, degrees)`, `scale_by(node, factor, axis=None)`
   - `reset(node)`, `show(node, shown)`, `show_slot(slot, shown)`
