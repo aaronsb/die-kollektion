@@ -28,11 +28,11 @@ Home: https://github.com/aaronsb/die-kollektion (source, issues, and every vehic
 
 Fastest: open the folder with an AI coding agent that reads AGENTS.md (Claude Code, for example) and say "set me up". It runs `make start` step by step and tells you when to click something in Steam.
 
-Uninstall: `make undeploy` removes exactly the files the install put in the game folder. To remove BepInEx as well, clear the Steam launch option and delete `BepInEx/`, `dotnet/`, `libdoorstop.so`, `run_bepinex.sh`, `.doorstop_version` and `changelog.txt` from the game folder.
+Uninstall: `make undeploy` removes exactly the files the install put in the game folder. To remove BepInEx as well, clear the Steam launch option and delete `BepInEx/`, `dotnet/`, `libdoorstop.so`, `run_bepinex.sh`, `run_werkstatt.sh`, `.doorstop_version` and `changelog.txt` from the game folder.
 
 Back up `~/My Games/over the hill/Saves/` before you start. A save that holds one of these trucks keeps listing it after the mod is removed.
 
-After a game update: close the game and run `make all` again.
+After a game update: nothing to do. At the next start Die Kollektion's loader rebuilds the plugin for the new version (a few seconds, with a small progress window; it needs the .NET SDK).
 
 ## Main features
 
@@ -46,7 +46,7 @@ After a game update: close the game and run `make all` again.
   - The Ding gets a golf bag strapped to its roof: the canary that proves any stock car can be modded.
 - **A workshop, not just a mod.** One command (`make start`) sets everything up; `make all` rebuilds and installs; `make undeploy` removes exactly what was installed.
 - **Contact sheets.** Every vehicle's folder on GitHub opens as its contact sheet: four isometric renders, a rig view of its colliders and attach points, and the results of the mesh checks.
-- **Built for modders.** Vehicles are portable folders with a JSON manifest; changes arrive as pull requests with before-and-after contact sheets. The design for packs, a cross-platform CLI and a Blender add-on is in the repository.
+- **Built for modders.** Vehicles are portable folders with a JSON manifest; changes arrive as pull requests with before-and-after contact sheets. A Blender add-on fits accessories (a winch, a roof rack) with stepped nudges and saves them for the plugin to apply in game. The design for packs and a cross-platform CLI is in the repository.
 - **Durable.** The plugin reserves its own memory for its hooks as it loads, and runs the game without the mod rather than crash if it can't.
 - **Made with AI, agent-friendly on purpose.** AGENTS.md tells an AI agent how to help, whether you want it to just make things work or to coach you while you keep creative control.
 
@@ -56,7 +56,7 @@ After a game update: close the game and run `make all` again.
 - A Linux machine with `make`, Python 3 (with venv), `rsvg-convert` and `potrace`. `make start` prints the install command for your distribution.
 - BepInEx 6 IL2CPP, build be.789: installed for you by `make bepinex`, not bundled.
 - About 1 GB of free space.
-- Optional: the .NET SDK, needed only to build from source or when the game has updated since this release; Blender 5, needed only for contact sheets and editing models.
+- Optional: the .NET SDK, needed only to build from source or when the game has updated since this release; Blender, needed only for the add-on (4.2 or newer), contact sheets and editing models (5).
 
 Known limits: Linux only today; multiplayer with these trucks is untested; the trucks are built on your machine from your own game files, which takes about a minute.
 

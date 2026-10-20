@@ -23,7 +23,7 @@ Each vehicle's folder on GitHub opens as its contact sheet: four isometric rende
 [*]A Linux machine with make, Python 3 (with venv), rsvg-convert and potrace. That's all for this release: the plugin comes ready-made.
 [*]About 1 GB of free space for Werkstatt's tools and the vehicles it builds.
 [/list]
-[b]Building from source instead[/b] (a git clone, or a game version newer than this release) also needs the .NET SDK, which compiles the plugin. Blender 5 is only needed for contact sheets and editing models; building and installing the trucks works without it. BepInEx 6 IL2CPP (build be.789) is installed for you: see Install.
+[b]Building from source instead[/b] (a git clone, or a game version newer than this release) also needs the .NET SDK, which compiles the plugin. Blender is only needed for the add-on that fits accessories (4.2 or newer), contact sheets and editing models (5); building and installing the trucks works without it. BepInEx 6 IL2CPP (build be.789) is installed for you: see Install.
 
 [size=4][b]Install[/b][/size]
 [list=1]
@@ -36,11 +36,11 @@ Each vehicle's folder on GitHub opens as its contact sheet: four isometric rende
 [b]Fastest: ask your agent.[/b] Open the folder with an AI coding agent that reads AGENTS.md (Claude Code, for example) and say "set me up". It runs [code]make start[/code] step by step and tells you when you need to click something in Steam.
 
 [size=4][b]Uninstall[/b][/size]
-[code]make undeploy[/code] removes exactly the files the install put in the game folder. To remove BepInEx too, clear the Steam launch option and delete BepInEx/, dotnet/, libdoorstop.so, run_bepinex.sh, .doorstop_version and changelog.txt from the game folder.
+[code]make undeploy[/code] removes exactly the files the install put in the game folder. To remove BepInEx too, clear the Steam launch option and delete BepInEx/, dotnet/, libdoorstop.so, run_bepinex.sh, run_werkstatt.sh, .doorstop_version and changelog.txt from the game folder.
 [b]Your save:[/b] back up ~/My Games/over the hill/Saves/ before you start. A save that holds one of these trucks keeps listing it after the mod is removed; how the game treats that isn't tested yet.
 
 [size=4][b]After a game update[/b][/size]
-Run [code]make all[/code] again with the game closed. If the game has updated since this release, Werkstatt compiles the plugin for your version instead of using the ready-made one (that needs the .NET SDK) or waits for the next release. The plugin also reserves its own memory for its hooks as soon as it loads, and runs the game without the mod rather than crash if it can't.
+Nothing to do. At the next start Die Kollektion's loader rebuilds the plugin for the new version (a few seconds, with a small progress window; it needs the .NET SDK), then starts it. The plugin also reserves its own memory for its hooks as soon as it loads, and runs the game without the mod rather than crash if it can't.
 
 [size=4][b]Known limits[/b][/size]
 [list]
