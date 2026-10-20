@@ -125,6 +125,14 @@ def undo(window, area):
         check(copy not in api.items()["items"].__repr__() and api.unsaved()["unsaved"], "undoing a saved copy is an unsaved change")
         r = api.save()
         check(r["ok"] and (not os.path.isfile(path) or copy not in open(path).read()), f"and the save drops it from the file: {r}")
+        # Save, then undo past it, then lose the session's record (Reload Scripts): undo puts the older hash back
+        # on the root collection, but the window manager's record, which undo leaves alone, still knows the file.
+        api.nudge("Winch_01", "y", 1, "cm")
+        api.save()
+        bpy.ops.ed.undo()
+        api._state["sha"] = {}
+        r = api.save()
+        check(r["ok"], f"after an undo past a save and a reload, an unchanged file still saves: {r.get('error') or r.get('result')}")
 
 
 try:

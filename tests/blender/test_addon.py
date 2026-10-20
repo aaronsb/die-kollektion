@@ -119,8 +119,9 @@ def second_round(root, path):
     api.nudge("Winch_01", "y", 1, "cm")
     api.save()
     api._state["vehicle"], api._state["sha"] = None, {}
+    bpy.context.window_manager[api.WM_RECORD] = {}
     api.nudge("Winch_01", "y", 1, "cm")
-    check(api.save()["ok"], "with the session's record gone, the root collection's lets an unchanged file be saved")
+    check(api.save()["ok"], "with the session's and window manager's records gone, the root collection's lets an unchanged file be saved")
     write(path, open(path).read().replace('"Parts', '"Lights/HeadLightL": {"offset": [0, 0.01, 0]},\n    "Parts', 1))
     api._state["vehicle"], api._state["sha"] = None, {}
     api.nudge("Winch_01", "y", 1, "cm")
@@ -129,6 +130,7 @@ def second_round(root, path):
     check(api.changed_on_disk()["changed"], "changed_on_disk() says so, which makes the panel's Save ask before overwriting")
     del scene.root_collection()["werkstatt_file_sha"]
     api._state["sha"] = {}
+    bpy.context.window_manager[api.WM_RECORD] = {}
     r = api.save()
     check(not r["ok"] and "no record" in r["error"], f"with no record at all, save refuses: {r.get('error')}")
     check(bpy.ops.werkstatt.save(force=True) == {"FINISHED"} and "HeadLightL" in open(path).read(),

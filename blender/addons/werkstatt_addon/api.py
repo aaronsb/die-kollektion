@@ -135,17 +135,37 @@ def _placements_file(v):
     return os.path.join(v.folder, model.PLACEMENTS)
 
 
+WM_RECORD = "werkstatt_file_sha"
+
+
+def _wm_record():
+    """The hashes kept on the window manager, which Blender's undo never rolls back and Reload Scripts keeps; it is
+    saved with the .blend too. {"<checkout>|<vehicle>": sha}."""
+    wm = bpy.context.window_manager
+    if wm is None:
+        return None
+    if WM_RECORD not in wm:
+        wm[WM_RECORD] = {}
+    return wm[WM_RECORD]
+
+
 def _read(v, sha):
     """Records that the scene's vehicle matches its placements file as it is now (on open and save)."""
     _state["sha"][(v.root, v.name)] = sha
     scene.root_collection()["werkstatt_file_sha"] = sha
+    record = _wm_record()
+    if record is not None:
+        record[f"{v.root}|{v.name}"] = sha
 
 
 def _known_file(v):
     """Whether the placements file is one this scene has read or written: its hash matches the one this session
-    recorded, or the one on the root collection (after Reload Scripts, a reopened .blend or a restart)."""
+    recorded, the window manager's (which an undo past a save doesn't roll back), or the root collection's (a
+    .blend opened elsewhere)."""
     now = model.file_hash(_placements_file(v))
-    known = {_state["sha"].get((v.root, v.name)), scene.root_collection().get("werkstatt_file_sha")} - {None}
+    record = _wm_record()
+    known = {_state["sha"].get((v.root, v.name)), scene.root_collection().get("werkstatt_file_sha"),
+             record.get(f"{v.root}|{v.name}") if record is not None else None} - {None}
     if not known:
         raise model.WerkstattError(f"the scene has no record of reading {v.name}'s placements file: open the vehicle "
                                    "again, or overwrite the file (Overwrite in the panel, save(force=True) in a script)")
