@@ -456,7 +456,7 @@ Each step is reversible and has a check. Steps 1-4 change no game-visible behavi
 - **[test]** Steam verify leaves extra files in the game folder.
 - **[decide]** The donor-copy check: a threshold that fails the pack, or advisory only.
 - **[decide]** Which donors after the Mammoth for templates and export.
-- **[test or disassembly]** For upgrades: whether nodes added in the `VehicleBase.Spawned` prefix register in time; whether the 256-bit mounted state indexes the car's upgrade list; whether the garage enforces one option per slot; what drives the `rollcage` and `Winch_01` nodes (no item); how the lights controller finds its lights (decides whether a cloned light works). No disassembler is installed; one logged launch would answer most.
+- **[test or disassembly]** For upgrades: whether nodes added in the `VehicleBase.Spawned` prefix register in time; whether the 256-bit mounted state indexes the car's upgrade list; whether the garage enforces one option per slot; how the lights controller finds its lights (decides whether a cloned light works). No disassembler is installed; one logged launch would answer most.
 - Research on categories, save, patch export is done (Research findings, below). Categories: one remaining scan for every reader of `carCategorySetup` beyond the merchant, livery browser and haptics.
 
 ## Research findings
