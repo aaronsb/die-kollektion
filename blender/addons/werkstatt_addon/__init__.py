@@ -20,7 +20,11 @@ except ImportError:          # tests import the model without Blender
     bpy = None
 
 if bpy is not None:
-    from . import api, scene, ui  # noqa: F401
+    if "ui" in locals():                     # Reload Scripts: reload the submodules too, model first
+        import importlib
+        for module in (model, scene, api, ui):  # noqa: F821
+            importlib.reload(module)
+    from . import model, api, scene, ui  # noqa: F401
 
     def register():
         ui.register()

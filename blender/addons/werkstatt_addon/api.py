@@ -12,7 +12,7 @@ game's: x right, y up, z forward.
     api.nudge("Roof/RoofSpare", "y", 2, "cm")
     api.save()
 """
-import functools, os, subprocess, time
+import functools, os, subprocess
 
 import bpy
 import mathutils
@@ -21,21 +21,57 @@ from . import model, scene
 
 UNITS = {"mm": 0.001, "cm": 0.01, "dm": 0.1, "m": 1.0}
 AXES = {"x": (1.0, 0.0, 0.0), "y": (0.0, 1.0, 0.0), "z": (0.0, 0.0, 1.0)}
+MAX_STEPS = 1000
 
-_state = {"vehicle": None}
+# The open vehicle's model, its placements file's hash when the scene read it (save refuses a file changed
+# since), and per checkout whether vehicles/ has uncommitted changes.
+_state = {"vehicle": None, "sha": None, "dirty": {}}
 
 
-def _api(fn):
+def _api(fn=None, *, undo=None):
+    """Wraps a call: a problem comes back as {"ok": False, "error": ...}, never as a traceback. A call that
+    changes the scene pushes an undo step named `undo`, however it was called: from a script, over MCP or by a
+    panel operator (which carry no UNDO flag of their own, since Blender pushes none for operators run from
+    Python)."""
+    if fn is None:
+        return functools.partial(_api, undo=undo)
+
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
         try:
             result = fn(*args, **kwargs)
         except model.WerkstattError as e:
             return {"ok": False, "error": str(e)}
+        except Exception as e:      # a bug, or a value the checks missed: still a message, not a traceback
+            return {"ok": False, "error": f"{fn.__name__} failed: {type(e).__name__}: {e}"}
+        if undo:
+            _undo_push(f"Werkstatt: {undo}")
         if isinstance(result, dict):
             return {"ok": True, **result}
         return result
     return wrapper
+
+
+def _undo_push(message):
+    """One undo step for a call made outside an operator (a script, the MCP server's code, which runs from a timer
+    with no window in its context)."""
+    windows = bpy.context.window_manager.windows if bpy.context.window_manager else ()
+    try:
+        if bpy.context.window is None and windows:
+            with bpy.context.temp_override(window=windows[0]):
+                bpy.ops.ed.undo_push(message=message)
+        else:
+            bpy.ops.ed.undo_push(message=message)
+    except RuntimeError:            # no undo stack (background mode)
+        pass
+
+
+def _text(value, name, optional=False):
+    if value is None and optional:
+        return None
+    if not isinstance(value, str) or not value:
+        raise model.WerkstattError(f"{name} must be a name (text), got {value!r}")
+    return value
 
 
 # ---- where we are --------------------------------------------------------------------------------------------
@@ -54,28 +90,32 @@ def werkstatt_root():
     return root
 
 
-_branch_cache = {}
-
-
-def branch(root=None):
-    """(branch name, whether vehicles/ has uncommitted changes); asked of git at most every few seconds."""
-    root = root or werkstatt_root()
-    now = time.monotonic()
-    cached = _branch_cache.get(root)
-    if cached and now - cached[0] < 3:
-        return cached[1]
-    _branch_cache[root] = (now, _ask_git(root))
-    return _branch_cache[root][1]
-
-
-def _ask_git(root):
+def branch(root):
+    """The checkout's branch, read from .git/HEAD (no git process: the panel asks on every redraw); None when
+    it isn't a git checkout, the commit when HEAD is detached."""
+    git = os.path.join(root, ".git")
     try:
-        r = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=root, capture_output=True, text=True, timeout=10)
-        name = r.stdout.strip() if r.returncode == 0 else None
-        dirty = subprocess.run(["git", "status", "--porcelain", "--", "vehicles"], cwd=root, capture_output=True, text=True, timeout=10)
-        return name, bool(dirty.stdout.strip())
-    except (OSError, subprocess.SubprocessError):
-        return None, False
+        if os.path.isfile(git):                              # a worktree: "gitdir: <path>"
+            with open(git, encoding="utf-8") as f:
+                git = os.path.join(root, f.read().split(":", 1)[1].strip())
+        with open(os.path.join(git, "HEAD"), encoding="utf-8") as f:
+            head = f.read().strip()
+    except (OSError, IndexError):
+        return None
+    return head[len("ref: refs/heads/"):] if head.startswith("ref: refs/heads/") else head[:12]
+
+
+def uncommitted(root, refresh=False):
+    """Whether vehicles/ has uncommitted changes. Asked of git only on refresh (open, save, the panel's refresh
+    button), never while Blender draws."""
+    if refresh or root not in _state["dirty"]:
+        try:
+            r = subprocess.run(["git", "status", "--porcelain", "--", "vehicles"], cwd=root, capture_output=True,
+                               text=True, timeout=10)
+            _state["dirty"][root] = r.returncode == 0 and bool(r.stdout.strip())
+        except (OSError, subprocess.SubprocessError):
+            _state["dirty"][root] = False
+    return _state["dirty"][root]
 
 
 def _vehicle():
@@ -86,10 +126,29 @@ def _vehicle():
     if v is None or v.name != root.get("werkstatt_vehicle") or v.root != root.get("werkstatt_root"):
         v = model.Vehicle(root["werkstatt_root"], root["werkstatt_vehicle"])
         _state["vehicle"] = v
+        _state["sha"] = model.file_hash(_placements_file(v))      # no record of the open: the file as it is now
     return v
 
 
+def _placements_file(v):
+    return os.path.join(v.folder, model.PLACEMENTS)
+
+
+def _pending(v):
+    """(nodes, copies, kept) a save would write now, from the file as it is on disk."""
+    base_nodes, base_copies, _ = model.read_placements(_placements_file(v))
+    return scene.collect(base_nodes, base_copies)
+
+
+def _unsaved(v):
+    nodes, copies, _ = _pending(v)
+    path = _placements_file(v)
+    old = open(path, encoding="utf-8").read() if os.path.isfile(path) else None
+    return model.dump_placements(nodes, copies, v.notes) != old
+
+
 def _empty(node):
+    _text(node, "node", optional=True)
     if not node:
         obj = bpy.context.view_layer.objects.active
         while obj is not None and not obj.get("werkstatt_node"):
@@ -134,33 +193,54 @@ def _option_of(empty):
 # ---- the calls --------------------------------------------------------------------------------------------
 
 @_api
-def status():
-    """The checkout, its branch (and whether vehicles/ has uncommitted changes) and the open vehicle."""
+def status(refresh=False):
+    """The checkout, its branch, whether vehicles/ has uncommitted changes (asked of git on refresh) and the open
+    vehicle; "vehicle_root" names another checkout when the open vehicle came from one (save refuses then).
+    Reads only: the panel calls it on every redraw."""
     root = werkstatt_root()
-    name, dirty = branch(root)
     open_root = scene.root_collection()
-    return {"root": root, "branch": name, "uncommitted": dirty,
-            "vehicle": open_root.get("werkstatt_vehicle") if open_root else None}
+    out = {"root": root, "branch": branch(root), "uncommitted": uncommitted(root, refresh),
+           "vehicle": open_root.get("werkstatt_vehicle") if open_root else None}
+    if open_root is not None and open_root.get("werkstatt_root") != root:
+        out["vehicle_root"] = open_root.get("werkstatt_root")
+    return out
 
 
 @_api
 def vehicles():
-    """Every vehicle folder in the checkout: name, codename, donor, built, extracted, placements."""
+    """Every vehicle folder in the checkout: name, codename, donor, built, extracted, placements (and "error" for
+    a folder whose files can't be read)."""
     return {"vehicles": model.list_vehicles(werkstatt_root())}
 
 
 @_api
-def open_vehicle(name, show=()):
-    """Builds the vehicle's scene (parts, attach points, references, upgrades, ghost) from its files."""
+def unsaved():
+    """Whether the open vehicle has changes its placements.json doesn't hold yet."""
+    return {"unsaved": scene.root_collection() is not None and _unsaved(_vehicle())}
+
+
+@_api(undo="open vehicle")
+def open_vehicle(name, show=(), force=False):
+    """Builds the vehicle's scene (parts, attach points, references, upgrades, ghost) from its files. Refuses to
+    replace an open vehicle with unsaved changes unless force=True."""
+    _text(name, "name")
+    if isinstance(show, str) or not all(isinstance(s, str) for s in show):
+        raise model.WerkstattError(f"show must be a list of option names, got {show!r}")
     root = werkstatt_root()
+    if not force and scene.root_collection() is not None and _unsaved(_vehicle()):
+        raise model.WerkstattError(f"{_vehicle().name} has unsaved changes: save them, or open with force=True to drop them")
     v = model.Vehicle(root, name)
     if not v.manifest.get("patch") and not os.path.isfile(os.path.join(v.folder, "build", "body_LOD0.obj")):
         raise model.WerkstattError(f"{name} isn't built yet: run `make build` (or `make loop V={name}`) in {root}")
     show = [_resolve_option(v, s) for s in show]
     scene.build(v, show)
-    _state["vehicle"] = v
+    _state["vehicle"], _state["sha"] = v, model.file_hash(_placements_file(v))
+    uncommitted(root, refresh=True)
+    built = set(scene.root_collection()["werkstatt_built"])
+    # Entries on nodes the scene doesn't build (outside the upgrade tree, or a copy of one): save keeps them.
     return {"vehicle": name, "codename": v.codename, "donor": v.donor, "options": len(v.options()),
-            "placements": len(v.placements), "copies": len(v.copies)}
+            "placements": len(v.placements), "copies": len(v.copies),
+            "not_shown": sorted(p for p in list(v.placements) + list(v.copies) if p not in built)}
 
 
 def _resolve_option(v, name):
@@ -173,6 +253,8 @@ def _resolve_option(v, name):
 @_api
 def items(slot=None, kind=None):
     """Placeable nodes with their slot, part, visibility and placement; filter by slot or kind."""
+    _text(slot, "slot", optional=True)
+    _text(kind, "kind", optional=True)
     v = _vehicle()
     out = []
     for path, empty in sorted(scene.editable_empties().items()):
@@ -188,56 +270,78 @@ def placement(node=None):
     return _describe(_empty(node), _vehicle())
 
 
-@_api
+def _place(e, pl):
+    """Puts a placement on an empty after the file format's checks, and the scale check below."""
+    model.vector3(pl.offset, "offset", -model.MAX_OFFSET, model.MAX_OFFSET)
+    model.vector3(pl.rotation, "rotation", -model.MAX_ROTATION, model.MAX_ROTATION)
+    model.vector3(pl.scale, "scale", model.MIN_SCALE, model.MAX_SCALE)
+    v = _vehicle()
+    turned = e.get("werkstatt_source") or e["werkstatt_node"]
+    if max(pl.scale) - min(pl.scale) > 1e-6 and v.is_turned(turned):
+        raise model.WerkstattError(f"{turned.rsplit('/', 1)[-1]} is turned on the car, and the game scales it along "
+                                   "its own axes, which the add-on can't show yet: scale it the same on x, y and z")
+    scene.apply_placement(e, pl)
+    return _describe(e, v)
+
+
+@_api(undo="set placement")
 def set_placement(node=None, offset=None, rotation=None, scale=None):
     """Sets a node's placement outright; any value left out keeps its current value."""
     e = _empty(node)
     pl = scene.read_placement(e)
-    new = model.Placement(offset if offset is not None else pl.offset, rotation if rotation is not None else pl.rotation,
-                          scale if scale is not None else pl.scale, pl.source)
-    if any(s <= 0 for s in new.scale):
-        raise model.WerkstattError("scale must be above 0")
-    scene.apply_placement(e, new)
-    return _describe(e, _vehicle())
+    return _place(e, model.Placement(
+        model.vector3(offset, "offset") if offset is not None else pl.offset,
+        model.vector3(rotation, "rotation") if rotation is not None else pl.rotation,
+        model.vector3(scale, "scale") if scale is not None else pl.scale, pl.source))
 
 
-@_api
+def _axis(axis):
+    if axis not in AXES:
+        raise model.WerkstattError(f"axis is one of x, y, z, got {axis!r}")
+    return AXES[axis]
+
+
+@_api(undo="nudge")
 def nudge(node=None, axis="y", steps=1, unit="cm"):
     """Moves a node by steps x unit along a game axis (x right, y up, z forward) of its parent's frame."""
-    if axis not in AXES or unit not in UNITS:
-        raise model.WerkstattError(f"axis is one of x, y, z and unit one of {', '.join(UNITS)}")
+    direction = _axis(axis)
+    if unit not in UNITS:
+        raise model.WerkstattError(f"unit is one of {', '.join(UNITS)}, got {unit!r}")
+    model.number(steps, "steps", -MAX_STEPS, MAX_STEPS)
     e = _empty(node)
     pl = scene.read_placement(e)
-    delta = [a * steps * UNITS[unit] for a in AXES[axis]]
-    scene.apply_placement(e, model.Placement(tuple(o + d for o, d in zip(pl.offset, delta)), pl.rotation, pl.scale, pl.source))
-    return _describe(e, _vehicle())
+    delta = [a * steps * UNITS[unit] for a in direction]
+    return _place(e, model.Placement(tuple(o + d for o, d in zip(pl.offset, delta)), pl.rotation, pl.scale, pl.source))
 
 
-@_api
+@_api(undo="rotate")
 def rotate(node=None, axis="y", steps=1, degrees=1.0):
     """Turns a node by steps x degrees about a game axis of its parent's frame (x pitch, y yaw, z roll), about its pivot."""
-    if axis not in AXES:
-        raise model.WerkstattError("axis is one of x, y, z")
+    direction = _axis(axis)
+    model.number(steps, "steps", -MAX_STEPS, MAX_STEPS)
+    model.number(degrees, "degrees", -model.MAX_ROTATION, model.MAX_ROTATION)
     e = _empty(node)
     pl = scene.read_placement(e)
-    q = model.quat_mul(model.quat_axis(AXES[axis], steps * degrees), model.euler_to_quat(pl.rotation))
-    scene.apply_placement(e, model.Placement(pl.offset, model.quat_to_euler(q), pl.scale, pl.source))
-    return _describe(e, _vehicle())
+    q = model.quat_mul(model.quat_axis(direction, steps * degrees), model.euler_to_quat(pl.rotation))
+    return _place(e, model.Placement(pl.offset, model.quat_to_euler(q), pl.scale, pl.source))
 
 
-@_api
+@_api(undo="scale")
 def scale_by(node=None, factor=1.0, axis=None):
-    """Multiplies a node's scale, on one game axis or all three."""
+    """Multiplies a node's scale, on one game axis or all three. A node the game turns on the car takes the same
+    factor on all three only (the game scales along the node's own axes)."""
+    model.number(factor, "factor", 0.0, model.MAX_SCALE)
     if factor <= 0:
         raise model.WerkstattError("factor must be above 0")
+    if axis is not None:
+        _axis(axis)
     e = _empty(node)
     pl = scene.read_placement(e)
     s = [v * (factor if axis in (None, a) else 1.0) for v, a in zip(pl.scale, "xyz")]
-    scene.apply_placement(e, model.Placement(pl.offset, pl.rotation, s, pl.source))
-    return _describe(e, _vehicle())
+    return _place(e, model.Placement(pl.offset, pl.rotation, s, pl.source))
 
 
-@_api
+@_api(undo="reset")
 def reset(node=None):
     """Puts a node back at its base pose (the donor's, after the reshape); a copy goes back onto its source."""
     e = _empty(node)
@@ -245,7 +349,7 @@ def reset(node=None):
     return _describe(e, _vehicle())
 
 
-@_api
+@_api(undo="show")
 def show(node, shown=True):
     """Shows or hides an upgrade option (and its pieces and copies) in the viewport and renders."""
     e = _option_of(_empty(node))
@@ -255,9 +359,10 @@ def show(node, shown=True):
     return {"node": e["werkstatt_node"], "shown": bool(shown)}
 
 
-@_api
+@_api(undo="show slot")
 def show_slot(slot, shown=True):
     """Shows or hides every option of a slot (e.g. Roof, FrontBumper, Winch)."""
+    _text(slot, "slot")
     v = _vehicle()
     count = 0
     for path, e in scene.editable_empties().items():
@@ -269,7 +374,7 @@ def show_slot(slot, shown=True):
     return {"slot": slot, "options": count, "shown": bool(shown)}
 
 
-@_api
+@_api(undo="duplicate")
 def duplicate(node=None):
     """Adds a copy of an option or of a piece inside one, beside its source, shown with it; returns the copy."""
     v = _vehicle()
@@ -279,17 +384,15 @@ def duplicate(node=None):
         raise model.WerkstattError("copy the original, not a copy")
     if e.get("werkstatt_kind") == "group" or (e.get("werkstatt_kind") == "piece" and _option_of(e) is None):
         raise model.WerkstattError(f"{source} is a slot group; copy an option or a piece inside one")
-    scene.collect(v)
-    path = v.next_copy_path(source)
+    path = v.next_copy_path(source, taken=set(scene.editable_empties()))
     copy = scene.add_copy(v, path, source)
     option = _option_of(copy)
     scene.set_shown(option, scene.is_shown(option) if option else True)
-    v.copies[path] = model.Placement(source=source)
     bpy.context.view_layer.objects.active = copy
     return _describe(copy, v)
 
 
-@_api
+@_api(undo="delete copy")
 def delete_copy(node=None):
     """Removes a copy (never an original)."""
     e = _empty(node)
@@ -298,7 +401,6 @@ def delete_copy(node=None):
     path = e["werkstatt_node"]
     for obj in [e] + list(e.children_recursive):
         bpy.data.objects.remove(obj, do_unlink=True)
-    _vehicle().copies.pop(path, None)
     return {"node": path, "deleted": True}
 
 
@@ -329,21 +431,40 @@ def frame(node=None):
             "size": model.clean(model.scale_blender_to_game(tuple(b - a for a, b in zip(lo, hi))), 4), "framed": framed}
 
 
-@_api
+@_api(undo="ghost")
 def ghost(shown=True, offset=3.0):
     """Shows the donor's stock body as a wireframe, `offset` metres to the side (0 overlays it)."""
+    model.number(offset, "offset", -100.0, 100.0)
     scene.set_ghost(shown, offset)
     return {"ghost": bool(shown), "offset": offset}
 
 
 @_api
-def save():
-    """Writes the open vehicle's placements.json from the scene (only offsets that differ from the base pose).
-    Only writes the file: committing it is yours."""
-    v = scene.collect(_vehicle())
+def save(force=False):
+    """Writes the open vehicle's placements.json from the scene (only offsets that differ from the base pose),
+    keeping the file's entries for nodes the scene doesn't show ("kept"). Refuses when the file changed on disk
+    since the vehicle was opened or last saved (force=True writes anyway), when the vehicle came from another
+    checkout than the add-on's, and when two empties claim one node. Only writes the file: committing it is yours."""
+    v = _vehicle()
+    root = werkstatt_root()
+    if v.root != root:
+        raise model.WerkstattError(f"the open vehicle came from {v.root}, but the add-on works on {root}: open it again")
+    shared = scene.shared_nodes()
+    if shared:
+        path, names = next(iter(sorted(shared.items())))
+        raise model.WerkstattError(f"{len(names)} empties claim {path} ({', '.join(names)}), as Blender's Shift+D makes "
+                                   "them: delete the extra ones (Werkstatt's Duplicate makes copies the game knows)")
+    path = _placements_file(v)
+    if not force and model.file_hash(path) != _state["sha"]:
+        raise model.WerkstattError(f"{os.path.relpath(path, v.root)} changed on disk since it was read: open the vehicle "
+                                   "again to see the change, or save with force=True to overwrite it")
+    nodes, copies, kept = _pending(v)
+    v.placements, v.copies = nodes, copies
     result = v.save()
-    path = os.path.join(v.folder, model.PLACEMENTS)
-    return {"file": os.path.relpath(path, v.root), "result": result, "placements": len(v.placements), "copies": len(v.copies)}
+    _state["sha"] = model.file_hash(path)
+    uncommitted(root, refresh=True)
+    return {"file": os.path.relpath(path, v.root), "result": result, "placements": len(nodes), "copies": len(copies),
+            "kept": kept}
 
 
 @_api

@@ -13,7 +13,7 @@ OBJ files import as: Blender (x, y, z) = (-x, -z, y) of the game. Placement sema
 z-x-y order) are in car-root axes as turned and scaled by the placements of the node's ancestors, the rotation
 is about the node's own pivot, and scale multiplies the node's local scale.
 """
-import json, math, os
+import hashlib, json, math, os
 
 PLACEMENTS = "placements.json"
 OFFSET_DIGITS, ROTATION_DIGITS, SCALE_DIGITS = 4, 3, 4
@@ -163,6 +163,27 @@ def _vector(value, where, name, lo, hi):
     return tuple(float(v) for v in value)
 
 
+def vector3(value, name, lo=-math.inf, hi=math.inf):
+    """Three finite numbers within [lo, hi] from a caller's value (a tuple, list or Blender vector)."""
+    try:
+        values = [float(v) for v in value]
+    except (TypeError, ValueError):
+        raise WerkstattError(f"{name} must be three numbers, got {value!r}") from None
+    if len(values) != 3 or any(isinstance(v, (str, bytes, bool)) for v in value):
+        raise WerkstattError(f"{name} must be three numbers, got {value!r}")
+    if not all(math.isfinite(v) for v in values):
+        raise WerkstattError(f"{name} must be finite numbers, got {value!r}")
+    if any(v < lo or v > hi for v in values):
+        raise WerkstattError(f"{name} out of range ({lo:g} to {hi:g}): {value!r}")
+    return tuple(values)
+
+
+def number(value, name, lo=-math.inf, hi=math.inf):
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not lo <= value <= hi:
+        raise WerkstattError(f"{name} must be a number from {lo:g} to {hi:g}, got {value!r}")
+    return value
+
+
 def _is_path(path):
     return isinstance(path, str) and bool(path) and "" not in path.split("/")
 
@@ -233,6 +254,23 @@ def read_placements(path):
         return {}, {}, None
     with open(path, encoding="utf-8") as f:
         return parse_placements(f.read(), os.path.basename(os.path.dirname(path)) + "/" + PLACEMENTS)
+
+
+def file_hash(path):
+    """The sha256 of a file's bytes, or "" when it doesn't exist (save compares it with the one at open)."""
+    if not os.path.isfile(path):
+        return ""
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def read_json(path, root=None):
+    """A JSON file's content; a broken file is a WerkstattError naming it."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError) as e:
+        raise WerkstattError(f"can't read {os.path.relpath(path, root) if root else path}: {e}") from None
 
 
 DEFAULT_NOTES = ("Placements of this vehicle's upgrade nodes, written by the Werkstatt Blender add-on (format: "
@@ -348,10 +386,14 @@ def list_vehicles(root):
         manifest = os.path.join(root, "vehicles", name, "vehicle.json")
         if not os.path.isfile(manifest):
             continue
-        with open(manifest, encoding="utf-8") as f:
-            m = json.load(f)
-        donor = m.get("donor", "")
-        nodes, copies, _ = read_placements(os.path.join(root, "vehicles", name, PLACEMENTS))
+        try:
+            m = read_json(manifest, root)
+            donor = m.get("donor", "")
+            nodes, copies, _ = read_placements(os.path.join(root, "vehicles", name, PLACEMENTS))
+        except WerkstattError as e:
+            out.append({"name": name, "codename": name, "donor": "", "patch": False, "built": False, "extracted": False,
+                        "placements": 0, "error": str(e)})
+            continue
         out.append({"name": name, "codename": m.get("codename", name), "donor": donor, "patch": bool(m.get("patch")),
                     "built": os.path.isfile(os.path.join(root, "vehicles", name, "build", "body_LOD0.obj"))
                              or bool(m.get("patch")),
@@ -370,8 +412,9 @@ class Vehicle:
         manifest = os.path.join(self.folder, "vehicle.json")
         if not os.path.isfile(manifest):
             raise WerkstattError(f"no vehicle called {name} in {root}/vehicles")
-        with open(manifest, encoding="utf-8") as f:
-            self.manifest = json.load(f)
+        self.manifest = read_json(manifest, root)
+        if not isinstance(self.manifest, dict) or not isinstance(self.manifest.get("donor"), str):
+            raise WerkstattError(f"vehicles/{name}/vehicle.json names no donor")
         self.codename = self.manifest.get("codename", name)
         self.donor = self.manifest["donor"]
         self.extracted = os.path.join(root, "extracted", self.donor.lower())
@@ -379,10 +422,8 @@ class Vehicle:
                            (os.path.join(self.extracted, "upgrades.json"), "upgrade nodes")):
             if not os.path.isfile(need):
                 raise WerkstattError(f"the {self.donor}'s {what} aren't extracted yet ({os.path.relpath(need, root)}): run `make extract`")
-        with open(os.path.join(self.extracted, "nodes.json"), encoding="utf-8") as f:
-            facts = json.load(f)["nodes"]
-        with open(os.path.join(self.extracted, "upgrades.json"), encoding="utf-8") as f:
-            upgrades = json.load(f)
+        facts = read_json(os.path.join(self.extracted, "nodes.json"), root)["nodes"]
+        upgrades = read_json(os.path.join(self.extracted, "upgrades.json"), root)
         self.cosmetic_root = upgrades.get("cosmeticRoot") or ""      # empty: the donor has no upgrade nodes
         self.shift, self.cut = self._sweep_parameters()
         moved = self._swept(facts)
@@ -402,13 +443,15 @@ class Vehicle:
             if node.kind == "node" and any(self._has_option_below(c) for c in node.children):
                 node.kind = "group"
         self.attach_points = {}
+        widen = self._track_widening(facts)
         for f in facts:
             if self.cosmetic_root and f["path"].startswith(self.cosmetic_root):
                 continue
             types = {c["type"] for c in f["components"]}
             if self._is_attach_point(f["path"], types):
                 p = f["position"]
-                self.attach_points[f["path"]] = (p[0], p[1], p[2] + moved.get(f["path"], 0.0))
+                dx = widen.get(f["path"], 0.0)
+                self.attach_points[f["path"]] = (p[0] + dx, p[1], p[2] + moved.get(f["path"], 0.0))
         self.placements, self.copies, self.notes = read_placements(os.path.join(self.folder, PLACEMENTS))
 
     @staticmethod
@@ -418,6 +461,17 @@ class Vehicle:
 
     def _has_option_below(self, node):
         return node.kind == "option" or any(self._has_option_below(c) for c in node.children)
+
+    def _track_widening(self, facts):
+        """dx per wheel node from the plugin's track change (Reshape): each corner's wheel mesh moves out (or in)
+        to half the track, measured from the donor's front right wheel."""
+        if "track" not in self.manifest:
+            return {}
+        fr = next((f for f in facts if f["path"] == "Axles/WheelMeshes/FR"), None)
+        if fr is None:
+            return {}
+        widen = self.manifest["track"] / 2 - abs(fr["position"][0])
+        return {f"Axles/WheelMeshes/{c}": (-widen if c[1] == "L" else widen) for c in ("FL", "FR", "RL", "RR")}
 
     def _sweep_parameters(self):
         m = self.manifest
@@ -488,9 +542,28 @@ class Vehicle:
         return [(c, (half if c[1] == "R" else -half, y, front if c[0] == "F" else rear), wheel["radius"], wheel.get("width", 0.3))
                 for c in ("FL", "FR", "RL", "RR")]
 
-    def donor_wheel_radius(self):
-        """The donor's tyre radius as modelled (the definition's "wheel"), which the wheel meshes are made for."""
-        return self.manifest.get("wheel", {}).get("radius") or 1.0
+    def donor_wheel(self):
+        """The donor's wheel as modelled (the definition's "wheel": radius, width), which the wheel meshes are
+        made for; the plugin scales each wheel node by the fitted tyre over it (ScaleTyres)."""
+        wheel = self.manifest.get("wheel", {})
+        return wheel.get("radius") or 1.0, wheel.get("width") or 1.0
+
+    def part_shift(self, path):
+        """Metres a part's node moves back with the rear in the sweep. Built meshes are in the donor's root space
+        and the plugin maps them through the donor's layout before the sweep, so the rear axle and its springs
+        move with their node, as in game."""
+        return self.sweep.get(path, 0.0)
+
+    def is_turned(self, path):
+        """Whether the game turns this node relative to the car at its base pose. Scale applies along a node's own
+        axes in game, and the add-on's empties carry no base rotation, so a non-uniform scale shows right only
+        on nodes that aren't turned."""
+        node = self.nodes.get(path)
+        if node is None:
+            return False
+        # A half turn about an axis only flips signs, so a scale along the car's axes still lands on the node's.
+        m = quat_to_matrix(node.rotation)
+        return any(abs(abs(m[i][i]) - 1.0) > 1e-4 for i in range(3))
 
     def option_file(self, node):
         return os.path.join(self.extracted, node.file) if node.file else None
@@ -510,13 +583,14 @@ class Vehicle:
     def placement(self, path):
         return self.copies.get(path) or self.placements.get(path) or Placement()
 
-    def next_copy_path(self, source):
+    def next_copy_path(self, source, taken=()):
+        """The next free copy path: inside an option copied, beside a piece. `taken` adds the scene's paths."""
         node_path = source if self.nodes.get(source) and self.nodes[source].kind == "option" else parent_path(source)
         base = source.rsplit("/", 1)[-1]
         n = 2
         while True:
             candidate = f"{node_path}/{base}~{n}"
-            if candidate not in self.copies and candidate not in self.nodes:
+            if candidate not in self.copies and candidate not in self.nodes and candidate not in taken:
                 return candidate
             n += 1
 

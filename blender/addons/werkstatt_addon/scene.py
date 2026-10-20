@@ -13,7 +13,11 @@ Structure (docs/vehicle_factory.md's vehicle as parts, attach points and referen
 
 An editable empty carries werkstatt_node (its node path), werkstatt_kind (group, option, piece, copy),
 werkstatt_rest (its location at the base pose, relative to its parent empty, in Blender axes) and, for a copy,
-werkstatt_source. Its location minus rest, rotation and scale are the node's placement in Blender axes.
+werkstatt_source. Its location minus rest, rotation and scale are the node's placement in Blender axes. Meshes
+under the empties, and the pieces inside a copy, have their transforms locked: the empty is what moves.
+
+The root collection records werkstatt_built, every node and copy path the scene was built with, so a save knows
+which of the file's entries the scene owns (a copy deleted here) and which it never showed (kept as they are).
 """
 import os
 
@@ -70,9 +74,17 @@ def mesh_object(name, verts, faces, collection, colour_name, rgba, offset=(0.0, 
     mesh.from_pydata([(v[0] - offset[0], v[1] - offset[1], v[2] - offset[2]) for v in verts], [], faces)
     mesh.update()
     mesh.materials.append(material(colour_name, rgba))
+    mesh["werkstatt"] = True
     obj = bpy.data.objects.new(name, mesh)
     collection.objects.link(obj)
     return obj
+
+
+def lock(obj):
+    """Blender's G, R and S do nothing on obj; its empty carries the placement."""
+    obj.lock_location = obj.lock_rotation = obj.lock_scale = (True, True, True)
+    obj.lock_rotation_w = True
+    obj.lock_rotations_4d = True
 
 
 def child_collection(parent, name):
@@ -89,10 +101,12 @@ def clear():
     for c in list(scene.collection.children):
         if c.name.startswith(ROOT_PREFIX):
             _remove_collection(c)
-    for block in (bpy.data.meshes, bpy.data.materials):
-        for item in list(block):
-            if item.users == 0:
-                block.remove(item)
+    for mesh in list(bpy.data.meshes):
+        if mesh.users == 0 and mesh.get("werkstatt"):
+            bpy.data.meshes.remove(mesh)
+    for mat in list(bpy.data.materials):
+        if mat.users == 0 and mat.name.startswith("werkstatt."):
+            bpy.data.materials.remove(mat)
 
 
 def _remove_collection(c):
@@ -107,7 +121,6 @@ def build(vehicle, show=()):
     """Builds the vehicle's scene; returns the root collection. Options in `show` start visible."""
     clear()
     scene = bpy.context.scene
-    scene.unit_settings.system = "METRIC"
     root = bpy.data.collections.new(ROOT_PREFIX + vehicle.codename)
     scene.collection.children.link(root)
     root["werkstatt_vehicle"] = vehicle.name
@@ -121,6 +134,7 @@ def build(vehicle, show=()):
         part["werkstatt_source"] = os.path.relpath(file, vehicle.root)
         for obj_name, (verts, faces) in read_obj(file).items():
             obj = mesh_object(name, verts, faces, part, f"werkstatt.{kind}", KIND_COLOURS[kind])
+            obj.location = model.game_to_blender((0.0, 0.0, vehicle.part_shift(path)))
             obj["werkstatt_part"] = kind
             obj["werkstatt_node"] = path
             if kind == "collider":
@@ -145,6 +159,7 @@ def build(vehicle, show=()):
     refs["werkstatt_reference"] = True
     wheel_file = os.path.join(vehicle.extracted, f"{vehicle.donor}_wheel_LOD0.obj")
     tyre_file = os.path.join(vehicle.extracted, f"{vehicle.donor}_tyre_LOD0.obj")
+    donor_radius, donor_width = vehicle.donor_wheel()
     for corner, position, radius, width in vehicle.wheels():
         for file in (wheel_file, tyre_file):
             if not os.path.isfile(file):
@@ -152,15 +167,18 @@ def build(vehicle, show=()):
             for _, (verts, faces) in read_obj(file).items():
                 at = model.game_to_blender(position)
                 mirror = -1.0 if corner[1] == "L" else 1.0        # the left wheels face out the other way
-                k = WHEEL_MESH_SCALE * radius / vehicle.donor_wheel_radius()
-                verts = [(v[0] * k * mirror + at[0], v[1] * k + at[1], v[2] * k + at[2]) for v in verts]
+                # As the plugin's ScaleTyres: the fitted tyre over the donor's, radius on y and z, width on x.
+                k = WHEEL_MESH_SCALE * radius / donor_radius
+                kx = WHEEL_MESH_SCALE * width / donor_width * mirror
+                verts = [(v[0] * kx + at[0], v[1] * k + at[1], v[2] * k + at[2]) for v in verts]
                 if mirror < 0:
                     faces = [list(reversed(face)) for face in faces]
                 obj = mesh_object(f"{corner} {os.path.basename(file)[:-4]}", verts, faces, refs, "werkstatt.reference", KIND_COLOURS["reference"])
                 obj.hide_select = True
                 obj["werkstatt_reference"] = os.path.relpath(file, vehicle.root)
 
-    _build_upgrades(vehicle, child_collection(root, "Upgrades"), set(show))
+    built = _build_upgrades(vehicle, child_collection(root, "Upgrades"), set(show))
+    root["werkstatt_built"] = sorted(built)
 
     ghost = child_collection(root, "Ghost")
     ghost["werkstatt_ghost"] = True
@@ -239,9 +257,12 @@ def _build_upgrades(vehicle, upgrades, show):
             obj.parent = owner
             obj.matrix_parent_inverse = mathutils.Matrix.Identity(4)
             obj["werkstatt_mesh_of"] = mesh_path
+            lock(obj)
 
+    # A copy of a node the scene doesn't show stays out of it; save keeps its entry as the file has it.
     for path, pl in sorted(vehicle.copies.items(), key=lambda kv: (kv[0].count("/"), kv[0])):
-        add_copy(vehicle, path, pl.source, empties)
+        if pl.source in empties:
+            add_copy(vehicle, path, pl.source, empties)
 
     for path, pl in vehicle.placements.items():
         if path in empties:
@@ -252,17 +273,19 @@ def _build_upgrades(vehicle, upgrades, show):
 
     for option in vehicle.options():
         set_shown(empties.get(option.path), option.path in show)
+    return set(empties)
 
 
 def add_copy(vehicle, path, source, empties=None):
-    """Builds a copy of an option or piece at its source's base pose; returns its empty."""
+    """Builds a copy of an option or piece at its source's base pose; returns its empty. As in the plugin, a path
+    inside its source makes the copy the source's child, any other path its sibling."""
     empties = empties if empties is not None else editable_empties()
     src = empties.get(source)
     if src is None:
         raise model.WerkstattError(f"{source} isn't in the scene, so it can't be copied")
-    is_option = vehicle.nodes.get(source) is not None and vehicle.nodes[source].kind == "option"
-    parent = src if is_option else src.parent
-    rest = (0.0, 0.0, 0.0) if is_option else tuple(src["werkstatt_rest"])
+    inside = model.parent_path(path) == source
+    parent = src if inside else src.parent
+    rest = (0.0, 0.0, 0.0) if inside else tuple(src["werkstatt_rest"])
     e = bpy.data.objects.new(path.rsplit("/", 1)[-1], None)
     e.empty_display_type = "CUBE"
     e.empty_display_size = 0.06
@@ -290,6 +313,7 @@ def _copy_subtree(vehicle, src, dst, source_path):
             dst.users_collection[0].objects.link(obj)
             obj.parent = dst
             obj.matrix_parent_inverse = mathutils.Matrix.Identity(4)
+            lock(obj)
         elif child.type == "EMPTY" and child.get("werkstatt_node"):
             e = bpy.data.objects.new(child.name, None)
             e.empty_display_type = child.empty_display_type
@@ -299,6 +323,7 @@ def _copy_subtree(vehicle, src, dst, source_path):
             e.matrix_parent_inverse = mathutils.Matrix.Identity(4)
             e.location = tuple(child["werkstatt_rest"])
             e["werkstatt_copy_part"] = True
+            lock(e)
             _copy_subtree(vehicle, child, e, child["werkstatt_node"])
 
 
@@ -314,35 +339,51 @@ def apply_placement(empty, pl):
 
 
 def read_placement(empty):
+    """The empty's placement, read without writing to it (the panel calls this while Blender draws, where writing
+    to an object is refused), whatever rotation mode Blender's R key or a script left it in."""
     rest = mathutils.Vector(empty["werkstatt_rest"])
     offset = model.blender_to_game(tuple(empty.location - rest))
-    empty.rotation_mode = "QUATERNION"
-    q = empty.rotation_quaternion.normalized()
+    _, q, scale = empty.matrix_basis.decompose()
     rotation = model.quat_to_euler(model.quat_blender_to_game((q.x, q.y, q.z, q.w)))
-    scale = model.scale_blender_to_game(tuple(empty.scale))
-    return model.Placement(offset, rotation, scale, empty.get("werkstatt_source"))
+    return model.Placement(offset, rotation, model.scale_blender_to_game(tuple(scale)), empty.get("werkstatt_source"))
+
+
+def _placeable(obj):
+    return obj.type == "EMPTY" and obj.get("werkstatt_node") and not obj.get("werkstatt_copy_part")
 
 
 def editable_empties():
     """{node path: empty} for every placeable node in the scene."""
-    out = {}
+    return {obj["werkstatt_node"]: obj for obj in bpy.context.scene.objects if _placeable(obj)}
+
+
+def shared_nodes():
+    """{node path: [object names]} for node paths more than one empty claims (Blender's Shift+D copies one)."""
+    seen = {}
     for obj in bpy.context.scene.objects:
-        if obj.type == "EMPTY" and obj.get("werkstatt_node") and not obj.get("werkstatt_copy_part"):
-            out[obj["werkstatt_node"]] = obj
-    return out
+        if _placeable(obj):
+            seen.setdefault(obj["werkstatt_node"], []).append(obj.name)
+    return {path: sorted(names) for path, names in seen.items() if len(names) > 1}
 
 
-def collect(vehicle):
-    """The scene's placements into the vehicle model (what save writes)."""
-    nodes, copies = {}, {}
-    for path, empty in editable_empties().items():
+def collect(base_nodes, base_copies):
+    """What save writes: (nodes, copies, kept). The scene's own placements, plus the file's entries (base_*) for
+    nodes the scene was never built with (kept, as the file has them). A built node now missing, such as a
+    deleted copy, is dropped."""
+    root = root_collection()
+    owned = set(root.get("werkstatt_built", [])) if root is not None else set()
+    empties = editable_empties()
+    owned |= set(empties)
+    nodes = {p: pl for p, pl in base_nodes.items() if p not in owned}
+    copies = {p: pl for p, pl in base_copies.items() if p not in owned}
+    kept = len(nodes) + len(copies)
+    for path, empty in empties.items():
         pl = read_placement(empty)
         if empty.get("werkstatt_kind") == "copy":
             copies[path] = pl
         elif not pl.is_identity():
             nodes[path] = pl
-    vehicle.placements, vehicle.copies = nodes, copies
-    return vehicle
+    return nodes, copies, kept
 
 
 # ---- visibility ----------------------------------------------------------------------------------------

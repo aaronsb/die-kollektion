@@ -1,5 +1,8 @@
 """The Werkstatt sidebar panel (3D view > N panel > Werkstatt) and its operators. Every operator calls api.py with
-plain arguments, so scripts can run them too: bpy.ops.werkstatt.nudge(node="Winch_01", axis="y", steps=2, unit="cm")."""
+plain arguments, so scripts can run them too: bpy.ops.werkstatt.nudge(node="Winch_01", axis="y", steps=2, unit="cm").
+The panel's draw only reads (Blender refuses writes to objects while drawing); anything slow (git, reading every
+vehicle folder) happens on open, save and the refresh button. Undo steps come from the API calls, so an operator
+run from a script undoes like a button press; the operators carry no UNDO flag, which would add a second step."""
 import bpy
 from bpy.props import BoolProperty, CollectionProperty, EnumProperty, FloatProperty, IntProperty, PointerProperty, StringProperty
 
@@ -8,6 +11,9 @@ from . import api, scene
 UNIT_ITEMS = [("mm", "1 mm", ""), ("cm", "1 cm", ""), ("dm", "10 cm", "")]
 MULT_ITEMS = [(str(n), f"×{n}", "") for n in (1, 5, 10, 20, 50)]
 ANGLE_ITEMS = [("0.1", "0.1°", ""), ("0.5", "0.5°", ""), ("1", "1°", ""), ("5", "5°", "")]
+
+
+NO_VEHICLE = "NONE"
 
 
 def _report(op, result, done=None):
@@ -23,14 +29,21 @@ def _report(op, result, done=None):
 _vehicle_cache = []      # Blender keeps no reference to a dynamic enum's strings; this list does
 
 
-def _vehicle_items(self, context):
+def refresh_vehicles():
+    """Re-reads the checkout's vehicle folders for the dropdown (on open, save and refresh, not on every draw)."""
     result = api.vehicles()
     if not result.get("ok"):
-        items = [("", "(no checkout)", result.get("error", ""))]
+        items = [(NO_VEHICLE, "(no checkout)", result.get("error", ""))]
     else:
-        items = [(v["name"], v["codename"], f"{v['codename']} on the {v['donor']}" + ("" if v["built"] else " (not built)"))
-                 for v in result["vehicles"]] or [("", "(no vehicles)", "")]
+        items = [(v["name"], v["codename"] + (" (unreadable)" if v.get("error") else ""),
+                  v.get("error") or f"{v['codename']} on the {v['donor']}" + ("" if v["built"] else " (not built)"))
+                 for v in result["vehicles"]] or [(NO_VEHICLE, "(no vehicles)", "")]
     _vehicle_cache[:] = items
+
+
+def _vehicle_items(self, context):
+    if not _vehicle_cache:
+        refresh_vehicles()
     return _vehicle_cache
 
 
@@ -116,18 +129,34 @@ class WERKSTATT_OT_open_vehicle(bpy.types.Operator):
     """Build the vehicle's scene from its files (parts, attach points, references, upgrades)"""
     bl_idname = "werkstatt.open_vehicle"
     bl_label = "Open vehicle"
+    bl_options = {"REGISTER"}
     name: StringProperty(name="Vehicle")
+    force: BoolProperty(name="Drop unsaved changes", description="Open even when the open vehicle has unsaved changes",
+                        options={"SKIP_SAVE"})
+
+    def invoke(self, context, event):
+        if api.unsaved().get("unsaved"):
+            self.force = True
+            return context.window_manager.invoke_confirm(self, event, title="Unsaved placements",
+                                                         message="The open vehicle has changes that aren't saved. Open anyway and drop them?",
+                                                         confirm_text="Drop and open", icon="WARNING")
+        return self.execute(context)
 
     def execute(self, context):
         name = self.name or context.scene.werkstatt.vehicle
-        return _report(self, api.open_vehicle(name), lambda r: f"Opened {r['codename']}: {r['options']} upgrade options, {r['placements']} placements")
+        if name == NO_VEHICLE:
+            self.report({"ERROR"}, "no vehicle to open: set the Werkstatt folder in the add-on's preferences")
+            return {"CANCELLED"}
+        result = api.open_vehicle(name, force=self.force)
+        refresh_vehicles()
+        return _report(self, result, lambda r: f"Opened {r['codename']}: {r['options']} upgrade options, {r['placements']} placements")
 
 
 class WERKSTATT_OT_nudge(_NodeOp, bpy.types.Operator):
     """Move the item along a game axis (x right, y up, z forward) of its parent's frame"""
     bl_idname = "werkstatt.nudge"
     bl_label = "Nudge"
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {"REGISTER"}
     axis: EnumProperty(items=[("x", "x (right)", ""), ("y", "y (up)", ""), ("z", "z (forward)", "")])
     steps: IntProperty(default=1)
     unit: StringProperty(description="mm, cm, dm or m; blank: the panel's step")
@@ -142,7 +171,7 @@ class WERKSTATT_OT_rotate(_NodeOp, bpy.types.Operator):
     """Turn the item about a game axis of its parent's frame (x pitch, y yaw, z roll), about its pivot"""
     bl_idname = "werkstatt.rotate"
     bl_label = "Rotate"
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {"REGISTER"}
     axis: EnumProperty(items=[("x", "pitch (x)", ""), ("y", "yaw (y)", ""), ("z", "roll (z)", "")])
     steps: IntProperty(default=1)
     degrees: FloatProperty(default=0.0, description="Degrees per step; 0: the panel's angle")
@@ -157,7 +186,7 @@ class WERKSTATT_OT_reset(_NodeOp, bpy.types.Operator):
     """Put the item back at its base pose"""
     bl_idname = "werkstatt.reset"
     bl_label = "Reset"
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {"REGISTER"}
 
     def execute(self, context):
         return _report(self, api.reset(self.node or None))
@@ -167,7 +196,7 @@ class WERKSTATT_OT_duplicate(_NodeOp, bpy.types.Operator):
     """Add a copy of the selected option or piece, shown whenever the item is fitted"""
     bl_idname = "werkstatt.duplicate"
     bl_label = "Duplicate"
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {"REGISTER"}
 
     def execute(self, context):
         return _report(self, api.duplicate(self.node or None), lambda r: f"Added {r['node']}")
@@ -177,7 +206,7 @@ class WERKSTATT_OT_delete_copy(_NodeOp, bpy.types.Operator):
     """Remove the selected copy"""
     bl_idname = "werkstatt.delete_copy"
     bl_label = "Delete copy"
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {"REGISTER"}
 
     def execute(self, context):
         return _report(self, api.delete_copy(self.node or None))
@@ -187,6 +216,7 @@ class WERKSTATT_OT_show(_NodeOp, bpy.types.Operator):
     """Show or hide an upgrade option"""
     bl_idname = "werkstatt.show"
     bl_label = "Show"
+    bl_options = {"REGISTER"}
     shown: BoolProperty(default=True)
 
     def execute(self, context):
@@ -197,6 +227,7 @@ class WERKSTATT_OT_show_slot(bpy.types.Operator):
     """Show or hide every option of a slot"""
     bl_idname = "werkstatt.show_slot"
     bl_label = "Show slot"
+    bl_options = {"REGISTER"}
     slot: StringProperty()
     shown: BoolProperty(default=True)
 
@@ -217,9 +248,14 @@ class WERKSTATT_OT_save(bpy.types.Operator):
     """Write the vehicle's placements.json (only the file; committing it is yours)"""
     bl_idname = "werkstatt.save"
     bl_label = "Save placements"
+    force: BoolProperty(name="Overwrite", description="Write even when the file changed on disk since it was read",
+                        options={"SKIP_SAVE"})
 
     def execute(self, context):
-        return _report(self, api.save(), lambda r: f"{r['file']}: {r['result']} ({r['placements']} placements, {r['copies']} copies)")
+        result = api.save(force=self.force)
+        refresh_vehicles()
+        return _report(self, result, lambda r: f"{r['file']}: {r['result']} ({r['placements']} placements, {r['copies']} copies"
+                                               + (f", {r['kept']} kept from the file" if r["kept"] else "") + ")")
 
 
 class WERKSTATT_OT_run_loop(bpy.types.Operator):
@@ -235,11 +271,13 @@ class WERKSTATT_OT_run_loop(bpy.types.Operator):
 
 
 class WERKSTATT_OT_refresh(bpy.types.Operator):
-    """Re-read the item list"""
+    """Re-read the item list, the vehicle folders and the checkout's state"""
     bl_idname = "werkstatt.refresh"
     bl_label = "Refresh"
 
     def execute(self, context):
+        api.status(refresh=True)
+        refresh_vehicles()
         refresh_items(context)
         return {"FINISHED"}
 
@@ -260,9 +298,12 @@ class WERKSTATT_PT_panel(bpy.types.Panel):
             return
         box.label(text=status["root"], icon="FILE_FOLDER")
         box.label(text=f"Branch: {status['branch'] or '?'}" + ("  (uncommitted changes)" if status["uncommitted"] else ""), icon="LINKED")
+        if status.get("vehicle_root"):
+            box.label(text=f"Open vehicle is from {status['vehicle_root']}: open it again to save", icon="ERROR")
         row = layout.row(align=True)
         row.prop(w, "vehicle", text="")
         row.operator("werkstatt.open_vehicle", text="Open", icon="IMPORT")
+        row.operator("werkstatt.refresh", text="", icon="FILE_REFRESH")
         if not status.get("vehicle"):
             return
         layout.label(text=f"Open: {status['vehicle']}", icon="AUTO")

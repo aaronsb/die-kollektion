@@ -1,6 +1,6 @@
 # Die Kollektion Werkstatt: guide for agents
 
-You are probably helping a person mod *Over the Hill* (Funselektor; Unity 6000.0.75, native Linux tested) with **Die Kollektion Werkstatt**, a vehicle mod system: a BepInEx 6 IL2CPP plugin that adds vehicles built on a stock donor and changes stock ones, plus the Python and Blender toolchain that builds them. The CLI (`kollektion`), packs and the Blender add-on are designed, not built. **Die Kollektion** is the example set of vehicle packs made with it: Das Glyptodon (two-door) and Das Megaloceros (crew cab) of the Glyptodon family, Das Mastodon and Das Megatherium of the Mammoth family, all on the Mammoth as donor, and a patch on the stock Mammoth. Everything in this project was written with AI; it is agent-friendly on purpose, so people who love a truck can get it into the game without learning the whole toolchain first.
+You are probably helping a person mod *Over the Hill* (Funselektor; Unity 6000.0.75, native Linux tested) with **Die Kollektion Werkstatt**, a vehicle mod system: a BepInEx 6 IL2CPP plugin that adds vehicles built on a stock donor and changes stock ones, plus the Python and Blender toolchain that builds them. The CLI (`kollektion`) and packs are designed, not built; the Blender add-on fits upgrade parts today, and building a vehicle in it is designed. **Die Kollektion** is the example set of vehicle packs made with it: Das Glyptodon (two-door) and Das Megaloceros (crew cab) of the Glyptodon family, Das Mastodon and Das Megatherium of the Mammoth family, all on the Mammoth as donor, and a patch on the stock Mammoth. Everything in this project was written with AI; it is agent-friendly on purpose, so people who love a truck can get it into the game without learning the whole toolchain first.
 
 Read `docs/engine.md` (engine facts, crash rules, mesh pipeline) and `docs/vehicle_factory.md` (design draft) before changing anything substantial. `plugins/VehicleMods/CLAUDE.md` covers the plugin; `vehicles/glyptodon/CLAUDE.md` covers both cab masters.
 
@@ -34,7 +34,7 @@ Work out which of two modes fits; if the first message doesn't make it clear, as
 
 ## What runs today, and what doesn't yet
 
-Today Werkstatt is the plugin plus Python and Blender scripts, built from source and driven by the Makefile. **The `kollektion` CLI, the plugin loading packs, the Blender add-on and the vehicle templates are designed but not built**; a pack's manifest and its shareable zip exist (`packs/die-kollektion/`, `make pack`), but the plugin still installs from the vehicle folders (`docs/vehicle_factory.md`). Never tell a person to run a `kollektion` command; use the commands below.
+Today Werkstatt is the plugin plus Python and Blender scripts, built from source and driven by the Makefile. **The `kollektion` CLI, the plugin loading packs, building a vehicle in the Blender add-on and the vehicle templates are designed but not built** (the add-on fits upgrade parts today, `docs/blender_addon.md`); a pack's manifest and its shareable zip exist (`packs/die-kollektion/`, `make pack`), but the plugin still installs from the vehicle folders (`docs/vehicle_factory.md`). Never tell a person to run a `kollektion` command; use the commands below.
 
 What a person can do today:
 - Set up from scratch and install our four trucks and the Mammoth patch: `make start`, repeated (Commands).
@@ -47,7 +47,7 @@ What a person can do today:
 How a change to a vehicle is made and shown. The Werkstatt part needs no git and no GitHub; how a change travels through this repository (branch, pull request, review, merge) is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 1. **Know what to change.** The person tells you, or reports it: the Drive report form on GitHub (`.github/ISSUE_TEMPLATE/drive-report.yml`) holds the vehicle, the build driven and what felt off.
-2. **Make the change:** a manifest value, a generator constant, a placement in `transforms`, or an upgrade's fit in `vehicles/<name>/placements.json` (format in `docs/engine.md`, "Upgrade nodes").
+2. **Make the change:** a manifest value, a generator constant, a placement in `transforms`, or an upgrade's fit in `vehicles/<name>/placements.json` (written by the Blender add-on, `docs/blender_addon.md`; format in `docs/engine.md`, "Upgrade nodes").
 3. **`make loop V=<vehicle>`** builds that vehicle, runs its gates, regenerates its contact sheet and writes `contact/CHANGES.md`: facts, points moved (with distances), checks changed and triangle counts, compared with the committed sheet (where the branch left main; the last commit on main; nothing outside a git checkout). Read the sheet's renders and rig view yourself before going on.
 4. **Show it.** The updated contact sheet and `CHANGES.md` are what the person reviews; in this repository they go into a pull request (CONTRIBUTING.md). The person may drive it (`make all`) or review from the sheets alone.
 
@@ -105,6 +105,6 @@ Logs: `<game folder>/BepInEx/LogOutput.log`, `~/.config/unity3d/Funselektor/over
 - **Groups and the main manifest** (design): groups are merchant sections (the game's vehicle categories); a pack's main manifest, `manifest.json` at the pack root, lists its liveries, vehicles, patches and groups and puts each vehicle in a group.
 - **Manifests** (`vehicle.json` today; the pack `manifest.json` in the design): strict JSON following the game's official livery manifest pattern (no comments, no trailing commas, `car` = a car's internal name without spaces, case-insensitive). For comments, any object may carry a `notes` field: a string, or an array of strings for longer text. Loaders ignore it; templates use it to explain fields.
 - **Template types** (design): the stock cars' four upgrade-slot profiles (bonneted body, bonneted pickup, flat-front body, flat-front bed truck) that a new vehicle starts from.
-- **Werkstatt**: Die Kollektion Werkstatt, the vehicle mod system: the plugin and toolchain today, the CLI, packs and Blender add-on planned. **Die Kollektion** is its example set of vehicle packs.
+- **Werkstatt**: Die Kollektion Werkstatt, the vehicle mod system: the plugin, the toolchain and the Blender add-on for fitting upgrades today, the CLI and packs planned. **Die Kollektion** is its example set of vehicle packs.
 - **Contact sheet**: `vehicles/<name>/README.md`, rendered from `contact/contact.json` by `tools/contact_sheet.py`: four isometric renders, a rig view (colliders, wheel colliders and labelled attach points), the mesh gates and the vehicle's facts. GitHub shows it when the vehicle's folder is opened. It may show game geometry: it is pictures and numbers, no mesh data.
 - **Gates**: the checks above; a failing gate means the build isn't ready to ship.

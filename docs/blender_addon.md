@@ -13,34 +13,38 @@ The panel is in the 3D view's sidebar (press N), tab "Werkstatt". At the top it 
 
 ## Open a vehicle
 
-Pick the vehicle and press Open. The add-on builds one collection, "Werkstatt: <Codename>", from the vehicle's files, and leaves the rest of your scene alone:
+Pick the vehicle and press Open (the button beside it re-reads the vehicle folders and the checkout's state). The add-on builds one collection, "Werkstatt: <Codename>", from the vehicle's files, and leaves the rest of your scene alone, its units included. Opening again, or another vehicle, asks first when the open one has unsaved changes.
 
 | Collection | What it holds |
 |---|---|
-| `Part: <name>` | One per part (the body, the axles, the colliders), its LOD0 mesh inside, with the part's node path and source file as custom properties. The colliders are wireframes, hidden. |
+| `Part: <name>` | One per part (the body, the axles and springs, the colliders), its LOD0 mesh inside, with the part's node path and source file as custom properties. The colliders are wireframes, hidden. |
 | `Attach points` | Empties at the winch points, lights, wheel hubs, water detectors and centre of mass, parented to the body. |
-| `References (donor, read-only)` | The donor's wheels and tyres, which the game keeps live. They're shown but can't be selected. |
+| `References (donor, read-only)` | The donor's wheels and tyres, which the game keeps live, at the truck's hubs and scaled to its tyre. They're shown but can't be selected. |
 | `Upgrades/<slot>` | An empty for every upgrade node, mirroring the game's tree: slot groups (plain axes), options (arrows), pieces inside an option (cubes), and copies. Each option's meshes hang under its pieces, coloured by slot. Options start hidden. |
 | `Ghost` | The donor's stock body as a wireframe, beside the truck when "Ghost of the donor" is on. Set "Beside by" to 0 to overlay it. |
 
-Everything sits where the game puts it after the reshape, including the wheelbase sweep that moves nodes behind the body cut back with the rear.
+Everything sits where the game puts it after the reshape: the wheelbase sweep moves the nodes behind the body cut back with the rear, the rear axle and its springs included, and the wheels sit at the truck's wheelbase and track. On Das Megaloceros the rear axle is 1.17 m behind the Mammoth's.
 
 ## Fit an item
 
 1. Type a slot into the filter (e.g. `Roof`, `FrontBumper`, `Winch`, `Bed`) and press "Show slot", or use the eye on an item's row.
 2. Click the item in the list. "Frame on select" points the view at it.
-3. Nudge it. Pick a step (1 mm, 1 cm or 10 cm) and a multiplier (×1, ×5, ×10, ×20 or ×50), then press Left/Right, Down/Up or Back/Forward. Turn it with Pitch, Yaw and Roll, in steps of 0.1°, 0.5°, 1° or 5° times the same multiplier. Moving the empty with Blender's own G, R and S keys counts too.
+3. Nudge it. Pick a step (1 mm, 1 cm or 10 cm) and a multiplier (×1, ×5, ×10, ×20 or ×50), then press Left/Right, Down/Up or Back/Forward. Turn it with Pitch, Yaw and Roll, in steps of 0.1°, 0.5°, 1° or 5° times the same multiplier. Moving the item's empty with Blender's own G, R and S keys counts too; its meshes are locked, so a click on a mesh followed by G does nothing (pick the item in the list, which selects the empty).
 4. Reset puts the item back at the donor's pose.
+
+Ctrl+Z takes back each nudge, turn, copy and open, from the panel or a script alike.
 
 Directions are the truck's: right, up and forward. An item on a slot group moves every item in it. On Das Megaloceros, for example, every roof item sits about 22 cm into the taller square-cab roof, so one nudge of the `Roof` group fixes them all. Turns are about the item's own pivot. A child's moves happen in its group's frame: turn the group and its items' moves turn with it, as in game.
 
 ## Copies
 
-Duplicate adds a copy of the selected option, or of a piece inside one: a second keg pile in Das Mastodon's bed, say. The copy starts on top of its source, so nudge it into place. In game it shows whenever the item is fitted. "Delete copy" removes a copy; an original can only be reset.
+Duplicate adds a copy of the selected option, or of a piece inside one: a second keg pile in Das Mastodon's bed, say. The copy starts on top of its source, so nudge it into place. In game it shows whenever the item is fitted. A copy of an option sits inside it, a copy of a piece beside it, as the plugin makes them, and a copy is always of the untouched original (a copy of the keg pile's option carries no copied kegs). "Delete copy" removes a copy; an original can only be reset. Use Duplicate, not Blender's Shift+D: a Shift+D copy of an empty claims the same node, and save refuses until it's gone.
 
 ## Save, then check in game
 
-Save placements writes `vehicles/<name>/placements.json`. Only nodes that moved are written, one line per entry, keys sorted and numbers rounded (0.1 mm, 0.001°). A nudge changes one line of the diff, and saving without changes changes no byte. With nothing moved and no copies, the file is removed.
+Save placements writes `vehicles/<name>/placements.json`. Only nodes that moved are written, one line per entry, keys sorted and numbers rounded (0.1 mm, 0.001°). A nudge changes one line of the diff, and saving without changes changes no byte. With nothing moved and no copies, the file is removed. Entries in the file for nodes the scene doesn't show (a light, say, written by hand) are kept as they are; the save's message counts them.
+
+Save refuses, with a message, when the file changed on disk since the vehicle was opened or last saved (open it again to see the change, or `save(force=True)` to overwrite it), and when the add-on's Werkstatt folder isn't the one the vehicle was opened from (open it again).
 
 To see it in game:
 
@@ -59,14 +63,14 @@ Every panel action has a scriptable equivalent, so an agent can look, nudge and 
   - `duplicate(node=...)`, `delete_copy(node=...)`, `reset(node=...)`
   - `show(node=..., shown=...)`, `show_slot(slot=..., shown=...)`
   - `frame(node=...)`, `save()`, `run_loop()`
-- **The Python API** (`from werkstatt_addon import api`) returns plain dicts that read back as JSON. A problem comes back as `{"ok": False, "error": "..."}` with a plain message, never a traceback:
-  - `status()`, `vehicles()`, `open_vehicle(name, show=[...])`, `items(slot=None, kind=None)`
+- **The Python API** (`from werkstatt_addon import api`) returns plain dicts that read back as JSON. A problem, a wrong value included, comes back as `{"ok": False, "error": "..."}` with a plain message, never a traceback. Each call that changes the scene is one undo step:
+  - `status(refresh=False)`, `vehicles()`, `open_vehicle(name, show=[...], force=False)`, `unsaved()`, `items(slot=None, kind=None)`
   - `placement(node)`, `set_placement(node, offset=, rotation=, scale=)`
   - `nudge(node, axis, steps, unit)`, `rotate(node, axis, steps, degrees)`, `scale_by(node, factor, axis=None)`
   - `reset(node)`, `show(node, shown)`, `show_slot(slot, shown)`
   - `duplicate(node)`, `delete_copy(node)`
   - `frame(node)`, which selects the item, points the view at it and returns its centre and size in game metres
-  - `ghost(shown, offset)`, `save()`, `run_loop()`
+  - `ghost(shown, offset)`, `save(force=False)`, `run_loop()`
 
   A node is a full node path or any unique end of one (`Winch_01`, `RoofSpare/RoofrackFlatA`); an ambiguous name lists its matches.
 
@@ -82,7 +86,7 @@ api.placement("Visual/Roof")                # {'ok': True, 'offset': [0.0, 0.02,
 api.save()                                  # {'ok': True, 'file': 'vehicles/megaloceros/placements.json', 'result': 'written', ...}
 ```
 
-`tests/blender/test_addon.py` runs the same calls headless (`blender -b`), on a scratch copy of the vehicle folder. `make check` runs it when Blender is installed.
+`tests/blender/test_addon.py` runs the same calls headless (`blender -b`), on a scratch copy of the vehicle folders, and checks every built truck's axles, wheels and wheel arches against the plugin's spawn positions; `tests/blender/test_panel_gui.py` draws the panel in a real window under Xvfb and checks undo. `make check` runs both when Blender (and `xvfb-run`) are installed.
 
 ## Later: a new vehicle from geometry
 
@@ -96,10 +100,12 @@ The scene is the vehicle's own structure (parts, attach points, references), not
 6. Save. The same writer adds the meshes into the vehicle folder and the manifest (`vehicle.json`, parts, ops) beside `placements.json`.
 7. Run `make loop V=<vehicle>`, read the contact sheet, deploy, drive.
 
+The wheel hubs come first. Today the scene places the wheels, the axles and their attach points from the manifest (`donorAxleZ`, `wheelbase`, `track`, `wheel`, `tyre`) and the plugin's sweep. Making the hubs editable means turning that around: each hub an empty you can drag, with the front and rear axle tied to their pair of hubs, and the save writing `wheelbase`, `track` and the axle positions back into `vehicle.json`, so the axle meshes, the springs, the sweep's shift and the wheel references follow on the next open. The `donorAxleZ` values stay the donor's facts; only the truck's own fields change.
+
 The add-on is layered for this (`blender/addons/werkstatt_addon/`): `model.py` reads and writes the files with no Blender, `scene.py` turns the model into the scene and back, and `api.py` and `ui.py` sit on top. Writing meshes or ops is a new writer in `model.py` plus what `scene.py` collects; the scene and API stay as they are.
 
 ## Limits
 
-- Scale on a node that the game turns relative to the car shows along the car's axes in Blender but along the node's own axes in game; most upgrade nodes aren't turned, so it matches.
+- The game scales a node along its own axes, and the add-on's empties don't carry the turn a node has in the prefab. So a node the prefab turns relative to the car (132 of the Mammoth's 535 upgrade nodes, the plush toys and the spare wheel's tools among them) takes a uniform scale only; a non-uniform one is refused with a message.
 - Meshes are flat-coloured, without the game's textures and lights. Check the final fit in the mechanic.
 - Only LOD0 is loaded. Placements move every LOD alike in game.

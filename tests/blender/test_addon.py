@@ -1,21 +1,26 @@
-"""Headless test of the Werkstatt add-on: open a vehicle, nudge, turn, copy, save, reopen.
+"""Headless test of the Werkstatt add-on: open a vehicle, nudge, turn, copy, save, reopen; the API's refusals; and
+every built truck's axles, wheels and arches where the plugin puts them at spawn.
 
 Usage: blender -b --factory-startup --python tests/blender/test_addon.py -- [<vehicle>]
-Runs on a scratch copy of the checkout's vehicle folder (the build and extracted data are linked, read-only), so
+Runs on a scratch copy of the checkout's vehicle folders (the builds and extracted data are linked, read-only), so
 the checkout is never written. Needs `make extract` (with upgrades.json) and the vehicle built. Exits non-zero on
-any failure.
+any failure. The panel's real draw is tested under Xvfb by tests/blender/test_panel_gui.py.
 """
-import json, math, os, shutil, sys, tempfile, traceback
+import json, math, os, shutil, sys, traceback
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "blender", "addons"))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import bpy  # noqa: E402
+import mathutils  # noqa: E402
 import werkstatt_addon  # noqa: E402
+from checkout import scratch_checkout  # noqa: E402
 from werkstatt_addon import api, model, scene  # noqa: E402
 
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 VEHICLE = argv[0] if argv else "megaloceros"
+TRUCKS = ("megaloceros", "glyptodon", "mastodon", "megatherium")
 failures = []
 
 
@@ -27,18 +32,6 @@ def check(cond, what):
 
 def close(a, b, tol=1e-4):
     return all(abs(x - y) <= tol for x, y in zip(a, b))
-
-
-def scratch_checkout():
-    tmp = tempfile.mkdtemp(prefix="werkstatt-addon-")
-    open(os.path.join(tmp, "Makefile"), "w").close()
-    os.makedirs(os.path.join(tmp, "vehicles"))
-    os.symlink(os.path.join(ROOT, "extracted"), os.path.join(tmp, "extracted"))
-    src = os.path.join(ROOT, "vehicles", VEHICLE)
-    dst = os.path.join(tmp, "vehicles", VEHICLE)
-    shutil.copytree(src, dst, ignore=shutil.ignore_patterns("build", "contact", "placements.json"))
-    os.symlink(os.path.join(src, "build"), os.path.join(dst, "build"))
-    return tmp
 
 
 def emulate(base, steps):
@@ -64,8 +57,174 @@ def world_game(empty):
     return model.blender_to_game(tuple(empty.matrix_world.translation))
 
 
+def write(path, text):
+    with open(path, "w") as f:
+        f.write(text)
+
+
+def game_box(objs):
+    """(min, max) corners in game space of the objects' meshes, as Blender shows them."""
+    bpy.context.view_layer.update()
+    pts = [model.blender_to_game(tuple(o.matrix_world @ mathutils.Vector(c))) for o in objs for c in o.bound_box]
+    return [min(p[i] for p in pts) for i in range(3)], [max(p[i] for p in pts) for i in range(3)]
+
+
+def part(path):
+    return [o for o in bpy.context.scene.objects if o.type == "MESH" and o.get("werkstatt_node") == path]
+
+
+def arch(body_points, x, y, z, r, reach=1.0):
+    """The wheel arch above a hub: the nearest outer body vertices ahead of and behind it that sit lower than the
+    tyre's upper part (the body's side, within 15 cm of the hub's x)."""
+    low = [p[2] for p in body_points if p[0] * x > 0 and abs(p[0]) > abs(x) - 0.15 and y < p[1] < y + 0.8 * r and abs(p[2] - z) < reach]
+    return max((q for q in low if q < z), default=z - reach), min((q for q in low if q > z), default=z + reach)
+
+
+def refusals(root, path):
+    """The review's findings on #29: reads that write, saves that lose entries, values that raise."""
+    winch = api._empty("Winch_01")
+    winch.rotation_mode = "XYZ"
+    winch.rotation_euler = (0.0, 0.0, 0.1)
+    r = api.placement("Winch_01")
+    check(r["ok"] and winch.rotation_mode == "XYZ" and abs(r["rotation"][1] + math.degrees(0.1)) < 1e-3,
+          f"placement() reads an Euler-mode empty without switching its mode (Blender z is the game's -y): {r.get('rotation')}")
+    api.reset("Winch_01")
+
+    for call, what in ((lambda: api.set_placement("Winch_01", offset=(1, 2)), "a two-number offset"),
+                       (lambda: api.nudge("Winch_01", "y", "2"), "steps as text"),
+                       (lambda: api.set_placement("Winch_01", rotation="10"), "a rotation as text"),
+                       (lambda: api.set_placement("Winch_01", offset=(float("nan"), 0, 0)), "a NaN offset"),
+                       (lambda: api.set_placement("Winch_01", offset=(20, 0, 0)), "an offset of 20 m"),
+                       (lambda: api.show_slot(None), "no slot"),
+                       (lambda: api.nudge(5), "a number as the node"),
+                       (lambda: api.open_vehicle(["megaloceros"]), "a list as the name"),
+                       (lambda: api.scale_by("Winch_01", "2"), "a factor as text")):
+        r = call()
+        check(isinstance(r, dict) and r.get("ok") is False and r.get("error"), f"{what} comes back as a message: {r.get('error') if isinstance(r, dict) else r}")
+
+    v = api._vehicle()
+    turned = next(p for p, n in sorted(v.nodes.items()) if n.kind == "option" and v.is_turned(p))
+    straight = next(p for p, n in sorted(v.nodes.items()) if n.kind == "option" and not v.is_turned(p))
+    r = api.set_placement(turned, scale=(2, 1, 1))
+    check(not r["ok"] and "turned" in r["error"], f"a non-uniform scale on a turned node is refused: {r.get('error')}")
+    check(api.set_placement(turned, scale=(1.5, 1.5, 1.5))["ok"] and api.reset(turned)["ok"], "a uniform scale on it is fine")
+    check(api.scale_by(straight, 1.2, "x")["ok"] and api.reset(straight)["ok"], "a non-uniform scale on a node that isn't turned is fine")
+
+    # A file's entries the scene doesn't build (outside the upgrade tree) survive a save; a copy deleted here doesn't.
+    head = "Lights/HeadLightL"
+    keg = "Parts/Mammoth_CosmeticParts/Visual/Bed/Party_Bed/AccessoryBeerBarrel"
+    write(path, json.dumps({"nodes": {head: {"offset": [0, 0.05, 0]}, "Parts/Mammoth_CosmeticParts/Performance/Winch/Winch_01": {"offset": [0, 0, 0.02]}},
+                            "copies": {keg + "~2": {"source": keg}}}))
+    opened = api.open_vehicle(VEHICLE, force=True)
+    check(opened["ok"] and opened["not_shown"] == [head], f"open says which entries the scene doesn't show: {opened.get('not_shown')}")
+    api.nudge("Winch_01", "y", 1, "cm")
+    api.delete_copy(keg + "~2")
+    saved = api.save()
+    n, c, _ = model.parse_placements(open(path).read())
+    check(saved["ok"] and saved["kept"] == 1 and head in n and keg + "~2" not in c and close(n[head].offset, (0, 0.05, 0)),
+          f"save keeps {head} and drops the deleted copy: {saved}")
+
+    # The file changed on disk after it was read: save refuses, force overwrites.
+    api.nudge("Winch_01", "y", 1, "cm")
+    write(path, open(path).read().replace("0.05", "0.06"))
+    r = api.save()
+    check(not r["ok"] and "changed on disk" in r["error"], f"save refuses a file changed since it was read: {r.get('error')}")
+    check(api.save(force=True)["result"] == "written", "save(force=True) writes it anyway")
+    # Unsaved nudges stop a reopen; force drops them.
+    api.nudge("Winch_01", "y", 1, "cm")
+    check(api.unsaved()["unsaved"], "unsaved() sees the nudge")
+    r = api.open_vehicle(VEHICLE)
+    check(not r["ok"] and "unsaved" in r["error"], f"open refuses to drop unsaved changes: {r.get('error')}")
+    check(api.open_vehicle(VEHICLE, force=True)["ok"] and not api.unsaved()["unsaved"], "open(force=True) drops them")
+
+    # Blender's Shift+D on an empty: two empties claim one node, so save refuses; meshes don't move on their own.
+    winch = api._empty("Winch_01")
+    twin = winch.copy()
+    winch.users_collection[0].objects.link(twin)
+    r = api.save()
+    check(not r["ok"] and "claim" in r["error"], f"save refuses two empties on one node: {r.get('error')}")
+    bpy.data.objects.remove(twin, do_unlink=True)
+    mesh = next(o for o in winch.children_recursive if o.type == "MESH")
+    check(all(mesh.lock_location) and all(mesh.lock_rotation) and all(mesh.lock_scale), "an item's meshes are locked; its empty moves")
+
+    # Another checkout than the scene's: save refuses.
+    other = scratch_checkout(())
+    os.environ["WERKSTATT_DIR"] = other
+    r = api.save()
+    check(not r["ok"] and root in r["error"], f"save refuses when the add-on points at another checkout: {r.get('error')}")
+    check(api.status().get("vehicle_root") == root, "status names the open vehicle's checkout")
+    os.environ["WERKSTATT_DIR"] = root
+    shutil.rmtree(other, ignore_errors=True)
+
+    # The panel's status runs no git: a draw must not wait on a subprocess.
+    import subprocess
+    real_run = subprocess.run
+    subprocess.run = lambda *a, **k: (_ for _ in ()).throw(AssertionError("git ran"))
+    try:
+        r = api.status()
+        check(r["ok"] and r["branch"] is None, f"status() asks git nothing (the scratch folder has no .git): {r}")
+    finally:
+        subprocess.run = real_run
+
+    # Broken files are messages: a malformed vehicle.json, a malformed placements.json.
+    broken = os.path.join(root, "vehicles", "broken")
+    os.makedirs(broken)
+    write(os.path.join(broken, "vehicle.json"), "{ not json")
+    listed = api.vehicles()
+    check(listed["ok"] and any(x["name"] == "broken" and x.get("error") for x in listed["vehicles"])
+          and any(x["name"] == VEHICLE and not x.get("error") for x in listed["vehicles"]), "one unreadable vehicle.json doesn't hide the others")
+    r = api.open_vehicle("broken", force=True)
+    check(not r["ok"] and "vehicle.json" in r["error"], f"opening it says what's wrong: {r.get('error')}")
+    shutil.rmtree(broken)
+    write(path, '{"nodes": {"A/B": {"offset": [0, 0]}}}')
+    r = api.open_vehicle(VEHICLE, force=True)
+    check(not r["ok"] and "three numbers" in r["error"], f"a malformed placements.json is a message: {r.get('error')}")
+    os.remove(path)
+
+    # Only what the add-on made is cleared, and the scene's units stay as the user set them.
+    user_mesh = bpy.data.meshes.new("not werkstatt's")
+    bpy.context.scene.unit_settings.system = "IMPERIAL"
+    api.open_vehicle(VEHICLE, force=True)
+    check(bpy.data.meshes.get("not werkstatt's") is not None, "reopening leaves the user's unused meshes alone")
+    check(bpy.context.scene.unit_settings.system == "IMPERIAL", "opening a vehicle leaves the scene's units alone")
+    bpy.data.meshes.remove(user_mesh)
+    bpy.context.scene.unit_settings.system = "METRIC"
+
+
+def axles(root):
+    """Each built truck as the plugin spawns it: the rear axle and springs moved back by the sweep, the wheels at
+    the wheelbase and track, and the body's wheel arches over the hubs."""
+    for name in TRUCKS:
+        if not os.path.isdir(os.path.join(root, "vehicles", name)):
+            print(f"skip {name}: not built")
+            continue
+        r = api.open_vehicle(name, force=True)
+        check(r["ok"], f"{name} opens: {r.get('error')}")
+        v = api._vehicle()
+        m = v.manifest
+        for which, axle_z in (("Front", m["donorAxleZ"]["front"]), ("Rear", m["donorAxleZ"]["rear"] + v.shift)):
+            objs = part(f"Axles/SuspensionRigid{which}/SuspensionRigidMesh_LOD0")
+            lo, hi = game_box(objs)
+            mid = (lo[2] + hi[2]) / 2
+            check(objs and abs(mid - axle_z) < 0.03, f"{name}: {which.lower()} axle and springs centred at z {mid:.3f}, the plugin's {axle_z:.3f}")
+        body = part("Parts/Mammoth/Mammoth_body_LOD0")[0]
+        bpy.context.view_layer.update()
+        points = [model.blender_to_game(tuple(body.matrix_world @ vert.co)) for vert in body.data.vertices]
+        refs = {o.name.split()[0]: o for o in bpy.context.scene.objects if o.get("werkstatt_reference")}
+        for corner, hub, radius, _width in v.wheels():
+            lo, hi = game_box([o for o in bpy.context.scene.objects if o.get("werkstatt_reference") and o.name.startswith(corner + " ")])
+            centre = [(a + b) / 2 for a, b in zip(lo, hi)]
+            check(close(centre, hub, 0.03), f"{name}: the {corner} wheel sits on its hub {tuple(round(c, 3) for c in hub)}")
+            back, front = arch(points, *hub, radius)
+            check(abs((back + front) / 2 - hub[2]) < 0.05 and front - back > radius,
+                  f"{name}: the {corner} hub sits under the body's wheel arch (arch {back:.3f} to {front:.3f}, hub {hub[2]:.3f})")
+            point = v.attach_points.get(f"Axles/WheelMeshes/{corner}")
+            check(point is not None and close(point, (hub[0], point[1], hub[2]), 0.01), f"{name}: the {corner} wheel's attach point is on the hub")
+        check(len(refs) >= 4, f"{name}: four wheels shown")
+
+
 def main():
-    root = scratch_checkout()
+    root = scratch_checkout(sorted(set(TRUCKS + (VEHICLE,))))
     os.environ["WERKSTATT_DIR"] = root
     werkstatt_addon.register()
     try:
@@ -119,6 +278,12 @@ def main():
         dup_option = api.duplicate("Party_Bed")
         check(dup_option["ok"] and dup_option["node"].endswith("Party_Bed/Party_Bed~2"), f"an option copy goes inside it: {dup_option.get('node')}")
         api.set_placement(dup_option["node"], offset=(0.3, 0.0, 0.0))
+        empties = scene.editable_empties()
+        party = empties[model.parent_path(keg)]
+        check(empties[dup_option["node"]].parent == party and empties[keg + "~2"].parent == party,
+              "a copy whose path is inside its source is its child, any other its sibling (the plugin's rule)")
+        check(not any(o.name.startswith("AccessoryBeerBarrel~") for o in empties[dup_option["node"]].children_recursive),
+              "a copy is made from its untouched source: Party_Bed~2 carries no copy of the keg copy, as in game")
 
         nodes = {winch: model.Placement((-0.003, 0.01, 0.05), (0, 2, 0)), roof: model.Placement((0, 0.02, 0), (0, 10, 0)),
                  spare: model.Placement((0, 0, 0.1), (3, 0, 0))}
@@ -180,6 +345,16 @@ def main():
         f = api.frame("RoofSpare/RoofrackFlatA")
         check(f["ok"] and close(f["centre"], v.nodes[rack].position, 0.6) and f["size"][0] > 0.5, f"frame finds the item's centre and size: {f}")
         check(not api.delete_copy("Winch_01")["ok"], "an original can't be deleted")
+        refusals(root, path)
+        axles(root)
+        # Reload Scripts re-runs the package's __init__, which reloads every submodule too.
+        import importlib
+        werkstatt_addon.unregister()
+        before = (model.parse_placements, scene.build, api.nudge, werkstatt_addon.ui.register)
+        importlib.reload(werkstatt_addon)
+        after = (model.parse_placements, scene.build, api.nudge, werkstatt_addon.ui.register)
+        check(all(a is not b for a, b in zip(before, after)), "reloading the add-on reloads model, scene, api and ui")
+        werkstatt_addon.register()
     finally:
         werkstatt_addon.unregister()
         shutil.rmtree(root, ignore_errors=True)
