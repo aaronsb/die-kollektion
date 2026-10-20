@@ -12,7 +12,7 @@ game's: x right, y up, z forward.
     api.nudge("Roof/RoofSpare", "y", 2, "cm")
     api.save()
 """
-import functools, os, subprocess
+import functools, hashlib, os, subprocess
 
 import bpy
 import mathutils
@@ -140,7 +140,7 @@ WM_RECORD = "werkstatt_file_sha"
 
 def _wm_record():
     """The hashes kept on the window manager, which Blender's undo never rolls back and Reload Scripts keeps; it is
-    saved with the .blend too. {"<checkout>|<vehicle>": sha}."""
+    saved with the .blend too. {_record_key(vehicle): sha}."""
     wm = bpy.context.window_manager
     if wm is None:
         return None
@@ -149,13 +149,20 @@ def _wm_record():
     return wm[WM_RECORD]
 
 
+def _record_key(v):
+    """A key for the vehicle in the window manager's record. Blender limits property names to 63 characters, which
+    a checkout's path alone can pass, so the key is the vehicle's name (cut short) and a digest of path and name."""
+    digest = hashlib.sha1(f"{v.root}|{v.name}".encode("utf-8")).hexdigest()[:16]
+    return f"{v.name[:40]}-{digest}"
+
+
 def _read(v, sha):
     """Records that the scene's vehicle matches its placements file as it is now (on open and save)."""
     _state["sha"][(v.root, v.name)] = sha
     scene.root_collection()["werkstatt_file_sha"] = sha
     record = _wm_record()
     if record is not None:
-        record[f"{v.root}|{v.name}"] = sha
+        record[_record_key(v)] = sha
 
 
 def _known_file(v):
@@ -165,7 +172,7 @@ def _known_file(v):
     now = model.file_hash(_placements_file(v))
     record = _wm_record()
     known = {_state["sha"].get((v.root, v.name)), scene.root_collection().get("werkstatt_file_sha"),
-             record.get(f"{v.root}|{v.name}") if record is not None else None} - {None}
+             record.get(_record_key(v)) if record is not None else None} - {None}
     if not known:
         raise model.WerkstattError(f"the scene has no record of reading {v.name}'s placements file: open the vehicle "
                                    "again, or overwrite the file (Overwrite in the panel, save(force=True) in a script)")
