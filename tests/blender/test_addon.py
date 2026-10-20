@@ -6,7 +6,7 @@ Runs on a scratch copy of the checkout's vehicle folders (the builds and extract
 the checkout is never written. Needs `make extract` (with upgrades.json) and the vehicle built. Exits non-zero on
 any failure. The panel's real draw is tested under Xvfb by tests/blender/test_panel_gui.py.
 """
-import hashlib, json, math, os, shutil, sys, tempfile, time, traceback
+import json, math, os, shutil, sys, tempfile, time, traceback
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "blender", "addons"))
@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import bpy  # noqa: E402
 import mathutils  # noqa: E402
+import numpy as np  # noqa: E402
 import werkstatt_addon  # noqa: E402
 from checkout import scratch_checkout  # noqa: E402
 from werkstatt_addon import api, model, scene  # noqa: E402
@@ -21,6 +22,10 @@ from werkstatt_addon import api, model, scene  # noqa: E402
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 VEHICLE = argv[0] if argv else "megaloceros"
 TRUCKS = ("megaloceros", "glyptodon", "mastodon", "megatherium")
+# Two renders of one pose aren't always byte-identical: on Blender's OpenGL backend, Workbench's anti-aliasing can
+# leave a few edge pixels a few levels apart (#39). Views count as the same within these.
+VIEW_LEVELS = 8             # per channel, out of 255
+VIEW_PIXELS = 1e-4          # the share of pixels that may differ
 failures = []
 
 
@@ -50,6 +55,26 @@ def emulate(base, steps):
                 rel = tuple(a - b for a, b in zip(pos[other], pivot))
                 pos[other] = tuple(p + r for p, r in zip(pivot, model.quat_rotate(turn, rel)))
     return pos
+
+
+def view_pixels(path):
+    img = bpy.data.images.load(path)
+    try:
+        px = np.empty(len(img.pixels), dtype=np.float32)
+        img.pixels.foreach_get(px)
+        return tuple(img.size), np.rint(px * 255).astype(np.int16)
+    finally:
+        bpy.data.images.remove(img)
+
+
+def same_view(a, b):
+    """Whether two review PNGs show the same: the same size, and at most VIEW_PIXELS of the pixels differ, by at
+    most VIEW_LEVELS in any channel."""
+    (size_a, pa), (size_b, pb) = view_pixels(a), view_pixels(b)
+    if size_a != size_b:
+        return False
+    diff = np.abs(pa - pb).reshape(-1, 4).max(axis=1)
+    return diff.max() <= VIEW_LEVELS and np.count_nonzero(diff) <= VIEW_PIXELS * len(diff)
 
 
 def world_game(empty):
@@ -618,14 +643,13 @@ def main():
         out = tempfile.mkdtemp(prefix="werkstatt-review-")
         first = api.review_views("RoofSpare/RoofrackFlatA", out)
         check(first["ok"] and sorted(first["views"]) == ["front", "side", "three_quarter", "top"], f"review_views renders four views: {first.get('views')}")
-        hashes = {k: hashlib.sha256(open(v, "rb").read()).hexdigest() for k, v in first["views"].items()}
+        kept = {k: shutil.copy(v, f"{v[:-4]}.first.png") for k, v in first["views"].items()}
         second = api.review_views("RoofSpare/RoofrackFlatA", out)
-        check(all(hashlib.sha256(open(v, "rb").read()).hexdigest() == hashes[k] for k, v in second["views"].items()),
+        check(all(same_view(v, kept[k]) for k, v in second["views"].items()),
               "the same item renders the same views again (like with like)")
         api.nudge(roof, "y", 5, "cm")
         third = api.review_views("RoofSpare/RoofrackFlatA", out)
-        check(any(hashlib.sha256(open(v, "rb").read()).hexdigest() != hashes[k] for k, v in third["views"].items()),
-              "a nudge shows in the views")
+        check(any(not same_view(v, kept[k]) for k, v in third["views"].items()), "a nudge shows in the views")
         shutil.rmtree(out, ignore_errors=True)
         api.reset(roof)
         clearance_findings(roof, rack)
