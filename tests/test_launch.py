@@ -48,31 +48,38 @@ class Sources(unittest.TestCase):
 
     def test_the_hashes_agree_over_msbuild_inputs_above_the_project(self):
         """The real tree has no Directory.Build.* or global.json, so both hashes are compared over a tree that has them,
-        with names whose ordinal and cultural orders differ."""
+        with names whose ordinal and cultural orders differ. A Directory.Build.props above the Werkstatt root must not
+        count on either side."""
         if ws.dotnet_sdk_major() < 6:
             self.skipTest("tools/loader-plan needs a .NET SDK")
         tmp = tempfile.mkdtemp(prefix="werkstatt-sources-")
         self.addCleanup(shutil.rmtree, tmp)
-        project = os.path.join(tmp, "plugins", "VehicleMods")
-        for rel, text in (("Directory.Build.props", "<Project/>"), ("global.json", "{}"), ("plugins/Directory.Build.targets", "<Project/>"),
-                          ("plugins/VehicleMods/Plugin.cs", "class P {}"), ("plugins/VehicleMods/b.cs", "class B {}"),
-                          ("plugins/VehicleMods/_Z.cs", "class Z {}"), ("plugins/VehicleMods/VehicleMods.csproj", "<Project/>"),
-                          ("plugins/VehicleMods/bin/x.cs", "built")):
+        root = os.path.join(tmp, "werkstatt")
+        project = os.path.join(root, "plugins", "VehicleMods")
+        for rel, text in (("Directory.Build.props", "<Project/>"), ("werkstatt/Directory.Build.props", "<Project/>"),
+                          ("werkstatt/global.json", "{}"), ("werkstatt/plugins/Directory.Build.targets", "<Project/>"),
+                          ("werkstatt/plugins/VehicleMods/Plugin.cs", "class P {}"), ("werkstatt/plugins/VehicleMods/b.cs", "class B {}"),
+                          ("werkstatt/plugins/VehicleMods/_Z.cs", "class Z {}"),
+                          ("werkstatt/plugins/VehicleMods/VehicleMods.csproj", "<Project/>"),
+                          ("werkstatt/plugins/VehicleMods/bin/x.cs", "built")):
             path = os.path.join(tmp, rel)
             os.makedirs(os.path.dirname(path), exist_ok=True)
             open(path, "w").write(text)
 
         def loader_hash():
-            r = subprocess.run(["dotnet", "run", "--project", "tools/loader-plan", "-v", "quiet", "--", "sources", project, tmp],
+            r = subprocess.run(["dotnet", "run", "--project", "tools/loader-plan", "-v", "quiet", "--", "sources", project, root],
                                cwd=ROOT, capture_output=True, text=True, timeout=300)
             self.assertEqual(r.returncode, 0, r.stderr)
             return r.stdout.strip()
 
-        with_inputs = ws.plugin_sources_hash(project, tmp)
+        with_inputs = ws.plugin_sources_hash(project, root)
         self.assertEqual(loader_hash(), with_inputs)
-        os.remove(os.path.join(tmp, "Directory.Build.props"))
-        self.assertNotEqual(ws.plugin_sources_hash(project, tmp), with_inputs)
-        self.assertEqual(loader_hash(), ws.plugin_sources_hash(project, tmp))
+        open(os.path.join(tmp, "Directory.Build.props"), "w").write("<Project>changed above the root</Project>")
+        self.assertEqual(ws.plugin_sources_hash(project, root), with_inputs)
+        self.assertEqual(loader_hash(), with_inputs)
+        os.remove(os.path.join(root, "Directory.Build.props"))
+        self.assertNotEqual(ws.plugin_sources_hash(project, root), with_inputs)
+        self.assertEqual(loader_hash(), ws.plugin_sources_hash(project, root))
 
     def test_the_hash_follows_sources_only(self):
         tmp = tempfile.mkdtemp(prefix="werkstatt-sources-")
