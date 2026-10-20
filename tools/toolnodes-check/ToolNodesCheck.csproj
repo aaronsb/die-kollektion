@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Offline check of the plugin's tool-node reader and decision (ToolNodes.cs) and of every vehicle manifest's
+       "toolNodes" block. `make check` runs it over vehicles/*/vehicle.json. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../plugins/VehicleMods/ToolNodes.cs" />
+  </ItemGroup>
+</Project>

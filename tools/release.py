@@ -120,6 +120,8 @@ def cmd_ci(_args):
         ("placements reader", ["dotnet", "run", "--project", "tools/placement-check", "-v", "quiet", "--",
                                "tests/placements/fixture.json", "tests/placements/expect.json"]
          + sorted(os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "tests", "placements", "bad", "*.json")))),
+        ("tool nodes", ["dotnet", "run", "--project", "tools/toolnodes-check", "-v", "quiet", "--"]
+         + sorted(os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "vehicles", "*", "vehicle.json")))),
         ("loader decisions", ["dotnet", "run", "--project", "tools/loader-plan", "-v", "quiet", "--", "scenarios"]),
     ]
     # The tests build fake game folders; folders exported by the Makefile and FORCE stay out of their way.

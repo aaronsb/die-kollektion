@@ -27,7 +27,11 @@ static class DerivedVehicles
     static readonly Dictionary<string, Mesh> meshCache = new();
     // This mod's copies of the game's light configs, by "<codename>/<group>"; the shared originals stay untouched.
     static readonly Dictionary<string, CarLightConfig> lightConfigs = new();
-    static readonly HashSet<int> reshapedDummies = new();
+    // Display dummies reshaped so far, by instance ID, with the vehicle each shows.
+    static readonly Dictionary<int, Entry> dummies = new();
+    // Tools: warnings already logged, by "<root instance ID>/<node path>" (no path for a missing loadout), so a
+    // refresh doesn't repeat them.
+    static readonly HashSet<string> toolWarnings = new();
     static readonly string[] Corners = { "FL", "FR", "RL", "RR" };
     // Spawned vehicles (not dummies) for LogRestPoses: codename, root, spawn time.
     static readonly List<(string Codename, Transform Root, float SpawnTime)> settling = new();
@@ -198,11 +202,13 @@ static class DerivedVehicles
             var odometer = __instance.GetComponent<Odometer>();
             if (odometer != null) odometer.carInfo = entry.CarInfo;
             Plugin.Logger.LogInfo($"{entry.Definition.Codename}: {__instance.gameObject.name} now carries CarInfo {entry.CarInfo.name} ({entry.CarInfo.ItemId})");
+            SyncToolNodes(__instance.transform, entry, "on spawn", dummy: false);
         }
     }
 
     // Menu and merchant display dummies (Car_<Donor>_Dummy) share the address redirect, but several
-    // can be requested before any spawns. RefreshMountedUpgrades names the car being displayed.
+    // can be requested before any spawns. RefreshMountedUpgrades names the car being displayed; the
+    // dummy is reshaped once, and its tool nodes follow the loadout on every refresh.
     [HarmonyPatch(typeof(LocalVehicleCustomizationController), nameof(LocalVehicleCustomizationController.RefreshMountedUpgrades))]
     static class OnDummyRefresh
     {
@@ -210,16 +216,117 @@ static class DerivedVehicles
         {
             var itemId = car?.CarInfo?.ItemId;
             var entry = entries.Find(e => e.CarInfo.ItemId == itemId);
-            if (entry == null || !reshapedDummies.Add(__instance.GetInstanceID())) return;
+            if (entry == null) return;
+            if (dummies.TryAdd(__instance.GetInstanceID(), entry))
+            {
+                try
+                {
+                    Reshape(__instance.transform, entry.Definition);
+                }
+                catch (Exception e)
+                {
+                    Plugin.Logger.LogError($"{entry.Definition.Codename}: dummy reshape failed: {e}");
+                }
+            }
+            SyncToolNodes(__instance.transform, entry, "on dummy refresh", dummy: true);
+        }
+    }
+
+    // Adding or removing a tool in the mechanic's Tools screen ends here; the displayed dummy follows at once.
+    [HarmonyPatch(typeof(StateMerchantMenu), nameof(StateMerchantMenu.RefreshToolsPanels))]
+    static class OnToolsPanelsRefresh
+    {
+        static void Postfix(StateMerchantMenu __instance)
+        {
             try
             {
-                Reshape(__instance.transform, entry.Definition);
+                var dummy = __instance.dummyChosenCarGameObject;
+                var controller = dummy == null ? null : dummy.GetComponentInChildren<LocalVehicleCustomizationController>(true);
+                if (controller == null || !dummies.TryGetValue(controller.GetInstanceID(), out var entry)) return;
+                SyncToolNodes(controller.transform, entry, "in the Tools screen", dummy: true);
             }
             catch (Exception e)
             {
-                Plugin.Logger.LogError($"{entry.Definition.Codename}: dummy reshape failed: {e}");
+                Plugin.Logger.LogError($"Tools: the Tools screen's dummy: {e}");
             }
         }
+    }
+
+    /// <summary>The layer the game gives every fitted option on a display dummy.</summary>
+    const int DummyPartLayer = 16;
+
+    /// <summary>Shows each of the definition's tool nodes while the vehicle's loadout carries its tool and hides it
+    /// otherwise (<see cref="ToolNodes"/>), logging each change; on a dummy a shown node takes the dummy parts'
+    /// layer. Patches and stock cars have no tool nodes.</summary>
+    static void SyncToolNodes(Transform root, Entry entry, string trigger, bool dummy)
+    {
+        var definition = entry.Definition;
+        if (definition.Patch || definition.ToolNodes == null || definition.ToolNodes.Nodes.Count == 0) return;
+        var codename = definition.Codename;
+        try
+        {
+            var loadout = Loadout(entry.CarInfo.ItemId);
+            if (loadout == null)
+                WarnOnce(root, "", $"Tools: {codename}: no VehicleItem {entry.CarInfo.ItemId} in the inventory; tool nodes hidden");
+            foreach (var (path, tool) in definition.ToolNodes.Nodes)
+            {
+                var node = root.Find(path);
+                if (node == null)
+                {
+                    WarnOnce(root, path, $"Tools: {codename}: no {path} on {root.name}");
+                    continue;
+                }
+                var part = node.GetComponent<VehicleUpgradeObject>()?.vehiclePartReference;
+                if (part != null)
+                {
+                    WarnOnce(root, path, $"Tools: {codename}: {node.name} now carries a part reference ({part.name}); leaving it to the game");
+                    continue;
+                }
+                var active = node.gameObject.activeSelf;
+                var change = ToolNodes.Decide(active, tool, loadout);
+                // A spawn always says where the node stands; a dummy, refreshed often, only when it changes.
+                if (change == ToolNodes.Change.None && dummy) continue;
+                if (change == ToolNodes.Change.Show && dummy)
+                    foreach (var t in node.GetComponentsInChildren<Transform>(true))
+                        t.gameObject.layer = DummyPartLayer;
+                if (change != ToolNodes.Change.None) node.gameObject.SetActive(change == ToolNodes.Change.Show);
+                var state = change switch
+                {
+                    ToolNodes.Change.Show => "shown",
+                    ToolNodes.Change.Hide => "hidden",
+                    _ => active ? "stays shown" : "stays hidden",
+                };
+                Plugin.Logger.LogInfo($"Tools: {codename}: {node.name} {state} on {root.name} {trigger} (tool {tool}, loadout {ToolNodes.Describe(loadout)})");
+            }
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogError($"Tools: {codename}: failed on {root.name} {trigger}: {e}");
+        }
+    }
+
+    /// <summary>The save's toolset loadout for a vehicle (its VehicleItem's ToolsetIDs), or null when the inventory
+    /// holds no VehicleItem for it.</summary>
+    static List<uint> Loadout(uint itemId)
+    {
+        var items = PlayerInventoryManager.Instance?.Inventory?.Items;
+        for (var i = 0; items != null && i < items.Count; i++)
+        {
+            var item = items[i];
+            if (item == null || item.ItemId != itemId) continue;
+            var vehicle = item.TryCast<VehicleItem>();
+            if (vehicle == null) continue;
+            var ids = vehicle.ToolsetIDs;
+            var loadout = new List<uint>();
+            for (var k = 0; ids != null && k < ids.Count; k++) loadout.Add(ids[k]);
+            return loadout;
+        }
+        return null;
+    }
+
+    static void WarnOnce(Transform root, string key, string message)
+    {
+        if (toolWarnings.Add($"{root.GetInstanceID()}/{key}")) Plugin.Logger.LogWarning(message);
     }
 
     /// <summary>Reshapes a spawned car or a display dummy; parts a dummy lacks are skipped.</summary>
