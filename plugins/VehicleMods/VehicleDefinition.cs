@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -44,6 +45,9 @@ sealed class VehicleDefinition
     /// <summary>Moves, turns and copies of prefab nodes from placements.json beside the deployed meshes
     /// (<see cref="PlacementPlan"/>); empty when there is no file, null when it is malformed.</summary>
     public PlacementPlan Placements { get; set; }
+    /// <summary>Nodes shown while the loadout carries a tool ("toolNodes", <see cref="VehicleMods.ToolNodes"/>);
+    /// empty for a patch, which is the stock car, and when the block is missing or malformed.</summary>
+    public ToolNodes ToolNodes { get; set; }
 
     public string MeshDirectory { get; private set; }
     public string CatalogName => Codename.ToLowerInvariant();
@@ -145,6 +149,7 @@ sealed class VehicleDefinition
             };
             definition.MeshDirectory = Path.Combine(directory, definition.CatalogName);
             definition.Placements = VehicleMods.Placements.Read(definition.MeshDirectory, definition.Codename);
+            definition.ToolNodes = root.TryGetProperty("toolNodes", out var toolNodes) ? ReadToolNodes(toolNodes, definition) : new();
             definitions.Add(definition);
         }
         return definitions;
@@ -231,6 +236,26 @@ sealed class VehicleDefinition
         if (problem == null) return new HeadlightSettings { Kelvin = kelvin, Intensity = intensity };
         Plugin.Logger.LogWarning($"Lights: {codename}: the headlights block {problem}; headlights left as the game's");
         return null;
+    }
+
+    /// <summary>The "toolNodes" block, or none with a log line when it is malformed or on a patch: a bad block costs
+    /// only that vehicle its tool nodes.</summary>
+    static ToolNodes ReadToolNodes(JsonElement obj, VehicleDefinition definition)
+    {
+        if (definition.Patch)
+        {
+            Plugin.Logger.LogWarning($"Tools: {definition.Codename}: a patch is the stock car, which keeps the game's nodes; toolNodes ignored");
+            return new ToolNodes();
+        }
+        try
+        {
+            return ToolNodes.Read(obj);
+        }
+        catch (FormatException e)
+        {
+            Plugin.Logger.LogWarning($"Tools: {definition.Codename}: the toolNodes block can't be used ({e.Message}); no tool nodes for this vehicle");
+            return new ToolNodes();
+        }
     }
 
     static UnityEngine.Vector3 ReadVector(JsonElement array)

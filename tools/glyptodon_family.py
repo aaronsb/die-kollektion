@@ -125,6 +125,10 @@ HEADLIGHTS = {
     "kelvin": 3200,
     "intensity": 0.8
 }
+TOOL_NODES = {
+    "notes": "The bumper winch, which the game never shows, shows while the truck carries the portable winch (its toolset ItemId).",
+    "Parts/Mammoth_CosmeticParts/Performance/Winch/Winch_01": 2317836723
+}
 SPARE_AXLE_SCALE, SPARE_RADIAL_SCALE = TYRE["width"] / WHEEL["width"], TYRE["radius"] / WHEEL["radius"]
 SPARE_R, SPARE_HALF_W = 0.53 * SPARE_RADIAL_SCALE, 0.372 / 2 * SPARE_AXLE_SCALE
 # The spare's carrier, after a sketch (from above): a
@@ -444,6 +448,7 @@ def write(truck):
         # turns by the Euler angles. "preview" is for tools/render_vehicle.py; the plugin ignores it.
         "spare": {"source": SPARE_SOURCE, "position": [-centre[0], centre[1], centre[2]],
                   "rotation": rotation, "preview": preview},
+        "toolNodes": TOOL_NODES,
     }
     vehicle_dir = f"vehicles/{truck['codename'].lower()}"
     os.makedirs(os.path.join(vehicle_dir, "generated"), exist_ok=True)

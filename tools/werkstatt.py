@@ -802,6 +802,12 @@ def cmd_gates(args):
         if r.returncode:
             print(r.stdout + r.stderr)
             failed.append("placing")
+        manifests = sorted(os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "vehicles", "*", "vehicle.json")))
+        r = run(["dotnet", "run", "--project", "tools/toolnodes-check", "-v", "quiet", "--"] + manifests, cwd=ROOT)
+        print(f"tools    {'ok  ' if r.returncode == 0 else 'FAIL'} the plugin's tool-node reader and decision; every manifest's toolNodes")
+        if r.returncode:
+            print(r.stdout + r.stderr)
+            failed.append("tools")
         r = run(["dotnet", "run", "--project", "tools/loader-plan", "-v", "quiet", "--", "scenarios"], cwd=ROOT)
         print(f"loader   {'ok  ' if r.returncode == 0 else 'FAIL'} {(r.stdout.strip().splitlines() or [''])[-1]}")
         if r.returncode:
@@ -813,7 +819,7 @@ def cmd_gates(args):
             if r.returncode:
                 failed.append("loaderrefs")
     else:
-        print("nearplan skip the plugin's hook-page placement and placements tests need the .NET 10 SDK; they test "
+        print("nearplan skip the plugin's hook-page placement, placements and tool-node tests need the .NET 10 SDK; they test "
               "the plugin's source, which CI and every release already ran")
     addon_vehicle = os.path.join(ROOT, "vehicles", "megaloceros", "build", "body_LOD0.obj")
     if which("blender") and os.path.isfile(addon_vehicle) and os.path.isfile(os.path.join(ROOT, "extracted", "mammoth", "upgrades.json")):
