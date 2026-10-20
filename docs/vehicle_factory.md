@@ -13,6 +13,34 @@
 - **Lifecycle:** packs install and uninstall, and removing them brings the game back to stock, or at least to a stable state that survives Steam's "verify integrity of game files".
 - **Cross-platform tools:** the CLI and the plugin run on Linux and Windows, cross-compiled from Linux.
 
+## Players, tinkerers, creators (author, 2026-10-20)
+
+People are picking the mod up, and most players want a turnkey mod experience like Minecraft's: install a loader once, drop mods in, play. Distribution is compiled artifacts.
+
+| Tier | What they use | What they install |
+|---|---|---|
+| **Player** | The release, unzipped into the game folder or installed from Nexus; then play | BepInEx once (`kollektion setup`, or by hand from the README). No Python, make, .NET SDK or Blender |
+| **Tinkerer** | The `kollektion` CLI: install and uninstall packs, `status`, `stock`, `names`, and patch a stock car's numbers (`kollektion new patch`, see Items and the two pipelines) | The CLI, a single file in the release |
+| **Creator** | The Blender add-on, the visual editor: work through items, create and manage vehicles | Blender, with the add-on |
+
+- **One engine, two faces.** Every add-on action is a `kollektion` command, so the CLI and the add-on can do the same things. The add-on stops calling `make` (today "Build and check" runs `make loop`) once the CLI covers it. Most creators would rather click in Blender; the CLI is for the rest and for agents.
+- **Blender is the GUI** (Non-goals: no standalone GUI).
+- **BepInEx stays out of our zip.** `kollektion setup` fetches the pinned, checksum-verified build (as `make bepinex` does today from `tools/bepinex.json`) and installs it. On Windows BepInEx needs no launch option (Doorstop's proxy DLL beside the game's executable); on Linux the CLI prints the launch option `"./run_bepinex.sh" %command%` and where to paste it.
+- **Windows** is supported only after a player runs the release there (see Windows).
+
+| Minecraft | Die Kollektion |
+|---|---|
+| Loader installer (Fabric, Forge) | BepInEx plus our loader, installed by `kollektion setup` |
+| `mods/` | Packs (`BepInEx/DieKollektion/packs/`) |
+| Launcher | The `kollektion` CLI |
+| Blockbench | The Blender add-on |
+| Datapacks | Packs are data: no code, no game assets |
+
+**What stands between today and the player tier:**
+1. **Trucks are built on the player's machine from their game by Python tools** (`make extract`, `make build`). The plugin must build them on first launch instead: Core's operations and donor reader, run on the plugin's background thread into the cache (Packs). The donor meshes can't be read from the loaded prefab (Research findings, "Reading donor meshes at run time"), so the plugin carries a managed bundle reader.
+2. **A plugin built against old interop hangs the game.** The loader rebuilds it with the .NET SDK, which players won't have, and CI can't compile the plugin (the interop is generated from the game). So a maintainer with the game publishes a release per game update (`tools/release.py build`), and between an update and that release a player's game runs stock or, with our trucks in the save, closes with the loader's message (`docs/engine.md`, BepInEx). **[research]** Why a stale plugin hangs: if the cause is narrow (a type or signature our code touches that the update changed), a release might survive minor updates.
+3. **Windows** has never been run (see Windows).
+
 ## Goals and non-goals
 
 Goals:
@@ -87,7 +115,7 @@ Internal tools       our Python (Glyptodon-family generator, cab scripts, gates,
   - the pack format and definition schema (strict JSON with `notes` fields for comments, see Manifests; the plugin already parses with `JsonDocument`. Historical note: an earlier draft allowed comments via `JsonDocumentOptions { CommentHandling = Skip, AllowTrailingCommas = true }`);
   - OBJ reading and writing (today's `ObjMesh.cs`, with bone weights);
   - the mesh operations, ported from `meshlib.py`: stretch, stretchPieces, removeRegion, removePieces, movePieces, relocatePiece, insertPart, paint, addBoxes, portalAxle, coilSprings, widenPieces;
-  - the donor reader: donor meshes and prefab facts read from the player's Addressables bundles with a managed bundle reader (AssetsTools.NET or similar, pure managed, no IL2CPP), so it is safe from the plugin's background thread;
+  - the donor reader: donor meshes and prefab facts read from the player's Addressables bundles with a managed bundle reader (AssetsTools.NET or similar, pure managed, no IL2CPP), so it is safe from the plugin's background thread. The loaded prefab is no alternative: its meshes aren't CPU-readable (Research findings, "Reading donor meshes at run time");
   - save reading and editing; ItemId issuing; per-OS paths (Steam library via `libraryfolders.vdf`, game folder, save folder, game process name).
 - **Plugin** keeps today's invariants: no class injection; all patches from the `GameStateManager.Transition` entry hook; Load touches no IL2CPP type; `DobbyNearPages` is Linux-only (`/proc/self/maps`, `libdobby.so`) and must be a logged no-op elsewhere.
 - **CLI** is built with `dotnet publish -r <rid> --self-contained -p:PublishSingleFile=true` for `linux-x64` and `win-x64` from this machine (SDK 10.0; Core and the plugin target net6.0, the CLI can target a newer framework). Building for Windows needs no Windows; running there does (see Windows).
@@ -406,9 +434,14 @@ The template file in the repo holds only empties, collections, materials and pro
 ## Windows
 
 - The CLI cross-compiles; the plugin is AnyCPU net6.0 and loads under BepInEx 6 IL2CPP win-x64.
-- `DobbyNearPages` is a logged no-op off Linux. Whether Windows needs its own guard against Dobby's near pages colliding with coreclr is unknown; Windows' allocator and layout differ.
-- Paths: the documents folder on Windows is `Documents\\My Games\\over the hill` (official livery guide); the Steam library from `libraryfolders.vdf` on both.
-- A Windows run (machine or VM) is required before a release says it supports Windows. The Vehicle Flipper (be.788, Windows x64) shows BepInEx 6 IL2CPP runs there.
+- **Supported only after a player runs it (author, 2026-10-20).** A Windows player, recruited from current users, runs the release; until then every Windows artifact is marked experimental (its file name, the release notes, the README and the Nexus page). The Vehicle Flipper (be.788, Windows x64) shows BepInEx 6 IL2CPP runs there.
+- **Linux-only pieces the Windows path replaces:**
+  - The loader's rebuild after a game update runs the host's .NET SDK inside Steam's pressure-vessel container (`/run/host`, `LD_LIBRARY_PATH`). Windows has no container, and players have no SDK, so there the loader only installs a release's prebuilt plugin; without a fitting one it can't start.
+  - The loader's progress window, errors and notifications use zenity and notify-send. Windows needs a native dialog (a P/Invoke to `MessageBoxW` hands the game no managed delegate) or the log alone **[decide at implementation]**.
+  - The can't-start path ends with libc's `_exit(0)` so no managed shutdown runs while Unity's threads do. The Windows equivalent is `TerminateProcess` on the current process **[test]**.
+  - `DobbyNearPages` reads `/proc/self/maps` and `libdobby.so` and is a logged no-op off Linux. Whether Windows needs its own guard against Dobby's near pages colliding with coreclr is unknown; Windows' allocator and layout differ.
+  - `tools/bepinex.json` has no sha256 for the win-x64 build yet, so `make bepinex` refuses it; `kollektion setup` needs one recorded first.
+- Paths: the documents folder on Windows is `Documents\\My Games\\over the hill` (official livery guide); the Steam library from `libraryfolders.vdf` on both; the bundles in `StreamingAssets/aa/StandaloneWindows64/` (`tools/export_game_data.sh` already falls back to it).
 
 ## Compatibility
 
@@ -419,8 +452,8 @@ The template file in the repo holds only empties, collections, materials and pro
 ## Distribution: GitHub first, Nexus mirrors it (author, 2026-10-19)
 
 The mod is always installable straight from GitHub; Nexus is where players find it, and nothing depends on it.
-- **GitHub Releases are the source of every artifact,** built by a tag-triggered Actions workflow on an Ubuntu runner (which cross-compiles both OSes):
-  - `DieKollektion-<ver>.zip`: the loader `BepInEx/plugins/DieKollektion.Loader.dll` and the `BepInEx/DieKollektion/` folder (DLLs, our `.kpack`, README), extracted into the game folder by hand;
+- **GitHub Releases are the source of every artifact.** The plugin compiles against the interop BepInEx generates from the game, so a maintainer with the game builds and publishes each release (`make release`, `tools/release.py build`); CI on an Ubuntu runner checks the release's tag, versions and assets, and can cross-compile the CLI for both OSes, which needs no game files. Today's release is `die-kollektion-werkstatt-<ver>.zip` (the tracked files plus the prebuilt plugin, driven by `make`), the pack zip and `SHA256SUMS`; the player-tier release (Players, tinkerers, creators) is:
+  - `DieKollektion-<ver>.zip`: the loader `BepInEx/plugins/DieKollektion.Loader.dll` and the `BepInEx/DieKollektion/` folder (DLLs, our `.kpack`, README), extracted into the game folder by hand, with no BepInEx inside;
   - `kollektion-<ver>-linux-x64` and `kollektion-<ver>-win-x64.exe`;
   - `die-kollektion-<ver>.kpack` on its own, for installing with the CLI;
   - `checksums.txt`.
@@ -438,17 +471,24 @@ Decided (author, 2026-10-19):
 
 ## Migration plan
 
-Each step is reversible and has a check. Steps 1-4 change no game-visible behaviour.
+Each step is reversible and has a check. The order follows the tiers (author, 2026-10-20): the player tier first, the creator tier alongside.
 
-1. **Golden outputs.** Hash every built file (OBJs, the runtime fields of each JSON, icons) into `build/golden.json`. *Check:* a rebuild with today's commands reproduces it.
-2. **Core and CLI skeleton.** `Kollektion.Core` with the definition schema, OBJ I/O and pack read/write; `kollektion pack` packages today's built outputs, donor-derived meshes included, as a private pack (not for release). *Check:* unpacking reproduces golden.
-3. **Plugin reads packs,** falling back to `vehicles/*.json` for one release; per-item validation and fail-soft registration. *Check:* the author spawns each truck once.
-4. **Lifecycle commands:** install, uninstall, list, status, refusing while the game runs; gates fail `pack`. *Check:* a planted hole fails; a running-game probe refuses; install then uninstall leaves the plugin folder as before.
-5. **Save:** the sidecar and `save clean`, then the unknown-current-vehicle **[test]**. *Check:* a save round trip (install, drive, uninstall, reinstall) on a copy of a real save.
-6. **Categories:** the "Die Kollektion" category. *Check:* the author sees a fifth merchant section holding our four, and every section still navigates.
-7. **Operations in Core:** port `meshlib.py`; the plugin builds donor-derived meshes from the player's bundles into the cache; our pack drops donor geometry. *Check:* cache OBJs match golden geometry within float tolerance.
-8. **Export, Blender add-on and vehicle template,** starting with the Mammoth (the upgrade-slot audit is the first use). *Check:* export, import, export again without edits gives an empty patch.
-9. **Windows and release:** the public GitHub repo, the release workflow, the win-x64 CLI, a Windows test, the README, then the Nexus upload of the same zip. *Check:* a clean BepInEx install in a copy of the game folder (not a player's own) loads the pack from the GitHub release zip.
+Done before this plan was reordered: the public GitHub repo, the release workflow (`make release`, CI on every push, the Nexus upload of the same zip); Die Kollektion's loader (fit check, rebuild after a game update, the can't-start policy; `docs/engine.md`, BepInEx); the pack manifest and its zip (`make pack`); `make check` failing on any failed gate; the Blender add-on's placements (`docs/blender_addon.md`).
+
+1. **Design:** this note. *Check:* done (2026-10-20).
+2. **CLI skeleton with the lifecycle commands, on Linux, cross-built for win-x64.**
+   - Golden outputs first: hash every built file (OBJs, the runtime fields of each JSON, icons) into `build/golden.json`. *Check:* a rebuild with today's commands reproduces it.
+   - `Kollektion.Core` with the definition schema, OBJ I/O, pack read/write, per-OS paths and the game-running check; `kollektion pack` packages today's built outputs, donor-derived meshes included, as a private pack (not for release). *Check:* unpacking reproduces golden.
+   - The plugin reads packs, falling back to the vehicle folders for one release; per-item validation and fail-soft registration. *Check:* the author spawns each truck once.
+   - `kollektion setup | install | uninstall | list | status | stock`, refusing while the game runs, taking over `make bepinex`, `deploy`, `undeploy` and `status`; `save clean` for `uninstall` and `stock`; gates fail `pack`. *Check:* a planted hole fails; a running-game probe refuses; install then uninstall leaves the game folder as before; `dotnet publish -r win-x64` builds the same CLI on Linux.
+3. **The plugin builds the trucks from the player's game.**
+   - Operations in Core: port `meshlib.py`; the managed bundle reader (the loaded prefab's meshes aren't readable, Research findings); the plugin builds donor-derived meshes from the player's bundles into the cache on first launch; our pack drops donor geometry. *Check:* cache OBJs match golden geometry within float tolerance; a release folder with no Python, make or .NET SDK, in a copy of the game folder, builds the cache and spawns each truck.
+   - The save: the sidecar, then the unknown-current-vehicle **[test]**. *Check:* a save round trip (install, drive, uninstall, reinstall) on a copy of a real save.
+   - The "Die Kollektion" category. *Check:* the author sees a fifth merchant section holding our four, and every section still navigates.
+4. **The Windows path and a player-run test.** Replace the Linux-only pieces (Windows), record the win-x64 BepInEx sha256, mark the Windows artifacts experimental. *Check:* a Windows player installs BepInEx with `kollektion setup` and the release zip into the game, spawns a truck, uninstalls, and the game runs stock.
+5. **Release with both:** the player-tier zip, the CLI for linux-x64 and win-x64, the README's install guide for both, the Nexus upload of the same zip; the experimental mark comes off once step 4's run passes. *Check:* a clean BepInEx install in a copy of the game folder (not a player's own) loads the pack from the GitHub release zip, on Linux by the author and on Windows by the player.
+
+Alongside, once step 2's commands exist: **the creator tier.** Each add-on action moves onto its `kollektion` command, "Build and check" first (today `make loop`); then export and the vehicle template, starting with the Mammoth (the upgrade-slot audit is the first use). *Check:* the add-on runs with no `make` on PATH; export, import, export again without edits gives an empty patch.
 
 ## Open questions
 
@@ -529,3 +569,18 @@ Quirks an exporter tolerates by matching tree position, not names: `BullV1`, `Tr
 - Liveries are per-car assets whose effect loads a skin texture and calls `PropertyBlockSetter.SetLiveryTexture`. The `PropertyBlockSetter` collects the car's renderers by material at `Awake` and overrides `_Livery_Texture` through a property block on every renderer whose material had `_IsSwitchable` set; weather, damage and lights go through the same blocks. It has `AddRenderer` and `RemoveRenderer`, which the game never calls.
 - Player-made liveries (mod.io and `LocalLiveries`) are keyed by car name and load a full skin image through the same `SetLiveryTexture`.
 - Runtime textures: create on the main thread, with mipmaps and sRGB. RGBA32 at 2048² with mips is 21 MB per map; BC1 is 2.7 MB, so the build encodes BCn and the plugin uploads it with `LoadRawTextureData`.
+
+### Reading donor meshes at run time (2026-10-20)
+
+The question: can the plugin take donor meshes from the loaded prefab (`Mesh.vertices`, `GetVertices`, `AcquireReadOnlyMeshData`) instead of carrying a bundle reader? In a player build Unity allows CPU reads only on meshes whose `m_IsReadable` is set; a non-readable mesh keeps its data on the GPU alone. Probed offline with UnityPy over the player's bundles, read-only:
+
+| Source | Distinct meshes | Readable |
+|---|---|---|
+| `Car_Mammoth`: body LOD0-3, axles (front and rear share 4), colliders, 462 upgrade-option meshes, 2 effect meshes | 474 | 1 |
+| `Car_DingDing`, the same parts with 479 upgrade-option meshes | 491 | 1 |
+| The mechanic's truck in the `r1_canada` scene bundle (`Merchant_LOD0..3`) | 4 | 0 |
+| The whole cars bundle | 884 | 2 |
+
+- Every body LOD, axle and collider is non-readable, and so are the Mammoth's wheel and tyre LODs, which the prefab doesn't reference directly. The one readable option mesh on each car is a roof Christmas tree's billboard impostor; the other readable meshes in the bundles are vegetation impostors, rocks and river splines.
+- Each prefab also references one built-in mesh from Unity's default resources (`FrameIndicators/ResimulateIndicator`), not in the bundles.
+- **So the bundle reader stays** (Architecture, Core): the plugin reads the donor's meshes from the player's bundle files with a managed reader on its background thread. The creator side needs one too, or UnityPy in Blender's Python. Reading a non-readable mesh back from the GPU (`Mesh.GetVertexBuffer`) would be main-thread IL2CPP work and is untested; not pursued.
