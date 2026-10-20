@@ -21,7 +21,7 @@ namespace VehicleMods;
 /// main-thread method once boot has loaded Addressables, and everything else happens on the
 /// main thread when the game first calls it.
 /// </remarks>
-[BepInPlugin("local.overthehill.vehiclemods", "Die Kollektion", "0.6.0")]
+[BepInPlugin("local.overthehill.vehiclemods", "Die Kollektion", "0.7.0")]
 public class Plugin : BasePlugin
 {
     internal static ManualLogSource Logger;

@@ -6,13 +6,13 @@ A vehicle mod system for *Over the Hill*: it adds new vehicles to the game's mer
 
 ## What you need
 
-- **Over the Hill** on Steam, the native Linux build. Windows support is planned (the cross-platform CLI and plugin build are in the design), not ready yet.
+- **Over the Hill** on Steam, the native Linux build. Windows is planned ([the plan](docs/vehicle_factory.md#windows)); there is no Windows build yet.
 - **A Linux machine** (Arch, Debian/Ubuntu or Fedora; `make start` prints the install command for yours) with:
   - **Python 3.10 or newer**, for the build tools;
   - **rsvg-convert** (`librsvg`) and **potrace**, to draw the vehicle icons;
   - **make**.
 - **The download:** the [latest release](https://github.com/aaronsb/die-kollektion/releases/latest) zip, which carries the plugin ready-built, so you need nothing more. Building from source instead (git clone or **Code → Download ZIP**) also needs **the .NET SDK 6 or newer** to compile the plugin; after a game update the release zip compiles it too, so keep the SDK at hand then.
-- **Blender 5** is optional: only for contact-sheet renders and editing the cab models.
+- **Blender** is optional: 4.2 or newer for the add-on that fits accessories, Blender 5 for contact-sheet renders and editing the cab models.
 - **About 1 GB of free disk**: the mod loader (BepInEx) in the game folder, Python packages and build output.
 
 ## Get it running
@@ -42,7 +42,7 @@ Each vehicle is one folder; its page is a contact sheet: renders, a rig view of 
 | <img src="docs/images/thumbs/mammoth.png" width="140" alt="Das Mammoth, patched"> | **Das Mammoth**: the stock truck with portal axles, coil springs, a side-exit exhaust and more steering lock | patch | [contact sheet](vehicles/mammoth/) |
 | <img src="docs/images/thumbs/dingding.png" width="140" alt="The Ding with a golf bag on its roof"> | **The Ding**: a starter car with a golf bag strapped to its roof, the canary for patching stock vehicles | patch | [contact sheet](vehicles/dingding/) |
 
-The four trucks run warm halogen headlights, a little dimmer than the stock cars' ([at dusk](docs/images/halogen-headlights.jpg)); a manifest's `headlights` block sets them.
+The four trucks run warm halogen headlights, a little dimmer than the stock cars' ([at dusk](docs/images/halogen-headlights.jpg)); a manifest's `headlights` block sets them. They show the bumper winch while the portable winch is in their tool loadout (not yet checked in game).
 
 ## Made with AI, for people with agents
 
@@ -65,11 +65,11 @@ In the game every vehicle has a fictional name. Here is the real vehicle behind 
 
 ## Making your own
 
-Most people will want to tweak a stock car rather than build a new one, so that is the shortest path in Werkstatt: `kollektion new patch <Car>` writes a patch listing every chassis and suspension value, with the car's current numbers in a `stock` block beside them. Change a number, build, install; no Blender. Geometry and upgrade changes add Blender on top of the same patch. The CLI isn't built yet; [`docs/vehicle_factory.md`](docs/vehicle_factory.md) has the design. Fitting upgrade parts (a winch, a roof rack, a second keg pile) to a vehicle works today, in the Blender add-on ([`docs/blender_addon.md`](docs/blender_addon.md)).
+Most people will want to tweak a stock car rather than build a new one, so that is the shortest path in Werkstatt. In the design, `kollektion new patch <Car>` writes a patch listing every chassis and suspension value, with the car's current numbers in a `stock` block beside them. Change a number, build, install; no Blender. Geometry and upgrade changes add Blender on top of the same patch. The CLI isn't built yet; [`docs/vehicle_factory.md`](docs/vehicle_factory.md) has the design. Fitting upgrade parts (a winch, a roof rack, a second keg pile) to a vehicle works today, in the Blender add-on ([`docs/blender_addon.md`](docs/blender_addon.md)). It shows the vehicle in its donor's livery from your own game files, and marks the options the game never shows and those it shows only with a tool.
 
 ## Setup in detail
 
-There are no release builds yet: Werkstatt builds the mod on your machine from this repo, using parts of your own copy of the game, and installs it into the game folder. Every step is a command you paste into a terminal, or a click path in Steam.
+Werkstatt builds the mod on your machine, using parts of your own copy of the game, and installs it into the game folder. Every step is a command you paste into a terminal, or a click path in Steam.
 
 1. Install Over the Hill in Steam, start it once, get past the intro, and quit. This creates your save.
 2. Install `make` if you don't have it:
@@ -85,7 +85,7 @@ There are no release builds yet: Werkstatt builds the mod on your machine from t
    - install a few programs with your system's package manager (it prints the command for your system);
    - run `make setup` (Werkstatt's Python packages);
    - run `make bepinex`: it downloads BepInEx, the mod loader (33 MB, from the official build server, after asking you), checks it against the pinned checksum, installs it into the game folder and sets it up;
-   - tell Steam to start the game through BepInEx: Library → right-click Over the Hill → Properties → General → Launch Options, and paste `"./run_bepinex.sh" %command%`. (`"./run_werkstatt.sh" %command%` from earlier versions works too.) Game updates need nothing from you: Die Kollektion's loader notices the new version when the game starts, rebuilds the plugin for it in a few seconds with a small progress window, then starts it;
+   - tell Steam to start the game through BepInEx: Library → right-click Over the Hill → Properties → General → Launch Options, and paste `"./run_bepinex.sh" %command%`. (`"./run_werkstatt.sh" %command%` from earlier versions works too.) With the .NET SDK installed, game updates need nothing from you: Die Kollektion's loader notices the new version when the game starts, rebuilds the plugin for it in a few seconds with a small progress window, then starts it. Without the SDK it says so, and closes the game if your save holds our trucks: install the SDK and start again, or download a release built for the new game version and run `make all`;
    - start the game once from Steam and quit at the main menu. BepInEx uses this first start (slow, once) to prepare files the Werkstatt plugin is compiled against, which is why the mod can only be built after it;
    - run `make all`: it copies the parts it needs from your game, builds the trucks, checks them and installs the mod (about a minute).
 5. Start the game. The trucks are at the merchant. Optional, with the game closed: `make save-add` puts all four in your garage.
@@ -111,11 +111,12 @@ There are no release builds yet: Werkstatt builds the mod on your machine from t
 | `make undeploy` | Removes exactly what `deployed.json` lists (`FORCE=1` if you changed those files since; `make deploy` needs it too then). |
 | `make save-add` | With the game closed, puts the four trucks in your save with the cosmetics the Mammoth has unlocked (`PROFILE=<name>` for another profile). |
 | `make save-test`, `make save-real` | With the game closed, swaps in a test save where every car owns every part, to preview each one in the garage; your own Saves folder waits untouched until `save-real` puts it back. Launch the game once before `save-test`, wait until Steam finishes syncing after you quit, don't play on another machine while the test save is in place, and keep the local files if Steam reports a cloud conflict. |
-| `make update` | With the game closed: deploys this checkout in full, with the gates. After a game update the loader rebuilds the plugin by itself at the next start; this does it from the terminal. |
+| `make update` | With the game closed: deploys this checkout in full, with the gates. After a game update the loader rebuilds the plugin by itself at the next start (with the .NET SDK installed); this does it from the terminal. |
 | `make status` | Compares the repo, the build and the game folder, and says whether the plugin fits the game's version. |
 | `make all` | `extract`, `build`, `deploy`, after checking the setup is done. |
 | `make contact` | Renders every vehicle's contact sheet (needs Blender). |
 | `make pack` | Builds the shareable zip of the Die Kollektion pack into `dist/` (only our own files). |
+| `make blender-addon` | Zips the Blender add-on for Blender's Install from Disk ([`docs/blender_addon.md`](docs/blender_addon.md)). |
 
 The game folder is found through Steam's library list; pass `GAME_DIR="/path/to/over the hill"` if yours isn't found. Underneath, the targets run the scripts in `tools/` (`werkstatt.py` for setup, gates and deploy bookkeeping; `export_game_data.sh`; `make_glyptodon.py`, `make_megaloceros.py`, `build_vehicle.py`; `trace_icons.py`, `rasterize_icons.py`; `contact_sheet.py`) and `dotnet build` in `plugins/VehicleMods/`.
 
