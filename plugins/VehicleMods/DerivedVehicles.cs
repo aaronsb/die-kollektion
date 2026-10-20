@@ -222,7 +222,7 @@ static class DerivedVehicles
             dummies.TryGetValue(id, out var previous);
             // The stock donor shares our trucks' dummy prefab, so a dummy may show another car than it did.
             var superseded = ToolNodes.Superseded(previous, entry);
-            if (superseded != null) SyncToolNodes(__instance.transform, superseded, "on dummy refresh for another car", dummy: true, hide: true);
+            if (superseded != null) SyncToolNodes(__instance.transform, superseded, "on dummy refresh", dummy: true, hide: true);
             if (entry == null)
             {
                 dummies.Remove(id);
@@ -267,14 +267,14 @@ static class DerivedVehicles
         }
     }
 
-    /// <summary>The layer the game gave fitted options on a display dummy when this was written; used only when the
-    /// dummy has no fitted option to copy it from.</summary>
+    /// <summary>The layer the game gave matched options on a display dummy when this was written; used only when the
+    /// dummy has no matched option to copy it from.</summary>
     const int DummyPartLayer = 16;
 
     /// <summary>Shows each of the definition's tool nodes while the vehicle's loadout carries its tool and hides it
     /// otherwise (<see cref="ToolNodes"/>), logging each change; with <paramref name="hide"/>, hides them all. The
     /// loadout is <paramref name="known"/>'s when the caller has the exact VehicleItem (<see cref="VehicleItemFor"/>).
-    /// On a dummy a shown node takes the layer of the dummy's fitted options. Patches and stock cars have no tool
+    /// On a dummy a shown node takes the layer of the dummy's matched options. Patches and stock cars have no tool
     /// nodes.</summary>
     static void SyncToolNodes(Transform root, Entry entry, string trigger, bool dummy, VehicleItem known = null, bool hide = false)
     {
@@ -314,7 +314,7 @@ static class DerivedVehicles
                 var layer = "";
                 if (change == ToolNodes.Change.Show && dummy)
                 {
-                    var (value, source) = FittedOptionLayer(root);
+                    var (value, source) = MatchedOptionLayer(root);
                     foreach (var t in node.GetComponentsInChildren<Transform>(true))
                         t.gameObject.layer = value;
                     layer = $", layer {value} {source}";
@@ -326,7 +326,8 @@ static class DerivedVehicles
                     ToolNodes.Change.Hide => "hidden",
                     _ => active ? "stays shown" : "stays hidden",
                 };
-                Plugin.Logger.LogInfo($"Tools: {codename}: {node.name} {state} on {rootName} {trigger} (tool {tool}, loadout {ToolNodes.Describe(loadout)}{layer})");
+                var why = hide ? "the dummy now shows another car" : $"loadout {ToolNodes.Describe(loadout)}";
+                Plugin.Logger.LogInfo($"Tools: {codename}: {node.name} {state} on {rootName} {trigger} (tool {tool}, {why}{layer})");
             }
         }
         catch (Exception e)
@@ -363,9 +364,9 @@ static class DerivedVehicles
         return loadout;
     }
 
-    /// <summary>The layer of a fitted option on this dummy (a node the game matched to a part), or
+    /// <summary>The layer of a matched option on this dummy (an option node the game matched to a part, fitted or not), or
     /// <see cref="DummyPartLayer"/> when it has none or they can't be read; with where it came from, for the log.</summary>
-    static (int Layer, string Source) FittedOptionLayer(Transform root)
+    static (int Layer, string Source) MatchedOptionLayer(Transform root)
     {
         try
         {
@@ -375,13 +376,13 @@ static class DerivedVehicles
                 {
                     var nodes = pair.Value;
                     for (var i = 0; nodes != null && i < nodes.Count; i++)
-                        if (nodes[i] != null) return (nodes[i].layer, $"as the fitted option {nodes[i].name}");
+                        if (nodes[i] != null) return (nodes[i].layer, $"as the matched option {nodes[i].name}");
                 }
-            return (DummyPartLayer, "(no fitted option to copy it from)");
+            return (DummyPartLayer, "(no matched option to copy it from)");
         }
         catch (Exception e)
         {
-            return (DummyPartLayer, $"(the fitted options can't be read: {e.Message})");
+            return (DummyPartLayer, $"(the matched options can't be read: {e.Message})");
         }
     }
 
