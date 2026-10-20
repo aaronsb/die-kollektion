@@ -333,6 +333,14 @@ static class Program
         Check("no safe pages after Load without trucks: stock, with the notification", r.Outcome == LoaderCore.Outcome.Stock
               && hooksLateStock.Ui.Calls.SequenceEqual(new[] { "notify" }) && hooksLateStock.Ui.Shown[0].Contains(fix),
               $"{r.Outcome} [{string.Join(" | ", hooksLateStock.Ui.Shown)}]");
+        var rotated = F("no-hooks-late-save-rotates", trucks: false);
+        var reads = 0;
+        var rotatedSetup = rotated.Setup;
+        rotatedSetup.ReadSave = path => ++reads == 1 ? File.ReadAllText(path) : throw new IOException("the save was rotated");
+        r = LoaderCore.PluginCantStart(rotatedSetup, why, fix, atLoad: false);
+        Check("after Load the saves are read once, so a save that turns unreadable on a second read can't make a quit",
+              r.Outcome == LoaderCore.Outcome.Stock && reads == 1 && rotated.Ui.Calls.SequenceEqual(new[] { "notify" }),
+              $"{r.Outcome}, {reads} read(s) [{rotated.Ui}]");
         var hooksUnreadable = F("no-hooks-unreadable-save", trucks: false);
         Process.Start("chmod", new[] { "000", Path.Combine(hooksUnreadable.Saves, "Player1.json") }).WaitForExit();
         r = LoaderCore.PluginCantStart(hooksUnreadable.Setup, why, fix, atLoad: true);

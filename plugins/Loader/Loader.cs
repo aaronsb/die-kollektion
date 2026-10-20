@@ -23,7 +23,8 @@ public class Loader : BasePlugin
 
     /// <summary>AppDomain data the real plugin calls when it can't place its hooks: an
     /// <c>Action&lt;string why, string fix, bool atLoad&gt;</c> running <see cref="LoaderCore.PluginCantStart"/>, which
-    /// may close the game. A delegate of framework types, so the plugin needs no reference to the loader.</summary>
+    /// closes the game only when called from the plugin's Load, on the main thread before any save is read. A
+    /// delegate of framework types, so the plugin needs no reference to the loader.</summary>
     public const string PluginCantStartKey = "DieKollektion.PluginCantStart";
 
     [DllImport("libc", EntryPoint = "_exit")]
@@ -70,7 +71,8 @@ public class Loader : BasePlugin
                     AppDomain.CurrentDomain.SetData(RebuiltForKey, result.RebuiltFor);
                 AppDomain.CurrentDomain.SetData(PluginCantStartKey, (Action<string, string, bool>)((why, fix, atLoad) =>
                 {
-                    if (LoaderCore.PluginCantStart(setup, why, fix, atLoad).Outcome == LoaderCore.Outcome.Quit)
+                    // After Load the game may be writing its save: never quit there, whatever the policy says.
+                    if (LoaderCore.PluginCantStart(setup, why, fix, atLoad).Outcome == LoaderCore.Outcome.Quit && atLoad)
                         Quit(why);
                 }));
                 var type = Assembly.LoadFrom(result.Dll).GetType("VehicleMods.Plugin", true);

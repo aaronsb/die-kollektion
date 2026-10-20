@@ -22,6 +22,15 @@ foreach (var file in args)
     } && (plan.Kind == NearBlockPlanner.Kind.None
           || (plan.Start >= textEnd - NearBlockPlanner.CodeRange && plan.Start + plan.Length <= textStart + NearBlockPlanner.CodeRange));
     if (expect != null && expect != plan.Kind.ToString()) ok = false;
+    // Only a layout with no placement may close the game at Load (issue #34); a failed claim retries before the hooks.
+    var reservation = (NearBlockPlanner.Outcome(plan, mapped: true), NearBlockPlanner.Outcome(plan, mapped: false));
+    if (reservation != (plan.Kind == NearBlockPlanner.Kind.None
+            ? (NearBlockPlanner.Reservation.NoPlace, NearBlockPlanner.Reservation.NoPlace)
+            : (NearBlockPlanner.Reservation.Claimed, NearBlockPlanner.Reservation.Failed)))
+    {
+        Console.WriteLine($"FAIL {Path.GetFileName(file)}: reservation outcome {reservation} for a {plan.Kind} plan");
+        ok = false;
+    }
     Console.WriteLine($"{(ok ? "ok  " : "FAIL")} {Path.GetFileName(file)}: {plan}{(expect != null ? $" [expected {expect}]" : "")}");
     if (plan.Kind != NearBlockPlanner.Kind.None)
         Console.WriteLine($"      {Math.Max(textStart - (plan.Start + plan.Length), plan.Start - textEnd) >> 20} MB from GameAssembly's code (0x{textStart:X}-0x{textEnd:X})");

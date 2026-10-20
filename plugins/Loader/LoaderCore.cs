@@ -67,6 +67,8 @@ public static class LoaderCore
         public string Dotnet;
         public TimeSpan BuildTimeout = TimeSpan.FromMinutes(5);
         public TimeSpan LockWait = TimeSpan.FromSeconds(10);
+        /// <summary>Reads one save file (tests: a save that changes between reads).</summary>
+        public Func<string, string> ReadSave = File.ReadAllText;
     }
 
     public static Result Prepare(Setup s)
@@ -160,27 +162,35 @@ public static class LoaderCore
     }
 
     /// <summary>The plugin's own can't-start: no safe place for its hooks' jump slots (issue #34; after an interop
-    /// regeneration, the first start after a game update). At the plugin's Load (<paramref name="atLoad"/>) the main
-    /// thread hasn't read a save yet, so with trucks in a save this is <see cref="CantStart"/> and the game quits;
-    /// without, the plugin goes on (Outcome.Load) and tries again before its hooks. After Load the game reads the
-    /// save while a dialog waits, so quitting then could cut a save write short: with trucks the dialog tells the
-    /// player not to load the save and to quit, and the game goes on stock either way.</summary>
+    /// regeneration, the first start after a game update), or its entry hook failing. At the plugin's Load
+    /// (<paramref name="atLoad"/>) the main thread hasn't read a save yet, so with trucks in a save this is
+    /// <see cref="CantStart"/> and the game quits; without, the plugin goes on (Outcome.Load) and tries again before
+    /// its hooks. After Load the game reads and writes its save while a dialog waits, so quitting then could cut a
+    /// save write short: this never returns Quit then, and reads the saves once, so a save that changes between
+    /// reads can't turn into a quit. With trucks the dialog tells the player not to load the save; without, a
+    /// notification says the mod is off.</summary>
     public static Result PluginCantStart(Setup s, string why, string fix, bool atLoad)
     {
         var trucks = TrucksOrUnreadable(s);
         if (atLoad)
             return trucks ? CantStart(s, why, fix) : new Result { Outcome = Outcome.Load, Message = why };
-        if (!trucks)
-            return CantStart(s, why, fix);
-        s.Log($"Die Kollektion can't start: {why}. A save holds its trucks; too late to quit safely, so the player is told not to load it");
-        s.Ui?.Error("Die Kollektion can't start",
-            $"{why}.\n\nYour save holds Die Kollektion's trucks, which the game can't load without it. Quit the game from the main menu without loading your save.\n\n{fix}");
+        if (trucks)
+        {
+            s.Log($"Die Kollektion can't start: {why}. A save holds its trucks; too late to quit safely, so the player is told not to load it");
+            s.Ui?.Error("Die Kollektion can't start",
+                $"{why}.\n\nYour save holds Die Kollektion's trucks, which the game can't load without it. Quit the game from the main menu without loading your save.\n\n{fix}");
+        }
+        else
+        {
+            s.Log($"Die Kollektion can't start: {why}. No save holds its trucks; the game goes on without it. {fix}");
+            s.Ui?.Notify("Die Kollektion is off this session", $"{why}. {fix}");
+        }
         return new Result { Outcome = Outcome.Stock, Message = why };
     }
 
     static bool TrucksOrUnreadable(Setup s)
     {
-        try { return SavesHoldTrucks(s.SavesDir); }
+        try { return SavesHoldTrucks(s.SavesDir, s.ReadSave); }
         catch (Exception) { return true; }      // can't read the saves: assume the worst rather than hang
     }
 
@@ -389,12 +399,12 @@ public static class LoaderCore
     }
 
     /// <summary>Any profile in Saves/ owning one of our trucks (by ItemId).</summary>
-    public static bool SavesHoldTrucks(string savesDir)
+    public static bool SavesHoldTrucks(string savesDir, Func<string, string> read = null)
     {
         if (string.IsNullOrEmpty(savesDir) || !Directory.Exists(savesDir)) return false;
         foreach (var save in Directory.EnumerateFiles(savesDir, "*.json"))
         {
-            var text = File.ReadAllText(save);
+            var text = (read ?? File.ReadAllText)(save);
             if (TruckIds.Any(id => Regex.IsMatch(text, $"(?<!\\d){id}(?!\\d)")))
                 return true;
         }
