@@ -48,16 +48,18 @@ static unsafe class DobbyNearPages
     [DllImport("libc", SetLastError = true)]
     static extern int mprotect(IntPtr addr, UIntPtr length, int prot);
 
-    /// <summary>Claims the block at plugin Load. Native calls only; failures are logged and retried at <see cref="Install"/>.</summary>
-    public static void Reserve()
+    /// <summary>Claims the block at plugin Load. Native calls only; failures are logged and retried at <see cref="Install"/>.
+    /// False when nothing was claimed.</summary>
+    public static bool Reserve()
     {
         try
         {
-            Claim(NearBlockPlanner.ReadSelf(), "at Load");
+            return Claim(NearBlockPlanner.ReadSelf(), "at Load");
         }
         catch (Exception e)
         {
             Plugin.Logger.LogWarning($"Dobby pages: reserving at Load failed ({e.Message}); trying again before the hooks");
+            return false;
         }
     }
 
@@ -66,7 +68,7 @@ static unsafe class DobbyNearPages
         var plan = NearBlockPlanner.Choose(regions, Want, Need);
         if (plan.Kind == NearBlockPlanner.Kind.None)
         {
-            Plugin.Logger.LogWarning($"Dobby pages: nothing to reserve {when}: {plan.Reason}");
+            Plugin.Logger.LogWarning($"Dobby pages: nothing to reserve {when}: {plan.Reason}{SaveMaps(when, plan.Reason)}");
             return false;
         }
         // A gap is claimed with MAP_FIXED_NOREPLACE, which fails rather than replace anything mapped since the maps
@@ -84,6 +86,27 @@ static unsafe class DobbyNearPages
         Plugin.Logger.LogInfo($"Dobby pages: reserved {when}: {plan}");
         return true;
     }
+
+    /// <summary>Copies /proc/self/maps to BepInEx/dobby-maps.txt (each session starts it afresh) so a layout with no
+    /// safe block can be read, and turned into a tests/maps case once its paths are scrubbed. Returns the log
+    /// line's tail.</summary>
+    static string SaveMaps(string when, string reason)
+    {
+        try
+        {
+            var path = Path.Combine(Paths.BepInExRootPath, "dobby-maps.txt");
+            var text = $"# {when}: {reason}\n" + File.ReadAllText("/proc/self/maps");
+            if (mapsSaved) File.AppendAllText(path, text); else File.WriteAllText(path, text);
+            mapsSaved = true;
+            return $" (memory map saved to {path})";
+        }
+        catch (Exception e)
+        {
+            return $" (the memory map couldn't be saved: {e.Message})";
+        }
+    }
+
+    static bool mapsSaved;
 
     /// <summary>Runs once on the entry thread before any of the plugin's hooks. False: no safe pages, install no hooks.</summary>
     public static bool Install()

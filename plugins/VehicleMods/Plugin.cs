@@ -35,6 +35,11 @@ public class Plugin : BasePlugin
 
     static bool loaded;
 
+    // Through the loader's can't-start policy (Loader.PluginCantStartKey): issue #34, after an interop regeneration.
+    const string PluginCantStartKey = "DieKollektion.PluginCantStart";
+    const string NoSafePagesWhy = "the game's memory layout after an update leaves no safe place for Die Kollektion's hooks this session";
+    const string NoSafePagesFix = "Start the game again; that usually fixes it.";
+
     public override void Load()
     {
         // Once per process: a second Load would race its own hooks. The loader refuses to start next to a stray copy
@@ -44,9 +49,19 @@ public class Plugin : BasePlugin
         loaded = true;
         Logger = Log;
         // As early as our code runs: claim the memory the hooks' jump slots will live in (native calls only).
-        DobbyNearPages.Reserve();
+        // Nothing to claim here almost always means nothing before the hooks either, and this is the last point
+        // before the game reads a save, so with trucks in a save the loader closes the game now.
+        if (!DobbyNearPages.Reserve())
+            CantStart(atLoad: true);
         var unityLog = UnityLogPath();
         new Thread(() => PatchEntryWhenBooted(unityLog)) { IsBackground = true, Name = "VehicleMods.Entry" }.Start();
+    }
+
+    /// <summary>The loader's policy for a plugin that can't place its hooks; without the loader, only the log line.</summary>
+    static void CantStart(bool atLoad)
+    {
+        if (AppDomain.CurrentDomain.GetData(PluginCantStartKey) is Action<string, string, bool> cantStart)
+            cantStart(NoSafePagesWhy, NoSafePagesFix, atLoad);
     }
 
     // Load touches no IL2CPP types; Unity's Linux player log path is fixed.
@@ -82,6 +97,7 @@ public class Plugin : BasePlugin
             if (!pagesReady)
             {
                 Logger.LogError("No hooks installed: Die Kollektion is inactive this session");
+                CantStart(atLoad: false);
                 return;
             }
             harmony.CreateClassProcessor(typeof(MainThreadEntry)).Patch();

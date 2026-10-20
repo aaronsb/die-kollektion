@@ -147,10 +147,7 @@ public static class LoaderCore
     /// notification titled <paramref name="stockTitle"/>.</summary>
     public static Result CantStart(Setup s, string why, string fix = UpdateFix, string stockTitle = "Die Kollektion is off this session")
     {
-        bool trucks;
-        try { trucks = SavesHoldTrucks(s.SavesDir); }
-        catch (Exception) { trucks = true; }      // can't read the saves: assume the worst rather than hang
-        if (trucks)
+        if (TrucksOrUnreadable(s))
         {
             s.Log($"Die Kollektion can't start: {why}. A save holds its trucks, which the game can't load without it; quitting");
             s.Ui?.Error("Die Kollektion can't start",
@@ -160,6 +157,31 @@ public static class LoaderCore
         s.Log($"Die Kollektion can't start: {why}. The loader doesn't start the plugin; the game goes on. {fix}");
         s.Ui?.Notify(stockTitle, $"{why}. {fix}");
         return new Result { Outcome = Outcome.Stock, Message = why };
+    }
+
+    /// <summary>The plugin's own can't-start: no safe place for its hooks' jump slots (issue #34; after an interop
+    /// regeneration, the first start after a game update). At the plugin's Load (<paramref name="atLoad"/>) the main
+    /// thread hasn't read a save yet, so with trucks in a save this is <see cref="CantStart"/> and the game quits;
+    /// without, the plugin goes on (Outcome.Load) and tries again before its hooks. After Load the game reads the
+    /// save while a dialog waits, so quitting then could cut a save write short: with trucks the dialog tells the
+    /// player not to load the save and to quit, and the game goes on stock either way.</summary>
+    public static Result PluginCantStart(Setup s, string why, string fix, bool atLoad)
+    {
+        var trucks = TrucksOrUnreadable(s);
+        if (atLoad)
+            return trucks ? CantStart(s, why, fix) : new Result { Outcome = Outcome.Load, Message = why };
+        if (!trucks)
+            return CantStart(s, why, fix);
+        s.Log($"Die Kollektion can't start: {why}. A save holds its trucks; too late to quit safely, so the player is told not to load it");
+        s.Ui?.Error("Die Kollektion can't start",
+            $"{why}.\n\nYour save holds Die Kollektion's trucks, which the game can't load without it. Quit the game from the main menu without loading your save.\n\n{fix}");
+        return new Result { Outcome = Outcome.Stock, Message = why };
+    }
+
+    static bool TrucksOrUnreadable(Setup s)
+    {
+        try { return SavesHoldTrucks(s.SavesDir); }
+        catch (Exception) { return true; }      // can't read the saves: assume the worst rather than hang
     }
 
     // ------------------------------------------------------------------ the DLL for the new interop
@@ -460,7 +482,12 @@ public static class LoaderCore
 /// returns.</summary>
 public sealed class DesktopUi : LoaderCore.IUi
 {
+    /// <summary>A rebuild can take about a second; the window stays up at least this long, so it gets drawn and read
+    /// (the PR #30 rehearsal's 1 s rebuild showed none: it was closed and reaped before zenity mapped it).</summary>
+    static readonly TimeSpan ProgressAtLeast = TimeSpan.FromSeconds(1.5);
+
     Process progress;
+    readonly Stopwatch shown = new();
 
     static string Find(string name) =>
         (Environment.GetEnvironmentVariable("PATH") ?? "/usr/bin:/bin").Split(':').Where(p => p.Length > 0)
@@ -497,8 +524,11 @@ public sealed class DesktopUi : LoaderCore.IUi
             var zenity = Find("zenity");
             // --no-markup is a dialog option, not a --progress one (an older zenity may refuse it), so the text holds no markup.
             if (zenity != null)
+            {
+                shown.Restart();
                 progress = Start(zenity, "--progress", "--pulsate", "--no-cancel", "--auto-close", "--width=460",
                                  "--title=Die Kollektion", $"--text={text}");
+            }
             else
                 Notify("Die Kollektion", text);
         }
@@ -507,9 +537,13 @@ public sealed class DesktopUi : LoaderCore.IUi
 
     public void End()
     {
-        try { progress?.StandardInput.Close(); }
+        if (progress == null) return;
+        var left = ProgressAtLeast - shown.Elapsed;
+        if (left > TimeSpan.Zero)
+            Thread.Sleep(left);
+        try { progress.StandardInput.Close(); }
         catch (Exception) { }
-        Reap(progress, 0);
+        Reap(progress, 1000);    // --auto-close: zenity exits once its input ends
         progress = null;
     }
 

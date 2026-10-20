@@ -134,11 +134,13 @@ static class Program
                   new JsonObject { ["sha256"] = LoaderCore.Sha256(dll), ["builtAgainst"] = new JsonObject { ["gameAssemblyHash"] = builtFor } }.ToJsonString());
         }
 
-        public LoaderCore.Result Run() => LoaderCore.Prepare(new LoaderCore.Setup
+        public LoaderCore.Setup Setup => new()
         {
             GameDir = Game, BepInExDir = BepInEx, PluginsDir = Plugins, PluginDir = Plugin, SavesDir = Saves, Log = Log.Add, Ui = Ui,
             Dotnet = Dotnet, BuildTimeout = BuildTimeout, LockWait = LockWait,
-        });
+        };
+
+        public LoaderCore.Result Run() => LoaderCore.Prepare(Setup);
 
         public string Installed => File.ReadAllText(Path.Combine(Plugin, "VehicleMods.dll")).Trim();
         public JsonNode Record => JsonNode.Parse(File.ReadAllText(Path.Combine(Plugin, "deployed.json")));
@@ -307,6 +309,37 @@ static class Program
         File.Delete(Path.Combine(noneStock.Plugin, "VehicleMods.dll"));
         r = noneStock.Run();
         Check("nothing deployed and no trucks: stock", r.Outcome == LoaderCore.Outcome.Stock, $"{r.Outcome}");
+
+        // The plugin's own can't-start (issue #34): no safe place for its hooks.
+        const string why = "no safe place for the hooks", fix = "Start the game again.";
+        var hooksAtLoad = F("no-hooks-at-load");
+        r = LoaderCore.PluginCantStart(hooksAtLoad.Setup, why, fix, atLoad: true);
+        Check("no safe pages at the plugin's Load with trucks in a save: quit there, with the restart advice",
+              r.Outcome == LoaderCore.Outcome.Quit && hooksAtLoad.Ui.Shown.Count == 1 && hooksAtLoad.Ui.Calls.SequenceEqual(new[] { "error" })
+              && hooksAtLoad.Ui.Shown[0].Contains(fix) && hooksAtLoad.Ui.Shown[0].Contains("close now"),
+              $"{r.Outcome} [{string.Join(" | ", hooksAtLoad.Ui.Shown)}]");
+        var hooksAtLoadStock = F("no-hooks-at-load-no-trucks", trucks: false);
+        r = LoaderCore.PluginCantStart(hooksAtLoadStock.Setup, why, fix, atLoad: true);
+        Check("no safe pages at Load without trucks: the plugin goes on and tries again, nothing shown yet",
+              r.Outcome == LoaderCore.Outcome.Load && hooksAtLoadStock.Ui.Calls.Count == 0, $"{r.Outcome} [{hooksAtLoadStock.Ui}]");
+        var hooksLate = F("no-hooks-late");
+        r = LoaderCore.PluginCantStart(hooksLate.Setup, why, fix, atLoad: false);
+        Check("no safe pages after Load with trucks: no quit (a save may be being written); the player is told not to load it",
+              r.Outcome == LoaderCore.Outcome.Stock && hooksLate.Ui.Calls.SequenceEqual(new[] { "error" })
+              && hooksLate.Ui.Shown[0].Contains("without loading your save") && !hooksLate.Ui.Shown[0].Contains("close now"),
+              $"{r.Outcome} [{string.Join(" | ", hooksLate.Ui.Shown)}]");
+        var hooksLateStock = F("no-hooks-late-no-trucks", trucks: false);
+        r = LoaderCore.PluginCantStart(hooksLateStock.Setup, why, fix, atLoad: false);
+        Check("no safe pages after Load without trucks: stock, with the notification", r.Outcome == LoaderCore.Outcome.Stock
+              && hooksLateStock.Ui.Calls.SequenceEqual(new[] { "notify" }) && hooksLateStock.Ui.Shown[0].Contains(fix),
+              $"{r.Outcome} [{string.Join(" | ", hooksLateStock.Ui.Shown)}]");
+        var hooksUnreadable = F("no-hooks-unreadable-save", trucks: false);
+        Process.Start("chmod", new[] { "000", Path.Combine(hooksUnreadable.Saves, "Player1.json") }).WaitForExit();
+        r = LoaderCore.PluginCantStart(hooksUnreadable.Setup, why, fix, atLoad: true);
+        if (geteuid() == 0)
+            Console.WriteLine("skip an unreadable save counts as holding trucks at Load: running as root, where chmod 000 doesn't stop a read");
+        else
+            Check("an unreadable save counts as holding trucks at Load", r.Outcome == LoaderCore.Outcome.Quit, $"{r.Outcome}");
 
         var legacy = F("legacy-record");
         var old = legacy.Record.AsObject();
