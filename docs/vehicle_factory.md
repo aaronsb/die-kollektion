@@ -103,7 +103,7 @@ Steps: kind → stock car (from `kollektion extract --list`) → fictional name 
 - the `base` block takes the current `gameBuild`, `hash` and stock snapshot;
 - the item's own differences stay, with each Verify choice applied (keep the pack's value or take the new stock one);
 - a difference that no longer applies (a node or mesh selection gone) is reported by name and left for the author, never dropped silently;
-- the item's version goes up, and the result is rebuilt and gated like any build.
+- the item's version goes up, and the result is rebuilt and gated like any build, so its `checks` record the current game (What each result was measured against, in Items and the two pipelines).
 Then the author shares the refreshed pack the way they share anything (`pack`, a commit to their own repository, a new release); the hub does no git. Because a `based` or `patch` item stores only its differences, a refresh also brings in what the update added to the stock car (a new upgrade option, a fixed mesh) without the author touching it. A `novel` item rots least: only the rig and the shared wheels come from the game. New cars an update adds show in `extract --list` and become donors for the wizard. Die Kollektion's own trucks follow the same path after each game update: refresh, check, commit, release.
 
 **In-game status.** After each start the plugin writes `<mygames>/DieKollektion/status.json`: per item registered, spawned, meshes swapped, or the failure reason, with the date and the game build. The hub shows it beside each item, so "verify it works" in game needs one play, by the player.
@@ -321,6 +321,7 @@ An **item** is one thing a pack adds or changes. Every item has a directory and 
 - A **patch** changes its base in place; a `based` vehicle clones its base into a new item. Both are "base plus differences": operations on base meshes, replaced or added meshes, transform overrides, chassis and suspension values, upgrade changes, textures. Anything not mentioned is the base's, so a game update that changes the base flows through.
 - `hash` is taken over the extracted base data the item was authored against, and `stock` (author, 2026-10-20) is a snapshot of the base's chassis and suspension values at that time, the same numbers the stats table shows as "stock when authored". When the player's game differs (`gameBuild` or `hash`), the plugin rebuilds the item against the new base and runs Core's round-trip check (The hub, Verify): a changed stock value is a warning naming the field, old and new; an operation whose selection no longer matches, or a missing node path, fails that item with a message naming the part, rather than producing a broken mesh.
 - The Blender add-on writes exactly this: it diffs the edited scene against the extracted base (`baseline.json`) and exports only the changes.
+- **What each result was measured against (author, 2026-10-20).** A pass means nothing without the game it passed on, so every result a pack carries names that game. The manifest records, per item, `checks`: `{"gates": {"gameBuild", "date", "result"}, "verify": {…}, "played": {…}}`. `gates` is `check`'s run at `pack` time, `verify` the last round trip, and `played` the author's own last in-game status (`status.json`) when there is one. `builtAgainst` is the build the pack was made on, and `base.gameBuild` per item is the build its stock snapshot came from; Refresh moves all of them forward together. The game build is Steam's build id (`buildid` in the app's `appmanifest_<appid>.acf`), shown beside the game's own version string where the game exposes one **[check]**. Import, the hub's item list, `kollektion info` and the catalogue show these beside the player's own build, e.g. "made on 26047935, gates and Verify passed on 26047935, played on 26047935; your game is 26112040, so Verify runs now", so a player sees how fresh a pack is before installing it.
 - This replaces the separate `donor` (vehicle) and `target` (patch) fields below.
 
 **Three kinds, declared in the manifest (author, 2026-10-19).** Each vehicle is one portable folder whose manifest (`vehicle.json`) carries `"kind"`. On the CLI and in the hub, `new variant` makes a `based` item ("Variant of a stock car"), `new patch` a `patch` ("Stock car mod") and `new vehicle` a `novel` one ("Unique vehicle"); elsewhere in this note "vehicle" means any item that adds a car, `based` or `novel`:
@@ -476,7 +477,7 @@ A pack is a zip with the extension `.kpack`:
 
 ```
 manifest.json            # the pack manifest: id ("<author>/<pack>"), version, schema, title, author, requires (plugin version range),
-                         # builtAgainst (game build), groups, items[] (directory, kind, group, codename/base, itemId), patch order, file hashes
+                         # builtAgainst (game build), groups, items[] (directory, kind, group, codename/base, itemId, checks), patch order, file hashes
 items/<item>/vehicle.json
 items/<item>/meshes/*.obj
 items/<item>/ops/*.json
