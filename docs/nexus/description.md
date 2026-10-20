@@ -32,7 +32,7 @@ Uninstall: `make undeploy` removes exactly the files the install put in the game
 
 Back up `~/My Games/over the hill/Saves/` before you start. A save that holds one of these trucks keeps listing it after the mod is removed.
 
-After a game update: with the .NET SDK installed, nothing to do: at the next start Die Kollektion's loader rebuilds the plugin (a few seconds, a small progress window). Without it, the loader says so, and closes the game if your save holds our trucks: install the SDK and start again, or wait for a release built for the new game version.
+After a game update: with the .NET SDK installed, nothing to do: at the next start Die Kollektion's loader rebuilds the plugin (a few seconds, a small progress window). Without it, the loader says so, and closes the game if your save holds our trucks: install the SDK and start again, or download a release built for the new game version and run `make all`.
 
 ## Main features
 
