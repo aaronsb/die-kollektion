@@ -59,7 +59,7 @@ Data flow today:
 4. **Definition → vehicle meshes.** `build_vehicle.py vehicles/<name>/vehicle.json` stretches donor meshes behind `bodyCut`, runs the `ops` (`meshlib.py`, 787 lines) and writes the vehicle's `build/*.obj` (gitignored).
 5. **Icons.** `make_icons.py` (or the trace and draw scripts, then `rasterize_icons.py`) writes the vehicle's `icon.png`.
 6. **Gates, run by hand:** `check_holes.py` on each body LOD, `check_slivers.py`, regression hashes of the built OBJs, updated by hand, `preview_vehicle.sh` renders.
-7. **Deploy.** `dotnet build -c Release` copies the DLL and, from every vehicle folder, its manifest, built OBJs and icon into `BepInEx/plugins/VehicleMods/`, with no check that the game is closed.
+7. **Deploy.** `make deploy` (`werkstatt.py`), with the game closed and `BepInEx/werkstatt.lock` held, compiles the plugin and copies the DLL and, from every vehicle folder, its manifest, built OBJs and icon into `BepInEx/VehicleMods/`, outside `plugins/`; the only DLL in `BepInEx/plugins/` is Die Kollektion's loader, `DieKollektion.Loader.dll`, which starts the plugin at each launch once it fits the game (`docs/engine.md`, BepInEx).
 8. **Runtime.** The entry hook runs `Catalog.Register` → `DerivedVehicles.Register`: for each JSON, clone the donor `CarInfo`, set ItemId and collider bounds, localise the name and description into all 16 locales (key 9e18 + itemId*2), set the icon, `Catalog.Add` (refuses an ItemId owned by another item). At spawn, the prefab-address redirect and the `VehicleBase.Spawned` prefix reshape and re-mesh. A `"patch": true` definition modifies the stock donor itself (`vehicles/mammoth/vehicle.json`).
 9. **Save.** `add_vehicle_to_save.py <save> <ItemId>…` appends `VehicleItem` entries with a hard-coded `ToolsetIDs [2317836723]`, backs up to `Player1.json.pre-mod-<time>`, has no remove or restore, and doesn't check that the game is closed.
 
@@ -307,7 +307,8 @@ items/<item>/textures/*.svg, *.png  # optional own texture maps: SVG source, ren
 ## Install layout and lifecycle
 
 ```
-<game>/BepInEx/plugins/DieKollektion/
+<game>/BepInEx/plugins/DieKollektion.Loader.dll  # the only DLL BepInEx loads; starts the plugin once it fits the game
+<game>/BepInEx/DieKollektion/            # outside plugins/, so BepInEx never loads it itself
   DieKollektion.dll, Kollektion.Core.dll, <bundle-reader>.dll
   packs/*.kpack                          # installed packs
   installed.json                         # what the CLI installed: packs, versions, ItemIds, hashes
@@ -320,7 +321,7 @@ items/<item>/textures/*.svg, *.png  # optional own texture maps: SVG source, ren
 
 Stable states, from most to least modded:
 1. **Pack removed:** its items are gone and the save is valid.
-2. **Die Kollektion removed** (delete `plugins/DieKollektion` and the cache): the save is valid, and only BepInEx remains.
+2. **Die Kollektion removed** (delete `plugins/DieKollektion.Loader.dll`, `BepInEx/DieKollektion/` and the cache): the save is valid, and only BepInEx remains.
 3. **BepInEx removed** (or its Steam launch option dropped): stock game. BepInEx belongs to the author; the README explains it.
 
 Steam's verify restores the game's own files and leaves extra files and the saves alone (expected; **[test]** once). Nothing here modifies a game file, so verify neither breaks nor uninstalls the mod. On Linux, BepInEx runs only through the launch option `"./run_bepinex.sh" %command%`.
@@ -419,7 +420,7 @@ The template file in the repo holds only empties, collections, materials and pro
 
 The mod is always installable straight from GitHub; Nexus is where players find it, and nothing depends on it.
 - **GitHub Releases are the source of every artifact,** built by a tag-triggered Actions workflow on an Ubuntu runner (which cross-compiles both OSes):
-  - `DieKollektion-<ver>.zip`: the `BepInEx/plugins/DieKollektion/` folder (DLLs, our `.kpack`, README), extracted into the game folder by hand;
+  - `DieKollektion-<ver>.zip`: the loader `BepInEx/plugins/DieKollektion.Loader.dll` and the `BepInEx/DieKollektion/` folder (DLLs, our `.kpack`, README), extracted into the game folder by hand;
   - `kollektion-<ver>-linux-x64` and `kollektion-<ver>-win-x64.exe`;
   - `die-kollektion-<ver>.kpack` on its own, for installing with the CLI;
   - `checksums.txt`.
