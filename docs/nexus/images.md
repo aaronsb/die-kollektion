@@ -1,6 +1,6 @@
 # Images for the Nexus page
 
-`make nexus-images` (`tools/nexus_images.py`) renders our vehicles reproducibly, in the contact sheets' look, into `docs/nexus/images/`. Renders of the based trucks and patches show geometry built from the player's own copy of the game; they are pictures, never mesh data. `halogen-headlights-1987x1359.jpg` is an in-game screenshot kept beside them, which the script leaves alone.
+`make nexus-images` (`tools/nexus_images.py`) renders our vehicles reproducibly, in the contact sheets' look, into `docs/nexus/images/`. Renders of the based trucks and patches show geometry built from the player's own copy of the game; they are pictures, never mesh data. `halogen-headlights-1987x1359.jpg` (in game) and `blender-addon-1922x1295.jpg` (Blender) are screenshots kept beside them, which the script leaves alone.
 
 ## Banner
 
@@ -18,6 +18,7 @@
 | 8 | `images/mastodon-1920x1080.jpg` | Das Mastodon: a round-cab two-door on a stretched chassis |
 | 9 | `images/megatherium-1920x1080.jpg` | Das Megatherium: the round-cab crew cab |
 | 10 | `images/how-its-built-1920x1080.jpg` | How it's built: the truck beside its rig view, with colliders, wheel colliders and labelled attach points |
-| 11 | `images/contact-sheet-1920x1080.jpg` | The contact sheet: every vehicle's four isometric corners, rendered the same way so builds compare tile for tile |
+| 11 | `images/blender-addon-1922x1295.jpg` | The Werkstatt add-on for Blender: fitting the winch on Das Megaloceros with stepped nudges; Save placements writes the truck's placements.json, which the plugin applies in game and in the mechanic's preview |
+| 12 | `images/contact-sheet-1920x1080.jpg` | The contact sheet: every vehicle's four isometric corners, rendered the same way so builds compare tile for tile |
 
 Set image 1 (the first in-game screenshot) as the primary image.
