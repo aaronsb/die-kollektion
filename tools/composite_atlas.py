@@ -1,4 +1,5 @@
-"""Bakes a car's atlas the way the game's car shader appears to shade it, for offline renders.
+"""Bakes a car's atlas the way the game's car shader appears to shade it, for offline renders and the Blender add-on;
+`make extract` and `make contact` run it for every donor.
 
 Usage: python3 tools/composite_atlas.py <Donor> [--tint r,g,b]    e.g. Mammoth -> extracted/textures/Mammoth_composite.png
 

@@ -1,7 +1,8 @@
 #!/bin/sh
 # Extract the game data the build reads from the player's own install into the gitignored folders:
 # the Mammoth donor meshes and its wheel for spare previews (extracted/mammoth/), the mechanic truck
-# (extracted/merchant/), the atlas maps and stock icon (extracted/textures/, extracted/icons/), and the
+# (extracted/merchant/), the atlas maps, each donor's composite (tools/composite_atlas.py) and the stock icon
+# (extracted/textures/, extracted/icons/), and the
 # Mammoth prefab's node facts for contact sheets (extracted/mammoth/nodes.json), and for every other stock
 # car a vehicle folder names as its donor (a patch such as vehicles/dingding/), that car's body, colliders,
 # node facts and atlas maps (tools/export_donor.py); each donor's upgrade nodes, parts and option meshes for
@@ -45,4 +46,8 @@ for donor in $("$py" -I -c 'import glob, json; print(" ".join(sorted({json.load(
     # The donor's wheel and tyre, for renders (tools/nexus_images.py); the plugin uses the car's own in game.
     "$py" -I tools/export_named_mesh.py "$cars" "extracted/$(echo "$donor" | tr '[:upper:]' '[:lower:]')" 1 0 0 0 \
         "${donor}_tyre_LOD0" "${donor}_wheel_LOD0"
+done
+# Each atlas as the game shades it (glass dark), for the Blender add-on and the contact sheets.
+for skin in extracted/textures/*_skin00.png; do
+    "$py" -I tools/composite_atlas.py "$(basename "$skin" _skin00.png)"
 done
