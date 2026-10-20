@@ -54,7 +54,7 @@ Save refuses, with a message, in these cases:
 
 To see it in game:
 
-1. With the game closed, run `make deploy`. "Build and check" in the panel runs `make loop V=<vehicle>` first if you want the gates and contact sheet; its output is in the `werkstatt-loop.log` text.
+1. With the game closed, run `make deploy`. If you want the gates and contact sheet first, press "Build and check" in the panel. It runs `make loop V=<vehicle>` in the background while Blender stays usable. The panel shows it running with the time so far and a Cancel button, then whether it passed and its last line. Its output streams into the `werkstatt-loop.log` text (the last 2,000 lines). Cancel stops make and everything it started, the contact sheet's own Blender included, and kills them after five seconds if they don't stop. A loop still running is stopped, without asking, when the add-on is turned off or reloaded, on File > New, Open or Revert, and when Blender quits (quitting can then take up to five seconds).
 2. Fit the item at the mechanic. With `make save-test`, every item is unlocked to try.
 3. Commit the file on your branch and open a pull request (CONTRIBUTING.md).
 
@@ -68,7 +68,7 @@ Every panel action has a scriptable equivalent, so an agent can look, nudge, mea
   - `rotate(node=..., axis=..., steps=..., degrees=...)`
   - `duplicate(node=...)`, `delete_copy(node=...)`, `reset(node=...)`
   - `show(node=..., shown=...)`, `show_slot(slot=..., shown=...)`
-  - `frame(node=...)`, `save()`, `run_loop()`
+  - `frame(node=...)`, `save()`, `run_loop()` (starts the loop in the background), `cancel_loop()`
 - **The Python API** (`from werkstatt_addon import api`) returns plain dicts that read back as JSON. A problem, a wrong value included, comes back as `{"ok": False, "error": "..."}` with a plain message, never a traceback. Each call that changes the scene is one undo step:
   - `status(refresh=False)`, `vehicles()`, `open_vehicle(name, show=[...], force=False)`, `unsaved()`, `changed_on_disk()`, `items(slot=None, kind=None)`
   - `placement(node)`, `set_placement(node, offset=, rotation=, scale=)`
@@ -76,7 +76,8 @@ Every panel action has a scriptable equivalent, so an agent can look, nudge, mea
   - `reset(node)`, `show(node, shown)`, `show_slot(slot, shown)`
   - `duplicate(node)`, `delete_copy(node)`
   - `frame(node)`, which selects the item, points the view at it and returns its centre and size in game metres
-  - `ghost(shown, offset)`, `save(force=False)`, `run_loop()`
+  - `ghost(shown, offset)`, `save(force=False)`
+  - `start_loop()` starts `make loop` in the background and returns at once: `{"started": True, "state": "running", ...}`, or `"started": False` with the running loop's status. `loop_status()` returns `{"state": "running" | "cancelling" | "passed" | "failed" | "cancelled" | "idle", "elapsed", "code", "tail"}`, and `cancel_loop()` stops it. `run_loop(timeout=None)` starts it and waits for the end, for `blender -b` scripts that want the result in one call; with Blender's window open (over the MCP server, say) it refuses, since waiting would freeze the window.
   - `clearance(node, reach=0.5, move=None)` and `review_views(node, out_dir)`, for the loop below
 
   A node is a full node path or any unique end of one (`Winch_01`, `RoofSpare/RoofrackFlatA`); an ambiguous name lists its matches.

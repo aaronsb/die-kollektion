@@ -12,12 +12,12 @@ game's: x right, y up, z forward.
     api.nudge("Roof/RoofSpare", "y", 2, "cm")
     api.save()
 """
-import functools, hashlib, os, subprocess
+import functools, hashlib, os, shutil, subprocess, time
 
 import bpy
 import mathutils
 
-from . import model, review, scene
+from . import loop, model, review, scene
 
 UNITS = {"mm": 0.001, "cm": 0.01, "dm": 0.1, "m": 1.0}
 AXES = {"x": (1.0, 0.0, 0.0), "y": (0.0, 1.0, 0.0), "z": (0.0, 0.0, 1.0)}
@@ -593,11 +593,50 @@ def save(force=False):
 
 
 @_api
-def run_loop():
-    """Runs `make loop V=<vehicle>` in the checkout (build, gates, contact sheet); returns its exit code and last lines."""
+def start_loop():
+    """Starts `make loop V=<vehicle>` in the checkout (build, gates, contact sheet) in the background and returns at
+    once: {"started": True} or, with one running, {"started": False} and its status. Its output streams into the
+    werkstatt-loop.log text; loop_status() reports on it, cancel_loop() stops it."""
+    job, started = _start_loop()
+    return {"started": started, **job.status()}
+
+
+def _start_loop():
     v = _vehicle()
-    r = subprocess.run(["make", "loop", f"V={v.name}"], cwd=v.root, capture_output=True, text=True)
-    text = (r.stdout + r.stderr).strip()
-    block = bpy.data.texts.get("werkstatt-loop.log") or bpy.data.texts.new("werkstatt-loop.log")
-    block.from_string(text)
-    return {"code": r.returncode, "tail": text.splitlines()[-15:], "log": "werkstatt-loop.log (Blender text)"}
+    if shutil.which("make") is None:
+        raise model.WerkstattError("make isn't installed, so the loop can't run (`make doctor` in a terminal says how)")
+    return loop.start(["make", "loop", f"V={v.name}"], v.root, v.name)
+
+
+@_api
+def loop_status():
+    """The loop's state: "running", "cancelling", "passed", "failed", "cancelled" or "idle" (none started), with
+    the vehicle, elapsed seconds, exit code and last output lines."""
+    job = loop.pump()
+    return job.status() if job is not None else {"state": "idle"}
+
+
+@_api
+def cancel_loop():
+    """Stops the running loop: make and everything it started are asked to stop, and killed after a few seconds."""
+    job = loop.cancel()
+    if job is None:
+        return {"state": "idle"}
+    return job.status()
+
+
+@_api
+def run_loop(timeout=None):
+    """start_loop(), then waits for the end (or `timeout` seconds) and returns loop_status(). Waiting would freeze
+    Blender's window, so with a window (Blender with its UI, as over the MCP server) it refuses: use start_loop()
+    and loop_status() there. In background mode (`blender -b` scripts) it waits."""
+    if not bpy.app.background:
+        raise model.WerkstattError("run_loop() waits for the build and would freeze Blender's window: call start_loop(), "
+                                   "then loop_status() until its state isn't running")
+    if timeout is not None:
+        model.number(timeout, "timeout", 0.0, 86400.0)
+    job, _ = _start_loop()
+    deadline = None if timeout is None else time.monotonic() + timeout
+    while loop.pump().ended is None and (deadline is None or time.monotonic() < deadline):
+        time.sleep(0.1)
+    return job.status()

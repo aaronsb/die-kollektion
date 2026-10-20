@@ -6,7 +6,7 @@ run from a script undoes like a button press; the operators carry no UNDO flag, 
 import bpy
 from bpy.props import BoolProperty, CollectionProperty, EnumProperty, FloatProperty, IntProperty, PointerProperty, StringProperty
 
-from . import api, scene
+from . import api, loop, scene
 
 UNIT_ITEMS = [("mm", "1 mm", ""), ("cm", "1 cm", ""), ("dm", "10 cm", "")]
 MULT_ITEMS = [(str(n), f"×{n}", "") for n in (1, 5, 10, 20, 50)]
@@ -87,7 +87,6 @@ class WerkstattSettings(bpy.types.PropertyGroup):
     frame_on_select: BoolProperty(name="Frame on select", default=True)
     ghost: BoolProperty(name="Ghost of the donor", default=False, update=_ghost_update)
     ghost_offset: FloatProperty(name="Beside by", default=3.0, unit="LENGTH", update=_ghost_update)
-    last_loop: StringProperty()
     last_clearance: StringProperty()
 
 
@@ -293,15 +292,41 @@ class WERKSTATT_OT_save(bpy.types.Operator):
 
 
 class WERKSTATT_OT_run_loop(bpy.types.Operator):
-    """Run `make loop` for the vehicle (build, gates, contact sheet); takes a minute"""
+    """Run `make loop` for the vehicle in the background (build, gates, contact sheet); Blender stays usable"""
     bl_idname = "werkstatt.run_loop"
     bl_label = "Build and check"
 
+    @classmethod
+    def poll(cls, context):
+        job = loop.current()
+        return job is None or job.ended is not None
+
     def execute(self, context):
-        result = api.run_loop()
-        if result.get("ok"):
-            context.scene.werkstatt.last_loop = ("passed" if result["code"] == 0 else f"failed ({result['code']})") + ": " + (result["tail"][-1] if result["tail"] else "")
-        return _report(self, result, lambda r: f"make loop {'passed' if r['code'] == 0 else 'failed'}; see the werkstatt-loop.log text")
+        return _report(self, api.start_loop(), lambda r: f"make loop started for {r['vehicle']}; its output is in the {loop.LOG_TEXT} text")
+
+
+class WERKSTATT_OT_cancel_loop(bpy.types.Operator):
+    """Stop the running `make loop` and everything it started"""
+    bl_idname = "werkstatt.cancel_loop"
+    bl_label = "Cancel"
+
+    @classmethod
+    def poll(cls, context):
+        job = loop.current()
+        return job is not None and job.ended is None
+
+    def execute(self, context):
+        return _report(self, api.cancel_loop(), lambda r: "make loop: stopping")
+
+
+def _loop_summary(job):
+    """One line on the loop for the panel (read-only: the panel's draw calls it)."""
+    status = job.status()
+    if job.ended is None:
+        return f"{job.vehicle}: {status['state']}… {status['elapsed']:.0f} s", "TIME"
+    last = status["tail"][-1] if status["tail"] else ""
+    return {"passed": f"passed: {last}", "failed": f"failed ({job.code}): {last}",
+            "cancelled": "cancelled"}[status["state"]], "CHECKMARK" if job.code == 0 else "ERROR"
 
 
 class WERKSTATT_OT_refresh(bpy.types.Operator):
@@ -396,9 +421,14 @@ class WERKSTATT_PT_panel(bpy.types.Panel):
         row.operator("werkstatt.save", icon="FILE_TICK")
         op = row.operator("werkstatt.save", text="Overwrite", icon="ERROR")
         op.force = True
-        layout.operator("werkstatt.run_loop", icon="PLAY")
-        if w.last_loop:
-            layout.label(text=w.last_loop)
+        row = layout.row(align=True)
+        row.operator("werkstatt.run_loop", icon="PLAY")
+        job = loop.current()
+        if job is not None and job.ended is None:
+            row.operator("werkstatt.cancel_loop", icon="CANCEL")
+        if job is not None:
+            text, icon = _loop_summary(job)
+            layout.label(text=text, icon=icon)
 
 
 class WerkstattPreferences(bpy.types.AddonPreferences):
@@ -412,17 +442,20 @@ class WerkstattPreferences(bpy.types.AddonPreferences):
 
 CLASSES = (WerkstattItem, WerkstattSettings, WERKSTATT_UL_items, WERKSTATT_OT_open_vehicle, WERKSTATT_OT_nudge,
            WERKSTATT_OT_rotate, WERKSTATT_OT_reset, WERKSTATT_OT_duplicate, WERKSTATT_OT_delete_copy, WERKSTATT_OT_show,
-           WERKSTATT_OT_show_slot, WERKSTATT_OT_frame, WERKSTATT_OT_clearance, WERKSTATT_OT_save, WERKSTATT_OT_run_loop, WERKSTATT_OT_refresh,
+           WERKSTATT_OT_show_slot, WERKSTATT_OT_frame, WERKSTATT_OT_clearance, WERKSTATT_OT_save, WERKSTATT_OT_run_loop, WERKSTATT_OT_cancel_loop,
+           WERKSTATT_OT_refresh,
            WERKSTATT_PT_panel, WerkstattPreferences)
 
 
 def register():
+    loop.register()
     for cls in CLASSES:
         bpy.utils.register_class(cls)
     bpy.types.Scene.werkstatt = PointerProperty(type=WerkstattSettings)
 
 
 def unregister():
+    loop.unregister()
     del bpy.types.Scene.werkstatt
     for cls in reversed(CLASSES):
         bpy.utils.unregister_class(cls)
