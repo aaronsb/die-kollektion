@@ -47,7 +47,10 @@ jobs:
       - name: Build kollektion for ${{ matrix.rid }}
         run: dotnet publish src/kollektion -c Release -r ${{ matrix.rid }} -nologo -o build/kollektion/${{ matrix.rid }}
       - name: Test it on ${{ matrix.os }}
+        env:
+          KOLLEKTION_TESTS: "1"
         run: python -m unittest discover -s tests -p test_kollektion.py -v
+      # upload-artifact drops the execute bit; the release that packs this artifact sets it again.
       - uses: actions/upload-artifact@v4
         with:
           name: kollektion-${{ matrix.rid }}

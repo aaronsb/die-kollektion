@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Reflection;
-using System.Text;
 using System.Text.Json;
 using Kollektion.Core;
 
@@ -21,7 +20,6 @@ namespace Kollektion
 
         static int Main(string[] args)
         {
-            Console.OutputEncoding = Encoding.UTF8;
             var cmd = args.Length > 0 ? args[0] : "help";
             switch (cmd)
             {

@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using System.IO;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Kollektion.Core
@@ -44,8 +42,12 @@ namespace Kollektion.Core
             return cur;
         }
 
-        public static Dictionary<string, object> Load(string path) =>
-            Parse(File.ReadAllText(path, Encoding.UTF8));
+        /// <summary>The file parsed, or null when it is missing or can't be read.</summary>
+        public static Dictionary<string, object> Load(string path)
+        {
+            var text = Files.ReadText(path);
+            return text == null ? null : Parse(text);
+        }
 
         /// <summary>The dictionary at a path of keys, or null.</summary>
         public static Dictionary<string, object> Section(Dictionary<string, object> root, params string[] keys)

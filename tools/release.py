@@ -134,6 +134,7 @@ def cmd_ci(_args):
     # The tests build fake game folders; folders exported by the Makefile and FORCE stay out of their way.
     env = {k: v for k, v in os.environ.items() if k not in ("DEPLOY_DIR", "FORCE", "GAME_DIR", "MY_GAMES")}
     env["WERKSTATT_IN_TESTS"] = "1"    # werkstatt.py's gates refuse to run inside their own tests
+    env["KOLLEKTION_TESTS"] = "1"      # tests/test_kollektion.py: both builds, under Wine too when wine is installed
     failed = []
     for name, cmd in steps:
         r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, env=env)

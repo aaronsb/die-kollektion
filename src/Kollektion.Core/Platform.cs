@@ -28,9 +28,11 @@ namespace Kollektion.Core
                 cands.Add(env);
             else if (IsWindows)
             {
-                cands.Add(WindowsSteamPath());
+                // The default install first: Steam writes SteamPath lower-cased with forward slashes, and the
+                // case-blind dedupe below keeps the first spelling of a folder.
                 var x86 = Environment.GetEnvironmentVariable("ProgramFiles(x86)") ?? @"C:\Program Files (x86)";
                 cands.Add(Path.Combine(x86, "Steam"));
+                cands.Add(WindowsSteamPath());
             }
             else
             {
@@ -38,7 +40,7 @@ namespace Kollektion.Core
                                           ".var/app/com.valvesoftware.Steam/.local/share/Steam" })
                     cands.Add(Path.Combine(Home, p));
             }
-            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var seen = new HashSet<string>(IsWindows ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
             var roots = new List<string>();
             foreach (var c in cands.Where(c => !string.IsNullOrEmpty(c) && Directory.Exists(c)))
                 if (seen.Add(RealPath(c)))
@@ -60,7 +62,7 @@ namespace Kollektion.Core
                 var target = new DirectoryInfo(path).ResolveLinkTarget(returnFinalTarget: true);
                 return Path.GetFullPath(target?.FullName ?? path).TrimEnd(Path.DirectorySeparatorChar);
             }
-            catch (IOException)
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
             {
                 return Path.GetFullPath(path);
             }
@@ -74,16 +76,11 @@ namespace Kollektion.Core
             {
                 libraries.Add(root);
                 var vdf = Path.Combine(root, "steamapps", "libraryfolders.vdf");
-                if (!File.Exists(vdf)) continue;
-                try
-                {
-                    var folders = Vdf.Section(Vdf.Load(vdf), "libraryfolders");
-                    if (folders == null) continue;
-                    foreach (var entry in folders.Values.OfType<Dictionary<string, object>>())
-                        if (Vdf.Value(entry, "path") is string p && p.Length > 0)
-                            libraries.Add(p);
-                }
-                catch (IOException) { }
+                var folders = Vdf.Section(Vdf.Load(vdf), "libraryfolders");
+                if (folders == null) continue;
+                foreach (var entry in folders.Values.OfType<Dictionary<string, object>>())
+                    if (Vdf.Value(entry, "path") is string p && p.Length > 0)
+                        libraries.Add(p);
             }
             return libraries;
         }
@@ -109,6 +106,7 @@ namespace Kollektion.Core
             var env = Environment.GetEnvironmentVariable("MY_GAMES");
             if (!string.IsNullOrEmpty(env)) return env;
             var docs = IsWindows ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) : Home;
+            if (string.IsNullOrEmpty(docs)) docs = Path.Combine(Home, "Documents");
             return Path.Combine(docs, "My Games", GameFolderName);
         }
 
