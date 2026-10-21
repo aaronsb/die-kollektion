@@ -16,6 +16,7 @@ namespace Kollektion
             "Die Kollektion {0} ({1})\n\n" +
             "Usage: kollektion <command>\n\n" +
             "  status [--json]   where the game, BepInEx and Die Kollektion are on this machine (reads only)\n" +
+            "  extract --out <dir>  the parts the build reads, from your own game (never shared; extract --help)\n" +
             "  version           this program's version\n";
 
         static int Main(string[] args)
@@ -25,6 +26,7 @@ namespace Kollektion
             {
                 case "status":
                     return Status(Array.IndexOf(args, "--json") > 0);
+                case "extract": return ExtractCommand.Run(args);
                 case "version":
                 case "--version":
                     Console.WriteLine(Version);
