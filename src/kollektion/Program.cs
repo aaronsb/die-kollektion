@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Reflection;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using Kollektion.Core;
 
@@ -59,7 +60,12 @@ namespace Kollektion
             if (json)
             {
                 using var stream = Console.OpenStandardOutput();
-                using var w = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
+                using var w = new Utf8JsonWriter(stream, new JsonWriterOptions
+                {
+                    Indented = true,
+                    // Paths and version strings stay readable (a '+' instead of \u002B); this is never HTML.
+                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                });
                 w.WriteStartObject();
                 foreach (var f in facts)
                 {

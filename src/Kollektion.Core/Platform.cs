@@ -64,7 +64,7 @@ namespace Kollektion.Core
             }
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
             {
-                return Path.GetFullPath(path);
+                return Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar);
             }
         }
 

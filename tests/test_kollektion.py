@@ -49,10 +49,11 @@ def exe(rid):
     older than its sources."""
     path = os.path.join(ROOT, "build", "kollektion", rid, "kollektion.exe" if rid == "win-x64" else "kollektion")
     if not os.path.isfile(path) or os.path.getmtime(path) < newest_source():
+        # The tests were asked for (KOLLEKTION_TESTS=1): a missing SDK is a failure, not a skip.
         if sdk_major() < 10:
-            raise unittest.SkipTest("building kollektion needs the .NET 10 SDK")
+            raise RuntimeError("the kollektion tests need the .NET 10 SDK to build kollektion")
         subprocess.run(["dotnet", "publish", "src/kollektion", "-c", "Release", "-r", rid, "-nologo", "-v", "quiet",
-                        "-o", os.path.dirname(path)], cwd=ROOT, check=True)
+                        "-o", os.path.dirname(path)], cwd=ROOT, check=True, timeout=600)
     return path
 
 
@@ -79,8 +80,9 @@ def fake_steam(tmp, os_path):
     return root, game
 
 
-class Target:
-    """The checks; a subclass names the target and how to run it."""
+class Fixture:
+    """A fake Steam install and how to ask the program under test about it; a subclass names the target and how
+    to run it."""
     rid = None
 
     def run_exe(self, args, env):
@@ -106,6 +108,10 @@ class Target:
         norm = lambda p: os.path.normcase(p.replace("\\", "/").rstrip("/"))
         got, want = norm(got), norm(self.os_path(want))
         self.assertEqual(got.lower() if ignore_case else got, want.lower() if ignore_case else want)
+
+
+class Target(Fixture):
+    """The checks every target runs."""
 
     def test_finds_the_game_through_a_second_library(self):
         s = self.status()
@@ -180,6 +186,7 @@ class WindowsSteam:
     def test_default_steam_under_program_files(self):
         pf, env = self.program_files()
         steam = os.path.join(pf, "Steam")
+        shutil.rmtree(steam, True)    # left by an interrupted run, it would hold a stale library
         shutil.move(self.root, steam)
         self.addCleanup(shutil.rmtree, steam, True)
         self.same_path(self.status(self.windows_env(**env))["gameDir"], self.game)
@@ -193,7 +200,7 @@ class WindowsSteam:
         self.same_path(s["gameDir"], self.game, ignore_case=True)
 
 
-class Native(Target, unittest.TestCase):
+class NativeRun:
     """This machine's own build: linux-x64 on Linux, win-x64 on Windows."""
     rid = HOST_RID
 
@@ -202,10 +209,14 @@ class Native(Target, unittest.TestCase):
                               timeout=TIMEOUT)
 
 
+class Native(NativeRun, Target, unittest.TestCase):
+    pass
+
+
 # The registry test writes HKCU, so natively it runs only on CI's throwaway Windows runner.
 @unittest.skipUnless(WINDOWS and os.environ.get("GITHUB_ACTIONS") == "true",
                      "Windows' own Steam lookup runs natively on CI's Windows runner only")
-class NativeWindowsSteam(WindowsSteam, Native):
+class NativeWindowsSteam(WindowsSteam, NativeRun, Fixture, unittest.TestCase):
     def reg(self, args):
         subprocess.run(["reg"] + args, check=True, capture_output=True, timeout=TIMEOUT)
 
