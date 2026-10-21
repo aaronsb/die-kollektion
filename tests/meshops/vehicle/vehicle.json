@@ -797,6 +797,12 @@
        ]
       }
      ]
+    },
+    {
+     "op": "insertPart",
+     "file": "meshes/part.obj",
+     "box": [],
+     "notes": "an empty box inserts everything"
     }
    ]
   },

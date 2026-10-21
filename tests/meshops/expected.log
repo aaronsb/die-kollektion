@@ -6,7 +6,7 @@ Testwagen: wheelbase 2.31 -> 2.75 m, rear shift -0.440 m
   paint.obj: painted 6 faces from uv [0.635, 0.59]; painted 2 faces from uv [0.0264, 0.124]; painted 19 faces from uv [0.5, 0.5]; painted 6 faces from uv [0.9, 0.1]; painted 1 faces from uv [0.4, 0.4]; painted 95 faces from uv [0.1, 0.9]
   shapes.obj: added 2 boxes; added 2 plates; added 5 tubes (28 rings); added 1 profile bands; added 2 decals
   axle_clear.obj: removed 9 faces near the axle; removed 3 faces near the axle
-  insert.obj: moved 44 of 124 vertices; inserted 12 faces from meshes/part.obj; inserted 18 faces from extracted/shared/part_LOD0.obj; inserted 17 faces from generated/part_boxes.obj
+  insert.obj: moved 44 of 124 vertices; inserted 12 faces from meshes/part.obj; inserted 18 faces from extracted/shared/part_LOD0.obj; inserted 17 faces from generated/part_boxes.obj; inserted 18 faces from meshes/part.obj
   relocate.obj: piece now at x +0.60..+0.90 y +0.90..+1.20 z -0.80..-0.60; piece now at x +0.13..+0.38 y +0.90..+1.10 z +0.57..+0.81
   portal.obj: lifted 80 axle vertices, added 2 portal housings; removed 32 leaf-spring vertices, added 2 coils
   coil.obj: lifted 80 axle vertices, added 2 portal housings; removed 32 leaf-spring vertices, added 2 coils
