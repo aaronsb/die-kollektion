@@ -7,8 +7,8 @@ using Kollektion.Core.Build;
 
 // Usage: dotnet run --project tools/meshops-check -- tests/meshops
 // Builds the synthetic vehicle in tests/meshops/vehicle with Core and compares every OBJ and the build log with what
-// build_vehicle.py made of it (expected/, expected.log), byte for byte; then Python's number semantics
-// (numbers.json) and the build's refusals.
+// build_vehicle.py made of it (expected/, expected.log), byte for byte; then the build's refusals (refusals.json)
+// and Python's number semantics (numbers.json).
 var dir = args.Length == 1 ? args[0] : throw new ArgumentException("usage: meshops-check <tests/meshops>");
 var failed = 0;
 
@@ -22,7 +22,7 @@ void Check(bool ok, string what, bool quiet = false)
 string Build(string manifest, string output, out List<string> missing)
 {
     var log = new StringWriter { NewLine = "\n" };
-    using var document = JsonDocument.Parse(File.ReadAllText(manifest));
+    using var document = VehicleBuild.Parse(File.ReadAllText(manifest));
     missing = new VehicleBuild(manifest, Path.Combine(dir, "game"), Path.Combine(dir, "gen"), log)
         .Run(document.RootElement, output);
     return log.ToString();
@@ -58,42 +58,80 @@ try
     var sameLog = log == File.ReadAllText(Path.Combine(dir, "expected.log")).Replace("\r\n", "\n");
     Check(sameLog, "the build log is build_vehicle.py's" + (sameLog ? "" : ":\n" + log));
 
-    // Refusals: a missing donor mesh is reported and nothing is built; bad operations name themselves.
+    // Refusals: each definition in refusals.json fails with a BuildException saying where and why, and the previous
+    // build in the output folder stays as it was, nothing written beside it or outside it.
     var bad = Path.Combine(scratch, "bad");
     var refusals = Path.Combine(scratch, "vehicle");
-    Directory.CreateDirectory(bad);
     Directory.CreateDirectory(Path.Combine(refusals, "meshes"));
-    File.Copy(Path.Combine(dir, "vehicle", "meshes", "part.obj"), Path.Combine(refusals, "meshes", "part.obj"));
+    var part = Path.Combine(refusals, "meshes", "part.obj");
+    File.Copy(Path.Combine(dir, "vehicle", "meshes", "part.obj"), part);
+    File.Copy(part, Path.Combine(scratch, "outside.obj"));     // what "../outside.obj" would reach
     var manifest = Path.Combine(refusals, "refusal.json");
-    string Manifest(string meshes) =>
-        "{\"codename\": \"T\", \"donor\": \"TestCar\", \"donorAxleZ\": {\"front\": 1.0, \"rear\": -1.0}, \"wheelbase\": 2.0, " +
-        "\"bodyCut\": [], \"meshes\": " + meshes + "}";
-    var cases = new (string Meshes, string Error)[]
+    const string previous = "# the previous build\n";
+
+    void PreviousBuild()
     {
-        ("{\"Body/paint\": {\"file\": \"a.obj\", \"ops\": [{\"op\": \"flatten\"}]}}", "unknown operation \"flatten\""),
-        ("{\"Body/paint\": {\"file\": \"a.obj\", \"ops\": [{\"op\": \"coilSprings\", \"coils\": 3}]}}", "coilSprings: unknown parameter \"coils\""),
-        ("{\"Body/paint\": {\"file\": \"a.obj\", \"ops\": [{\"op\": \"relocatePiece\", \"select\": {\"x\": [5, 6]}}]}}", "matched 0 pieces"),
-        ("{\"Body/paint\": {\"file\": \"a.obj\", \"ops\": [{\"op\": \"widenPieces\", \"select\": {}, \"cutX\": 0.7}]}}", "widenPieces: needs \"shift\""),
-        ("{\"Axles/portal\": {\"file\": \"a.obj\", \"ops\": [{\"op\": \"insertPart\", \"file\": \"meshes/part.obj\"}]}}", "the base mesh is skinned"),
-    };
-    foreach (var (meshes, error) in cases)
+        if (Directory.Exists(bad)) Directory.Delete(bad, true);
+        Directory.CreateDirectory(bad);
+        File.WriteAllText(Path.Combine(bad, "a.obj"), previous);
+    }
+
+    bool Untouched() =>
+        Directory.GetFileSystemEntries(bad).Select(Path.GetFileName).SequenceEqual(new[] { "a.obj" }) &&
+        File.ReadAllText(Path.Combine(bad, "a.obj")) == previous && !File.Exists(Path.Combine(scratch, "escape.obj"));
+
+    using var refusalCases = JsonDocument.Parse(File.ReadAllText(Path.Combine(dir, "refusals.json")));
+    var baseDefinition = refusalCases.RootElement.GetProperty("base");
+    var refused = 0;
+    var failedBeforeRefusals = failed;
+    foreach (var c in refusalCases.RootElement.GetProperty("cases").EnumerateArray())
     {
+        var name = c.GetProperty("name").GetString();
+        string text;
+        if (c.TryGetProperty("text", out var raw)) text = raw.GetString();
+        else
+        {
+            var definition = new Dictionary<string, JsonElement>();
+            foreach (var p in baseDefinition.EnumerateObject()) definition[p.Name] = p.Value;
+            if (c.TryGetProperty("set", out var set))
+                foreach (var p in set.EnumerateObject()) definition[p.Name] = p.Value;
+            if (c.TryGetProperty("drop", out var drop))
+                foreach (var key in drop.EnumerateArray()) definition.Remove(key.GetString());
+            definition["meshes"] = c.GetProperty("meshes");
+            text = JsonSerializer.Serialize(definition);
+        }
+        text = text.Replace("{abs}", Path.GetFullPath(part).Replace('\\', '/'));
+        var error = c.GetProperty("error").ValueKind == JsonValueKind.Null ? null : c.GetProperty("error").GetString();
+        PreviousBuild();
+        File.WriteAllText(manifest, text);
         try
         {
-            File.WriteAllText(manifest, Manifest(meshes));
-            Build(manifest, bad, out _);
-            Check(false, $"{error}: accepted");
+            Build(manifest, bad, out var missingHere);
+            Check(error == null && missingHere.Count == 0,
+                  error == null ? $"builds: {name}" : $"refuses {name}: accepted" + (missingHere.Count > 0 ? ", missing " + string.Join(", ", missingHere) : ""));
         }
-        catch (Exception e) when (e is FormatException || e is InvalidOperationException)
+        catch (BuildException e)
         {
-            Check(e.Message.Contains(error), $"refused: {e.Message}");
+            Check(error != null && e.Message.Contains(error, StringComparison.Ordinal) && Untouched(),
+                  $"refuses {name}: {e.Message}" + (error == null ? " (it should build)" : e.Message.Contains(error, StringComparison.Ordinal) ? "" : $" (expected \"{error}\")") +
+                  (Untouched() ? "" : " (and touched the output folder)"), true);
+            refused++;
+        }
+        catch (Exception e)
+        {
+            Check(false, $"refuses {name}: {e.GetType().Name} instead of BuildException: {e.Message}");
         }
     }
-    File.WriteAllText(manifest, Manifest("{\"Body/nothing\": \"n.obj\", \"Body/paint\": {\"file\": \"p.obj\", \"ops\": " +
-                                         "[{\"op\": \"insertPart\", \"file\": \"extracted/none.obj\"}]}}"));
+    Check(refused > 0 && failed == failedBeforeRefusals, $"{refused} bad definitions refused, each saying where and why, the previous build untouched");
+
+    // A missing game mesh is named as the definition names it, with /, and nothing is built.
+    PreviousBuild();
+    File.WriteAllText(manifest, "{\"codename\": \"T\", \"donor\": \"TestCar\", \"donorAxleZ\": {\"front\": 1.0, \"rear\": -1.0}, \"wheelbase\": 2.0, " +
+                                "\"bodyCut\": [], \"meshes\": {\"Body/nothing\": \"n.obj\", \"Body/paint\": {\"file\": \"p.obj\", \"ops\": " +
+                                "[{\"op\": \"insertPart\", \"file\": \"extracted/none.obj\"}]}}}");
     Build(manifest, bad, out var missing);
-    Check(missing.Count == 2 && missing.All(m => m.EndsWith("Body__nothing.obj", StringComparison.Ordinal) || m.EndsWith("none.obj", StringComparison.Ordinal))
-          && Directory.GetFiles(bad).Length == 0, "missing game meshes are named and nothing is built: " + string.Join(", ", missing));
+    Check(missing.SequenceEqual(new[] { "extracted/none.obj", "extracted/testcar/Body__nothing.obj" }) && Untouched(),
+          "missing game meshes are named and nothing is built: " + string.Join(", ", missing));
 
     // Python's number semantics, against CPython's own results.
     using var numbers = JsonDocument.Parse(File.ReadAllText(Path.Combine(dir, "numbers.json")));

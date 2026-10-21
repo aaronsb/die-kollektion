@@ -10,10 +10,16 @@ namespace Kollektion.Core.Build
     /// Builds a vehicle's meshes from its definition, as tools/build_vehicle.py does: each "meshes" entry maps a
     /// donor node path to an output file, or to {"file", "stretch", "ops"}. The donor mesh
     /// (extracted/&lt;donor&gt;/&lt;node path with / as __&gt;.obj) is lengthened behind the body cut by the wheelbase
-    /// difference unless "stretch" is false or the cut is empty, then each op runs in order, and the result is
-    /// written to the output folder. Part files a definition names are relative to its folder, except those under
-    /// extracted/ (resolved against the extracted folder) and, when a generated folder is given, those under
-    /// generated/.
+    /// difference unless "stretch" is false or the cut is empty, then each op runs in order (Operations), and the
+    /// results are written to the output folder. Part files a definition names are relative to its folder, except
+    /// those under extracted/ (resolved against the extracted folder) and, when a generated folder is given, those
+    /// under generated/.
+    ///
+    /// A definition is untrusted input (packs are shared): every path it names must stay inside its folder (the
+    /// vehicle's, extracted/ or generated/; outputs are bare *.obj names in the output folder), every operation must
+    /// leave finite numbers, and JSON is read strictly (no key twice). Any failure is a <see cref="BuildException"/>
+    /// saying where, thrown before anything is written; the outputs are then written each to a temporary file and
+    /// moved into place, so a failed build leaves the previous one as it was.
     /// </summary>
     public sealed class VehicleBuild
     {
@@ -23,275 +29,335 @@ namespace Kollektion.Core.Build
         public VehicleBuild(string manifestPath, string extractedDir, string generatedDir, TextWriter log)
         {
             vehicleDir = Path.GetDirectoryName(Path.GetFullPath(manifestPath));
-            this.extractedDir = extractedDir;
-            this.generatedDir = generatedDir;
+            this.extractedDir = Path.GetFullPath(extractedDir);
+            this.generatedDir = generatedDir == null ? null : Path.GetFullPath(generatedDir);
             this.log = log;
         }
 
-        /// <summary>A part file named in the definition: a game part under extracted/, else the vehicle's own.</summary>
-        public string PartPath(string file)
+        /// <summary>A definition's text as strict JSON (no comments, no trailing commas); BuildException if it isn't.</summary>
+        public static JsonDocument Parse(string text)
         {
-            if (file.StartsWith("extracted/", StringComparison.Ordinal))
-                return Path.Combine(extractedDir, file.Substring("extracted/".Length));
-            if (generatedDir != null && file.StartsWith("generated/", StringComparison.Ordinal))
-                return Path.Combine(generatedDir, file.Substring("generated/".Length));
-            return Path.Combine(vehicleDir, file);
+            try
+            {
+                return JsonDocument.Parse(text);
+            }
+            catch (JsonException e)
+            {
+                throw new BuildException("not strict JSON: " + e.Message, e);
+            }
         }
 
-        /// <summary>Builds every mesh into outDir. Returns the game meshes missing (nothing is built then), else an
-        /// empty list.</summary>
+        /// <summary>One "meshes" entry, its paths resolved and checked.</summary>
+        sealed class MeshPlan
+        {
+            public string NodePath, Source, Display, File;
+            public bool Stretch;
+            public List<JsonElement> Ops = new List<JsonElement>();
+        }
+
+        /// <summary>Builds every mesh into outDir. Returns the game meshes missing, as the definition names them
+        /// (extracted/..., generated/..., meshes/...) with / between folders; nothing is built then. Else an empty
+        /// list. Throws BuildException for anything else.</summary>
         public List<string> Run(JsonElement definition, string outDir)
         {
-            var front = definition.GetProperty("donorAxleZ").GetProperty("front").GetDouble();
-            var rear = definition.GetProperty("donorAxleZ").GetProperty("rear").GetDouble();
-            var wheelbase = definition.GetProperty("wheelbase").GetDouble();
+            RefuseDuplicateKeys(definition, "the definition");
+            if (definition.ValueKind != JsonValueKind.Object) throw new BuildException("the definition must be a JSON object");
+            var axleZ = Field(definition, "donorAxleZ", "");
+            var front = Number(axleZ, "front", "donorAxleZ.");
+            var rear = Number(axleZ, "rear", "donorAxleZ.");
+            var wheelbase = Number(definition, "wheelbase", "");
+            var codename = Text(definition, "codename");
             var donorWheelbase = front - rear;
             var shift = -(wheelbase - donorWheelbase);
-            var srcDir = Path.Combine(extractedDir, definition.GetProperty("donor").GetString().ToLowerInvariant());
-            var meshes = definition.GetProperty("meshes");
-            var bodyCut = definition.GetProperty("bodyCut");
+            var donor = Text(definition, "donor");
+            if (!IsName(donor)) throw new BuildException($"\"donor\" {BuildException.Quote(donor)} must be a car's internal name (no / \\ : or ..)");
+            var donorDir = donor.ToLowerInvariant();
+            outDir = Path.GetFullPath(outDir);
 
-            var missing = MissingGameMeshes(meshes, srcDir);
-            if (missing.Count > 0) return missing;
-            Directory.CreateDirectory(outDir);
-            log.WriteLine($"{definition.GetProperty("codename").GetString()}: wheelbase {Py.Fixed(donorWheelbase, 2)} -> " +
-                          $"{Py.Fixed(wheelbase, 2)} m, rear shift {Py.Signed(shift, 3)} m");
-            foreach (var entry in meshes.EnumerateObject())
+            var plans = Plan(Field(definition, "meshes", ""), donorDir, outDir);
+            var missing = new SortedSet<string>(StringComparer.Ordinal);
+            foreach (var plan in plans)
             {
-                var spec = entry.Value;
-                var file = spec.ValueKind == JsonValueKind.String ? spec.GetString() : spec.GetProperty("file").GetString();
-                var obj = ObjFile.Read(DonorMesh(srcDir, entry.Name));
-                var notes = new List<string>();
-                if (Stretches(spec) && bodyCut.GetArrayLength() > 0)
-                {
-                    var profile = bodyCut.EnumerateArray().Select(step => step.EnumerateArray().Select(x => x.GetDouble()).ToArray()).ToArray();
-                    var moved = MeshOps.Stretch(obj, profile, shift);
-                    obj.Header.Add($"# lengthened {Py.Signed(shift, 3)} m behind cut {OpArgs.Repr(bodyCut)}");
-                    notes.Add($"moved {moved} of {obj.V.Count} vertices");
-                }
-                if (spec.ValueKind == JsonValueKind.Object && spec.TryGetProperty("ops", out var ops))
-                    foreach (var op in ops.EnumerateArray())
-                        notes.Add(Apply(obj, new OpArgs(op)));
-                obj.Write(Path.Combine(outDir, file));
-                log.WriteLine($"  {file}: {(notes.Count > 0 ? string.Join("; ", notes) : "copied")}");
+                if (!File.Exists(plan.Source)) missing.Add(plan.Display);
+                foreach (var op in plan.Ops)
+                    if (op.GetProperty("op").GetString() == "insertPart")
+                    {
+                        var file = op.GetProperty("file").GetString();
+                        if (!File.Exists(PartPath(file))) missing.Add(file);
+                    }
             }
-            return missing;
+            if (missing.Count > 0) return missing.ToList();
+
+            double[][] cut = null;
+            JsonElement cutElement = default;
+            var lines = new List<string>
+            {
+                $"{codename}: wheelbase {Py.Fixed(donorWheelbase, 2)} -> {Py.Fixed(wheelbase, 2)} m, rear shift {Py.Signed(shift, 3)} m",
+            };
+            var built = new List<(MeshPlan Plan, ObjFile Obj)>();
+            foreach (var plan in plans)
+            {
+                var obj = Step(plan.NodePath, -1, "read", () =>
+                {
+                    var read = ObjFile.Read(plan.Source);
+                    RefuseNonFinite(read);
+                    return read;
+                });
+                var notes = new List<string>();
+                if (plan.Stretch)
+                {
+                    if (cut == null) (cut, cutElement) = BodyCut(definition, plan.NodePath);
+                    if (cut.Length > 0)
+                    {
+                        var moved = Step(plan.NodePath, -1, "stretch", () =>
+                        {
+                            var count = MeshOps.Stretch(obj, cut, shift);
+                            RefuseNonFinite(obj);
+                            return count;
+                        });
+                        obj.Header.Add($"# lengthened {Py.Signed(shift, 3)} m behind cut {OpArgs.Repr(cutElement)}");
+                        notes.Add($"moved {moved} of {obj.V.Count} vertices");
+                    }
+                }
+                for (var i = 0; i < plan.Ops.Count; i++)
+                {
+                    var args = new OpArgs(plan.Ops[i]);
+                    notes.Add(Step(plan.NodePath, i, args.Op, () =>
+                    {
+                        var note = Operations.Apply(obj, args, ReadPart);
+                        RefuseNonFinite(obj);
+                        return note;
+                    }));
+                }
+                built.Add((plan, obj));
+                lines.Add($"  {plan.File}: {(notes.Count > 0 ? string.Join("; ", notes) : "copied")}");
+            }
+            Write(built, outDir);
+            foreach (var line in lines) log.WriteLine(line);
+            return new List<string>();
         }
 
+        /// <summary>Runs one step of a mesh's build, any failure becoming a BuildException that says where.</summary>
+        static T Step<T>(string mesh, int opIndex, string step, Func<T> run)
+        {
+            try
+            {
+                return run();
+            }
+            catch (Exception e) when (!(e is BuildException))
+            {
+                throw new BuildException(mesh, opIndex, step, e);
+            }
+        }
+
+        /// <summary>Each "meshes" entry's donor mesh, output and operations, every path checked against its folder and
+        /// every operation named, before anything is read.</summary>
+        List<MeshPlan> Plan(JsonElement meshes, string donorDir, string outDir)
+        {
+            if (meshes.ValueKind != JsonValueKind.Object) throw new BuildException("\"meshes\" must be an object");
+            var srcDir = Inside(extractedDir, donorDir, () => new BuildException($"\"donor\" {BuildException.Quote(donorDir)} leaves the extracted folder"));
+            var plans = new List<MeshPlan>();
+            foreach (var entry in meshes.EnumerateObject())
+            {
+                var plan = new MeshPlan { NodePath = entry.Name };
+                BuildException Refuse(string message) => new BuildException(entry.Name, -1, null, message);
+                var spec = entry.Value;
+                if (spec.ValueKind == JsonValueKind.String) plan.File = spec.GetString();
+                else if (spec.ValueKind == JsonValueKind.Object)
+                {
+                    plan.File = spec.TryGetProperty("file", out var file) && file.ValueKind == JsonValueKind.String
+                        ? file.GetString()
+                        : throw Refuse("needs \"file\", the output's name");
+                    if (spec.TryGetProperty("ops", out var ops))
+                    {
+                        if (ops.ValueKind != JsonValueKind.Array) throw Refuse("\"ops\" must be a list of operations");
+                        plan.Ops.AddRange(ops.EnumerateArray());
+                    }
+                }
+                else throw Refuse("must be an output file name or {\"file\", \"stretch\", \"ops\"}");
+                plan.Stretch = Stretches(spec);
+
+                var name = entry.Name.Replace("/", "__") + ".obj";
+                if (entry.Name.Length == 0 || !IsName(name))
+                    throw Refuse("a node path names the donor's mesh with / between nodes; \\ and : aren't allowed");
+                plan.Source = Inside(srcDir, name, () => Refuse("the node path leaves the donor's folder"));
+                plan.Display = $"extracted/{donorDir}/{name}";
+                if (!IsName(plan.File) || !plan.File.EndsWith(".obj", StringComparison.OrdinalIgnoreCase) || plan.File.Length == 4)
+                    throw Refuse($"the output file {BuildException.Quote(plan.File)} must be a plain file name ending in .obj (no folders)");
+                Inside(outDir, plan.File, () => Refuse($"the output file {BuildException.Quote(plan.File)} leaves the output folder"));
+
+                for (var i = 0; i < plan.Ops.Count; i++)
+                {
+                    string opName = null;
+                    try
+                    {
+                        var args = new OpArgs(plan.Ops[i]);
+                        opName = args.Op;
+                        if (!Operations.Exists(args.Op)) throw new FormatException($"unknown operation \"{args.Op}\"");
+                        if (args.Op == "insertPart") PartPath(args.Str("file") ?? throw args.Error("needs \"file\""));
+                    }
+                    catch (Exception e) when (!(e is BuildException))
+                    {
+                        throw new BuildException(entry.Name, i, opName, e);
+                    }
+                }
+                plans.Add(plan);
+            }
+            return plans;
+        }
+
+        /// <summary>Python's <c>entry.get("stretch", True)</c>: false, null and 0 turn it off.</summary>
         static bool Stretches(JsonElement spec) =>
             spec.ValueKind != JsonValueKind.Object || !spec.TryGetProperty("stretch", out var s) ||
             !(s.ValueKind == JsonValueKind.False || s.ValueKind == JsonValueKind.Null || (s.ValueKind == JsonValueKind.Number && s.GetDouble() == 0));
 
-        static string DonorMesh(string srcDir, string nodePath) => Path.Combine(srcDir, nodePath.Replace("/", "__") + ".obj");
-
-        /// <summary>The donor and part OBJs this definition reads that aren't on disk: they come from the player's own
-        /// game install and are never in the repository.</summary>
-        List<string> MissingGameMeshes(JsonElement meshes, string srcDir)
+        /// <summary>"bodyCut", read when a mesh first stretches as build_vehicle.py reads it: [[y, z], ...]; null or []
+        /// for none (the mesh isn't lengthened); missing is an error, as Python's KeyError.</summary>
+        static (double[][], JsonElement) BodyCut(JsonElement definition, string mesh)
         {
-            var paths = new SortedSet<string>(StringComparer.Ordinal);
-            foreach (var entry in meshes.EnumerateObject())
+            if (!definition.TryGetProperty("bodyCut", out var cut))
+                throw new BuildException(mesh, -1, "stretch", "the mesh stretches (\"stretch\" isn't false) and the definition has no \"bodyCut\"");
+            if (cut.ValueKind == JsonValueKind.Null) return (Array.Empty<double[]>(), cut);
+            var shape = new BuildException("\"bodyCut\" must be a list of [y, z] steps, each a pair of numbers");
+            if (cut.ValueKind != JsonValueKind.Array) throw shape;
+            var steps = new List<double[]>();
+            foreach (var step in cut.EnumerateArray())
             {
-                paths.Add(DonorMesh(srcDir, entry.Name));
-                if (entry.Value.ValueKind == JsonValueKind.Object && entry.Value.TryGetProperty("ops", out var ops))
-                    foreach (var op in ops.EnumerateArray())
-                        if (op.TryGetProperty("op", out var name) && name.ValueKind == JsonValueKind.String && name.GetString() == "insertPart")
-                            paths.Add(PartPath(op.GetProperty("file").GetString()));
+                if (step.ValueKind != JsonValueKind.Array || step.GetArrayLength() != 2) throw shape;
+                var yz = new double[2];
+                var k = 0;
+                foreach (var x in step.EnumerateArray())
+                    yz[k++] = x.ValueKind == JsonValueKind.Number && x.TryGetDouble(out var d) && double.IsFinite(d) ? d : throw shape;
+                steps.Add(yz);
             }
-            return paths.Where(p => !File.Exists(p)).ToList();
+            return (steps.ToArray(), cut);
         }
 
-        /// <summary>Runs one op, returning its note for the build log.</summary>
-        string Apply(ObjFile obj, OpArgs a)
+        /// <summary>A part file named in the definition: a game part under extracted/, a generated one under generated/
+        /// (when a generated folder is given), else the vehicle's own; the path must stay inside that folder.</summary>
+        string PartPath(string file)
         {
-            switch (a.Op)
+            string root = vehicleDir, rest = file;
+            if (file.StartsWith("extracted/", StringComparison.Ordinal))
             {
-                case "coilSprings":
+                root = extractedDir;
+                rest = file.Substring("extracted/".Length);
+            }
+            else if (generatedDir != null && file.StartsWith("generated/", StringComparison.Ordinal))
+            {
+                root = generatedDir;
+                rest = file.Substring("generated/".Length);
+            }
+            var problem = file.IndexOf('\\') >= 0 ? "uses \\; separate folders with /"
+                : Path.IsPathRooted(file) || file.StartsWith("/", StringComparison.Ordinal) || file.IndexOf(':') >= 0 ? "is an absolute path"
+                : rest.Split('/').Any(s => s == ".." || s == "." || s.Length == 0) ? "must not climb out with .., nor hold empty or . folders"
+                : file.Any(char.IsControl) ? "holds a control character"
+                : null;
+            if (problem != null)
+                throw new FormatException($"\"file\" {BuildException.Quote(file)} {problem}: part files are relative to the vehicle's folder, extracted/ or generated/");
+            return Inside(root, rest, () => new FormatException($"\"file\" {BuildException.Quote(file)} leaves its folder"));
+        }
+
+        ObjFile ReadPart(string file)
+        {
+            var part = ObjFile.Read(PartPath(file));
+            RefuseNonFinite(part);
+            return part;
+        }
+
+        /// <summary>A file or folder name (no separators, no drive or stream colon, not . or ..).</summary>
+        static bool IsName(string name) =>
+            name.Length > 0 && name != "." && name != ".." && name.IndexOfAny(new[] { '/', '\\', ':' }) < 0 && !name.Any(char.IsControl);
+
+        /// <summary>root/relative, which must lie strictly inside root once resolved.</summary>
+        static string Inside(string root, string relative, Func<Exception> refuse)
+        {
+            var full = Path.GetFullPath(Path.Combine(root, relative));
+            var prefix = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root)) + Path.DirectorySeparatorChar;
+            var comparison = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            return full.Length > prefix.Length && full.StartsWith(prefix, comparison) ? full : throw refuse();
+        }
+
+        /// <summary>Every position, UV and normal finite: an operation making NaN or infinity (a degenerate shape,
+        /// coordinates out of range) fails where Python would have raised, rather than writing a broken mesh.</summary>
+        static void RefuseNonFinite(ObjFile obj)
+        {
+            foreach (var (rows, what) in new[] { (obj.V, "vertex"), (obj.Vt, "UV"), (obj.Vn, "normal") })
+                for (var i = 0; i < rows.Count; i++)
+                    foreach (var x in rows[i])
+                        if (!double.IsFinite(x))
+                            throw new InvalidOperationException(
+                                $"{what} {i + 1} came out as {Py.Repr(x)}; the parameters make a degenerate shape or numbers out of range");
+        }
+
+        /// <summary>Writes each mesh to a temporary file in outDir, then moves them all into place: a failure leaves
+        /// the previous build's files as they were, and no temporary file behind.</summary>
+        static void Write(List<(MeshPlan Plan, ObjFile Obj)> built, string outDir)
+        {
+            var temps = new List<(string Temp, string Final)>();
+            try
+            {
+                Directory.CreateDirectory(outDir);
+                foreach (var (plan, obj) in built)
                 {
-                    var (removed, coils) = MeshOps.CoilSprings(obj, CoilOptions(a));
-                    return $"removed {removed} leaf-spring vertices, added {coils} coils";
+                    var temp = Path.Combine(outDir, $".{plan.File}.{Guid.NewGuid():N}.tmp");
+                    temps.Add((temp, Path.Combine(outDir, plan.File)));
+                    obj.Write(temp);
                 }
-                case "portalAxle":
-                {
-                    var (lifted, housings) = MeshOps.PortalAxle(obj, PortalOptions(a));
-                    return $"lifted {lifted} axle vertices, added {housings} portal housings";
-                }
-                case "relocatePiece":
-                {
-                    double?[] anchorTo = null;
-                    if (a.Has("anchorTo"))
-                        anchorTo = a.Get("anchorTo").EnumerateArray()
-                            .Select(x => x.ValueKind == JsonValueKind.Null ? (double?)null : a.Num(x, "anchorTo")).ToArray();
-                    var (lo, hi) = MeshOps.RelocatePiece(obj, a.Selection(a.Get("select"), "select"), a.Num("rotateY", 0.0), anchorTo);
-                    return "piece now at " + string.Join(" ", Enumerable.Range(0, 3)
-                        .Select(k => $"{"xyz"[k]} {Py.Signed(lo[k], 2)}..{Py.Signed(hi[k], 2)}"));
-                }
-                case "stretchPieces":
-                {
-                    var (count, moved) = MeshOps.StretchPieces(obj, a.Selections("select"), a.Num("cutZ"), a.Num("shift"), a.Str("move"));
-                    return $"moved {moved} vertices of {count} pieces {Py.Signed(a.Num("shift"), 3)} m past z {OpArgs.Repr(a.Get("cutZ"))}";
-                }
-                case "scalePieces":
-                {
-                    var moved = MeshOps.ScalePieces(obj, a.Selections("select"), a.Vector("origin", 3), a.Vector("scale", 3), a.OptBox("box"));
-                    return $"scaled {moved} vertices by {OpArgs.Repr(a.Get("scale"))} about {OpArgs.Repr(a.Get("origin"))}";
-                }
-                case "movePieces":
-                {
-                    var (count, moved) = MeshOps.MovePieces(obj, a.Selections("select"), a.Vector("offset", 3));
-                    return $"moved {moved} vertices of {count} pieces by {OpArgs.Repr(a.Get("offset"))}";
-                }
-                case "widenPieces":
-                {
-                    var moved = MeshOps.WidenPieces(obj, a.Selections("select"), a.Num("cutX"), a.Num("shift"), a.OptBox("box"));
-                    return $"moved {moved} vertices {Py.Signed(a.Num("shift"), 3)} m outward past |x| {OpArgs.Repr(a.Get("cutX"))}";
-                }
-                case "removeRegion":
-                {
-                    var removed = MeshOps.RemoveRegion(obj, a.Box(a.Get("box"), "box"), a.Num("unitSize", 0.5));
-                    return $"removed {removed} faces in {OpArgs.Repr(a.Get("box"))}";
-                }
-                case "removePieces":
-                    return $"removed {MeshOps.RemovePieces(obj, a.Selections("select"))} pieces matching {OpArgs.Repr(a.Get("select"))}";
-                case "paint":
-                {
-                    var choice = new PaintChoice
+                foreach (var (temp, final) in temps) File.Move(temp, final, true);
+            }
+            catch (Exception e)
+            {
+                foreach (var (temp, _) in temps)
+                    try
                     {
-                        Select = a.OptSelections("select"),
-                        Box = a.OptBox("box"),
-                        Whole = a.Bool("whole", false),
-                        UvRect = a.Has("uvRect") ? a.Points("uvRect", 2) : null,
-                        Facing = a.Has("facing") ? a.Vector("facing", 3) : null,
-                    };
-                    if (a.Has("uvExclude"))
-                        choice.UvExclude = a.Get("uvExclude").EnumerateArray().Select(r => a.Points(r, "uvExclude", 2)).ToList();
-                    var painted = MeshOps.Paint(obj, a.Vector("uv", 2), choice);
-                    return $"painted {painted} faces from uv {OpArgs.Repr(a.Get("uv"))}";
-                }
-                case "addBoxes":
-                {
-                    var boxes = a.Get("boxes").EnumerateArray().Select(b => BoxCorners(a, b)).ToList();
-                    return $"added {MeshOps.AddBoxes(obj, boxes, a.Vector("uv", 2))} boxes";
-                }
-                case "addTubes":
-                {
-                    var tubes = a.Get("tubes").EnumerateArray().Select(t => new Tube
+                        File.Delete(temp);      // gone already when it was moved into place
+                    }
+                    catch (Exception cleanup) when (cleanup is IOException || cleanup is UnauthorizedAccessException)
                     {
-                        Points = a.Points(Field(a, t, "points"), "points", 3),
-                        Radius = a.Num(Field(a, t, "radius"), "radius"),
-                        Sides = t.TryGetProperty("sides", out var sides) ? sides.GetInt32() : 8,
-                        Square = t.TryGetProperty("square", out var square) && square.ValueKind == JsonValueKind.True,
-                        BendRadius = t.TryGetProperty("bendRadius", out var bend) ? a.Num(bend, "bendRadius") : (double?)null,
-                    }).ToList();
-                    var (count, rings) = MeshOps.AddTubes(obj, tubes, a.Vector("uv", 2));
-                    return $"added {count} tubes ({rings} rings)";
-                }
-                case "addPlates":
-                {
-                    var plates = a.Get("plates").EnumerateArray().Select(p => new Plate
-                    {
-                        Corners = a.Points(Field(a, p, "corners"), "corners", 3),
-                        Thickness = a.Num(Field(a, p, "thickness"), "thickness"),
-                    }).ToList();
-                    return $"added {MeshOps.AddPlates(obj, plates, a.Vector("uv", 2))} plates";
-                }
-                case "addDecals":
-                {
-                    var decals = a.Get("decals").EnumerateArray().Select(d => new Decal
-                    {
-                        Corners = a.Points(Field(a, d, "corners"), "corners", 3),
-                        Uvs = a.Points(Field(a, d, "uvs"), "uvs", 2),
-                        Facing = a.Vector(Field(a, d, "facing"), "facing", 3),
-                        DoubleSided = d.TryGetProperty("doubleSided", out var two) && two.ValueKind == JsonValueKind.True,
-                    }).ToList();
-                    return $"added {MeshOps.AddDecals(obj, decals)} decals";
-                }
-                case "addProfileBands":
-                {
-                    var bands = a.Get("bands").EnumerateArray().Select(b =>
-                    {
-                        var y = a.Vector(Field(a, b, "y"), "y", 2);
-                        return new Band
-                        {
-                            Inner = a.Points(Field(a, b, "inner"), "inner", 2),
-                            Outer = a.Points(Field(a, b, "outer"), "outer", 2),
-                            Y0 = y[0],
-                            Y1 = y[1],
-                        };
-                    }).ToList();
-                    return $"added {MeshOps.AddProfileBands(obj, bands, a.Vector("uv", 2))} profile bands";
-                }
-                case "removeNearAxle":
-                    return $"removed {MeshOps.RemoveNearAxle(obj, a.Vector("centre", 2), a.Num("radius"), a.OptBox("box"))} faces near the axle";
-                case "insertPart":
-                {
-                    var file = a.Str("file") ?? throw a.Error("needs \"file\"");
-                    var part = ObjFile.Read(PartPath(file));
-                    var exclude = a.Has("exclude") ? a.Selections("exclude") : Array.Empty<Selection>();
-                    var added = MeshOps.InsertPart(obj, part, a.OptBox("box"), a.OptSelections("include"), exclude, a.Num("unitSize", 0.5));
-                    return $"inserted {added} faces from {file}";
-                }
-                default:
-                    throw new FormatException($"unknown operation \"{a.Op}\"");
+                        // Best effort: the error below is the one to report.
+                    }
+                throw new BuildException($"can't write {outDir}: {e.Message}", e);
             }
         }
 
-        static JsonElement Field(OpArgs a, JsonElement item, string name) =>
-            item.TryGetProperty(name, out var v) ? v : throw a.Error($"each item needs \"{name}\"");
-
-        static (double[] Lo, double[] Hi) BoxCorners(OpArgs a, JsonElement box)
+        static void RefuseDuplicateKeys(JsonElement e, string where)
         {
-            var lo = new double[3];
-            var hi = new double[3];
-            for (var k = 0; k < 3; k++)
+            if (e.ValueKind == JsonValueKind.Object)
             {
-                var range = a.Vector(Field(a, box, "xyz".Substring(k, 1)), "boxes", 2);
-                lo[k] = range[0];
-                hi[k] = range[1];
+                var seen = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var p in e.EnumerateObject())
+                {
+                    if (!seen.Add(p.Name))
+                        throw new BuildException($"{where} names {BuildException.Quote(p.Name)} twice; strict JSON names each key once");
+                    RefuseDuplicateKeys(p.Value, $"{where}[{BuildException.Quote(p.Name)}]");
+                }
             }
-            return (lo, hi);
+            else if (e.ValueKind == JsonValueKind.Array)
+            {
+                var i = 0;
+                foreach (var x in e.EnumerateArray()) RefuseDuplicateKeys(x, $"{where}[{i++}]");
+            }
         }
 
-        static CoilSpringsOptions CoilOptions(OpArgs a)
+        static JsonElement Field(JsonElement obj, string name, string where)
         {
-            var o = new CoilSpringsOptions();
-            foreach (var name in a.Names())
-                switch (name)
-                {
-                    case "outerDiameter": o.OuterDiameter = a.Num(name); break;
-                    case "wireDiameter": o.WireDiameter = a.Num(name); break;
-                    case "turns": o.Turns = a.Num(name); break;
-                    case "top": o.Top = a.Num(name); break;
-                    case "height": o.Height = a.OptNum(name); break;
-                    case "leafX": o.LeafX = a.Vector(name, 2); break;
-                    case "sides": o.Sides = a.Int(name, o.Sides); break;
-                    case "segmentsPerTurn": o.SegmentsPerTurn = a.Int(name, o.SegmentsPerTurn); break;
-                    case "bodyBone": o.BodyBone = a.Int(name, o.BodyBone); break;
-                    case "x": o.X = a.OptNum(name); break;
-                    default: throw a.Error($"unknown parameter \"{name}\"");
-                }
-            return o;
+            if (obj.ValueKind != JsonValueKind.Object) throw new BuildException($"\"{where.TrimEnd('.')}\" must be an object");
+            return obj.TryGetProperty(name, out var v) ? v : throw new BuildException($"the definition needs \"{where}{name}\"");
         }
 
-        static PortalAxleOptions PortalOptions(OpArgs a)
+        static double Number(JsonElement obj, string name, string where)
         {
-            var o = new PortalAxleOptions();
-            foreach (var name in a.Names())
-                switch (name)
-                {
-                    case "lift": o.Lift = a.Num(name); break;
-                    case "tubeScale": o.TubeScale = a.Num(name); break;
-                    case "diffScale":
-                        var v = a.Get(name);
-                        o.DiffScale = v.ValueKind == JsonValueKind.Array ? a.Vector(name, 3) : Enumerable.Repeat(a.Num(name), 3).ToArray();
-                        break;
-                    case "diffOffset": o.DiffOffset = a.Num(name); break;
-                    case "housingWidth": o.HousingWidth = a.Num(name); break;
-                    case "housingDepth": o.HousingDepth = a.Num(name); break;
-                    case "housingSegments": o.HousingSegments = a.Int(name, o.HousingSegments); break;
-                    case "bodyBone": o.BodyBone = a.Int(name, o.BodyBone); break;
-                    default: throw a.Error($"unknown parameter \"{name}\"");
-                }
-            return o;
+            var v = Field(obj, name, where);
+            return v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out var x) && double.IsFinite(x)
+                ? x
+                : throw new BuildException($"\"{where}{name}\" must be a number");
+        }
+
+        static string Text(JsonElement obj, string name)
+        {
+            var v = Field(obj, name, "");
+            return v.ValueKind == JsonValueKind.String ? v.GetString() : throw new BuildException($"\"{name}\" must be a string");
         }
     }
 }

@@ -113,8 +113,8 @@ namespace Kollektion.Core.Build
                 var a = Vec.Sub(p, prev);
                 var b = Vec.Sub(next, p);
                 double la = Vec.Length(a), lb = Vec.Length(b);
-                a = new[] { a[0] / la, a[1] / la, a[2] / la };
-                b = new[] { b[0] / lb, b[1] / lb, b[2] / lb };
+                a = Vec.Scaled(a, la, "round a corner after a zero-length segment");
+                b = Vec.Scaled(b, lb, "round a corner before a zero-length segment");
                 var turn = Math.Acos(Py.Max(-1.0, Py.Min(1.0, Vec.Dot(a, b))));
                 if (radius <= 0 || Py.Degrees(turn) <= minTurnDeg)
                 {
@@ -204,8 +204,7 @@ namespace Kollektion.Core.Build
                 for (var i = 0; i + 1 < path.Count; i++)
                 {
                     var d = Vec.Sub(path[i + 1], path[i]);
-                    var length = Vec.Length(d);
-                    dirs.Add(new[] { d[0] / length, d[1] / length, d[2] / length });
+                    dirs.Add(Vec.Scaled(d, Vec.Length(d), "sweep a tube along a zero-length segment"));
                 }
                 // The first segment's frame, then carried along: (u, w) span the plane square to the path.
                 var d0 = dirs[0];

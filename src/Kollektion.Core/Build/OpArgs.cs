@@ -7,21 +7,47 @@ using System.Text.Json;
 
 namespace Kollektion.Core.Build
 {
-    /// <summary>One operation's parameters from vehicle.json, read as build_vehicle.py reads them, with the
-    /// operation's name in every error. Shapes meshlib accepts (a selection or a list of them, a box or a list of
-    /// boxes, null bounds) are accepted here too.</summary>
+    /// <summary>One operation's parameters from vehicle.json, or one item of a list of them (a tube, a plate), read
+    /// as build_vehicle.py reads them. Errors name the parameter (and the item); VehicleBuild adds the mesh, the
+    /// operation's index and its name. Shapes meshlib accepts (a selection or a list of them, a box or a list of
+    /// boxes, null bounds) are accepted here too; JSON's types are not bent (true is a boolean, 8 an integer).</summary>
     public sealed class OpArgs
     {
         public readonly string Op;
         readonly JsonElement e;
+        readonly string prefix;
 
         public OpArgs(JsonElement element)
         {
             e = element;
+            prefix = "";
             if (e.ValueKind != JsonValueKind.Object) throw new FormatException("an operation must be an object");
             Op = Has("op") && e.GetProperty("op").ValueKind == JsonValueKind.String
                 ? e.GetProperty("op").GetString()
                 : throw new FormatException("an operation needs \"op\", its name");
+        }
+
+        OpArgs(JsonElement item, string op, string prefix)
+        {
+            e = item;
+            Op = op;
+            this.prefix = prefix;
+        }
+
+        /// <summary>The items of a list parameter, each an object read like an operation's parameters, its errors
+        /// prefixed with its place ("tubes[2]: ").</summary>
+        public List<OpArgs> Items(string name)
+        {
+            var v = Get(name);
+            if (v.ValueKind != JsonValueKind.Array) throw Error($"\"{name}\" must be a list of objects");
+            var items = new List<OpArgs>();
+            foreach (var item in v.EnumerateArray())
+            {
+                var where = $"{prefix}{name}[{items.Count.ToString(CultureInfo.InvariantCulture)}]: ";
+                if (item.ValueKind != JsonValueKind.Object) throw new FormatException(where + "must be an object");
+                items.Add(new OpArgs(item, Op, where));
+            }
+            return items;
         }
 
         public bool Has(string name) => e.TryGetProperty(name, out var v) && v.ValueKind != JsonValueKind.Null;
@@ -36,7 +62,7 @@ namespace Kollektion.Core.Build
                 if (p.Name != "op" && p.Name != "notes") yield return p.Name;
         }
 
-        public FormatException Error(string what) => new FormatException($"{Op}: {what}");
+        public FormatException Error(string what) => new FormatException(prefix + what);
 
         public double Num(string name) => Num(Get(name), name);
 
@@ -76,7 +102,9 @@ namespace Kollektion.Core.Build
         public Box OptBox(string name) => Has(name) ? Box(Get(name), name) : null;
 
         public double Num(JsonElement v, string name) =>
-            v.ValueKind == JsonValueKind.Number ? v.GetDouble() : throw Error($"\"{name}\" must be a number");
+            v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out var x) && double.IsFinite(x)
+                ? x
+                : throw Error($"\"{name}\" must be a number" + (v.ValueKind == JsonValueKind.Number ? $" a double can hold, not {v.GetRawText()}" : ""));
 
         public double[] Vector(JsonElement v, string name, int length)
         {

@@ -17,6 +17,11 @@ namespace Kollektion.Core.Build
 
         /// <summary>Python's <c>sum()</c> of floats, started from the int 0: the first item is added to 0.0 plainly,
         /// the rest with Neumaier compensation, the compensation added back at the end.</summary>
+        /// <remarks>A known divergence, left as is: CPython sums leading ints exactly as ints, adds the first float to
+        /// that total uncompensated and compensates only from there, while this compensates from the first item. A
+        /// sum whose items mix ints and floats (a manifest number written as an integer, such as a plate corner's 0,
+        /// summed with floats) can therefore differ in the last bit. None of our vehicles' sums does: their builds
+        /// are byte-identical to build_vehicle.py's.</remarks>
         public struct Sum
         {
             double hi, lo;

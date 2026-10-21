@@ -32,7 +32,7 @@ namespace Kollektion.Core.Build
         /// Returns the leaf-spring vertices removed and the coils added.</summary>
         public static (int Removed, int Coils) CoilSprings(ObjFile obj, CoilSpringsOptions o)
         {
-            var pieces = Pieces.WholeComponents(obj);
+            var pieces = AxlePieces(obj, 1, "an axle");
             var axle = pieces[0];
             foreach (var p in pieces)
                 if (p.Vertices.Count > axle.Vertices.Count) axle = p;     // the differential housing is the largest
@@ -46,7 +46,7 @@ namespace Kollektion.Core.Build
             obj.RemoveVertices(doomed);
 
             var shock = pieces.Find(p => p.Vertices.Exists(i => obj.DominantBone(i) == o.BodyBone))
-                ?? throw new InvalidOperationException("coilSprings: no piece skinned to the body bone (the shock absorber)");
+                ?? throw new InvalidOperationException("no piece is skinned to the body bone (the shock absorber)");
             var uvIndex = CopyUv(obj, shock.Vertices);
 
             if (o.X.HasValue)
@@ -68,6 +68,16 @@ namespace Kollektion.Core.Build
                 AddCoil(obj, seat.Centre(0), seat.Hi[1], seat.Centre(2), coilTop, o, hubBone, o.BodyBone, uvIndex);
             }
             return (doomed.Count, seats.Count);
+        }
+
+        /// <summary>The skinned axle mesh's whole components, at least min of them (what they must include).</summary>
+        static List<Piece> AxlePieces(ObjFile obj, int min, string needs)
+        {
+            if (!obj.Skinned) throw new InvalidOperationException("needs a skinned axle mesh (bw lines); this one isn't skinned");
+            var pieces = Pieces.WholeComponents(obj);
+            if (pieces.Count < min)
+                throw new InvalidOperationException($"needs {needs}; the mesh has {pieces.Count} piece{(pieces.Count == 1 ? "" : "s")} with faces");
+            return pieces;
         }
 
         /// <summary>Appends a copy of the first UV a face gives one of these vertices, returning its index.</summary>
@@ -168,7 +178,7 @@ namespace Kollektion.Core.Build
         /// profile, joins the hub cap to the raised tube. Returns the vertices lifted and the housings added.</summary>
         public static (int Lifted, int Housings) PortalAxle(ObjFile obj, PortalAxleOptions o)
         {
-            var pieces = Pieces.WholeComponents(obj);
+            var pieces = AxlePieces(obj, 2, "the differential and the axle tube");
             var diff = pieces[0];
             foreach (var p in pieces)
                 if (p.Vertices.Count > diff.Vertices.Count) diff = p;
