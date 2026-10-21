@@ -21,5 +21,35 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
-      - name: Checks (tools compile, versions, game-update handling, real names, catalogue, pack manifests, hook-page placement)
+      - name: Checks (tools compile, versions, unit tests, real names, catalogue, pack manifests, hook-page placement)
         run: python3 tools/release.py ci
+
+  # `kollektion` is one source with two targets. Each is built and tested on its own OS (the same tests run the
+  # Windows build under Wine locally), and the build that passed is kept as an artifact.
+  kollektion:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: windows-latest
+            rid: win-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build kollektion for ${{ matrix.rid }}
+        run: dotnet publish src/kollektion -c Release -r ${{ matrix.rid }} -nologo -o build/kollektion/${{ matrix.rid }}
+      - name: Test it on ${{ matrix.os }}
+        run: python -m unittest discover -s tests -p test_kollektion.py -v
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kollektion-${{ matrix.rid }}
+          path: build/kollektion/${{ matrix.rid }}/
+          if-no-files-found: error

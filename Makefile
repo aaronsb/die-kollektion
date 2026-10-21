@@ -7,7 +7,7 @@ GAME_DIR ?= $(shell python3 tools/werkstatt.py game-dir 2>/dev/null)
 export GAME_DIR MY_GAMES DEPLOY_DIR FORCE BEPINEX_ARCHIVE PROFILE VERSION DRY_RUN
 
 .DEFAULT_GOAL := start
-.PHONY: start help doctor setup bepinex extract build check contact loop pack deploy undeploy update status save-add save-test save-real all release nexus-images blender-addon
+.PHONY: start help doctor setup bepinex extract build check contact loop pack deploy undeploy update status save-add save-test save-real all release nexus-images blender-addon kollektion
 
 start: ## The next setup step, in plain words. Run it again after each step.
 	@$(WS) start
@@ -82,6 +82,9 @@ loop: ## Change one vehicle: build it, run its gates, redo its contact sheet, su
 
 pack: ## Build the shareable zip of a pack into dist/ (P=<pack>, default die-kollektion)
 	@python3 tools/pack.py build packs/$(or $(P),die-kollektion)
+
+kollektion: ## Build the kollektion app from one source for Linux and Windows into build/kollektion/<linux-x64|win-x64>/
+	@for rid in linux-x64 win-x64; do dotnet publish src/kollektion -c Release -r $$rid -nologo -v quiet -o build/kollektion/$$rid || exit 1; done
 
 blender-addon: ## Zip the Blender add-on for Edit > Preferences > Add-ons > Install from Disk (docs/blender_addon.md)
 	@python3 tools/werkstatt.py blender-addon

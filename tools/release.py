@@ -80,7 +80,13 @@ def versions():
     sections = changelog_sections()
     return {"plugin (plugins/VehicleMods/Plugin.cs)": ws.plugin_version(),
             "pack (packs/die-kollektion/manifest.json)": pack,
+            "kollektion (src/kollektion/kollektion.csproj)": kollektion_version(),
             "CHANGELOG.md (latest release)": sections[0][0] if sections else None}
+
+
+def kollektion_version():
+    m = re.search(r"<Version>([^<]+)</Version>", open(os.path.join(ROOT, "src", "kollektion", "kollektion.csproj")).read())
+    return m.group(1) if m else None
 
 
 def cmd_check_versions(args):
@@ -91,7 +97,7 @@ def cmd_check_versions(args):
     for k, v in found.items():
         print(f"{'ok  ' if not bad else '    '} {k}: {v}")
     if bad:
-        print("Versions disagree" + (f" with {want}" if want else "") + ": bump all three together.")
+        print("Versions disagree" + (f" with {want}" if want else "") + ": bump them all together.")
         return 1
     return 0
 
@@ -111,7 +117,8 @@ def cmd_ci(_args):
         ("python tools compile", [sys.executable, "-m", "py_compile"] + sorted(glob.glob(os.path.join(ROOT, "tools", "*.py")))
          + sorted(glob.glob(os.path.join(ROOT, "blender", "addons", "*", "*.py")))),
         ("versions agree", [sys.executable, "tools/release.py", "check-versions"]),
-        ("game-update handling", [sys.executable, "-W", "ignore", "-m", "unittest", "discover", "-s", "tests"]),
+        ("unit tests (game-update handling, kollektion on each target)",
+         [sys.executable, "-W", "ignore", "-m", "unittest", "discover", "-s", "tests"]),
         ("real names stay in the catalogue", [sys.executable, "tools/check_names.py"]),
         ("the catalogue is current", [sys.executable, "tools/catalogue.py", "--check"]),
         ("pack manifests", [sys.executable, "tools/pack.py", "check"]),
