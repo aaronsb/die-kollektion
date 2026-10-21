@@ -435,6 +435,14 @@ try
     Check(Directory.GetFiles(whole, "*", SearchOption.AllDirectories).Select(Path.GetFileName).SequenceEqual(new[] { "new.obj" }) && !Beside()
           && wholeLog.Last() == $"{Path.Combine(whole, "mammoth", "new.obj")}: written",
           "replace whole: a write that succeeds replaces the folder entirely, its log naming the final paths");
+    var swapped = Path.Combine(temp, "swapped");                            // a run killed between its two moves
+    Directory.CreateDirectory(Path.Combine(temp, "swapped.old-4194305", "mammoth"));
+    File.WriteAllText(Path.Combine(temp, "swapped.old-4194305", "mammoth", "kept.obj"), "kept");
+    Throws<InvalidOperationException>(() => Extraction.ReplaceWhole(swapped, (dir, l) => throw new InvalidOperationException("stop"), wholeLog.Add),
+                                      "replace whole: a failing write after a killed swap is passed on");
+    Check(File.Exists(Path.Combine(swapped, "mammoth", "kept.obj"))
+          && !Directory.GetDirectories(temp).Any(d => Path.GetFileName(d).StartsWith("swapped.", StringComparison.Ordinal)),
+          "replace whole: the old folder a killed swap left aside is put back");
 
     // The extraction as a whole, on a fake game folder of synthetic bundles: it fails before writing anything, and an
     // existing output folder is left as it was with no partial folder beside it.

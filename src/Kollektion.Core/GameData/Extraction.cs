@@ -268,15 +268,22 @@ namespace Kollektion.Core.GameData
         }
 
         /// <summary>Removes &lt;out&gt;.partial-N and &lt;out&gt;.old-N folders left by runs that were killed (no process
-        /// N runs any more): they hold game data, and nothing else cleans them up.</summary>
+        /// N runs any more): they hold game data, and nothing else cleans them up. A run killed in the middle of its
+        /// swap leaves only &lt;out&gt;.old-N; that one is put back as &lt;out&gt;.</summary>
         static void RemoveAbandoned(string target, Action<string> log)
         {
             var name = Path.GetFileName(target);
             var pattern = new Regex("^" + Regex.Escape(name) + @"\.(partial|old)-(\d+)$");
-            foreach (var dir in Directory.GetDirectories(Path.GetDirectoryName(target)))
+            foreach (var dir in Directory.GetDirectories(Path.GetDirectoryName(target)).OrderBy(d => d, StringComparer.Ordinal))
             {
                 var m = pattern.Match(Path.GetFileName(dir));
                 if (!m.Success || !int.TryParse(m.Groups[2].Value, out int pid) || Running(pid)) continue;
+                if (m.Groups[1].Value == "old" && !Directory.Exists(target))
+                {
+                    log($"putting back {target}, which an extraction that didn't finish had moved to {dir}");
+                    Directory.Move(dir, target);
+                    continue;
+                }
                 log($"removing {dir}, left by an extraction that didn't finish");
                 TryDelete(dir, log);
             }
