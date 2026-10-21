@@ -1,4 +1,9 @@
+// A port of Pillow's BC1 and BC3 decoder (src/libImaging/BcnDecode.c, "The Python Imaging Library / decoder for
+// DXTn-compressed data"), whose contents its authors put in the public domain under CC0 1.0
+// (https://creativecommons.org/publicdomain/zero/1.0/). Credited here as a courtesy; no licence terms apply.
+
 using System;
+using System.IO;
 
 namespace Kollektion.Core.GameData
 {
@@ -7,9 +12,10 @@ namespace Kollektion.Core.GameData
     /// colours differently and are off by 1-2 per channel. Output: RGBA, rows in the data's order.</summary>
     public static class Bcn
     {
-        public static byte[] DecodeBc1(byte[] src, int width, int height) => Decode(src, width, height, false);
+        /// <summary>BC1 blocks to RGBA; an InvalidDataException naming the texture when src is too short.</summary>
+        public static byte[] DecodeBc1(byte[] src, int width, int height, string name = "BC1 data") => Decode(src, width, height, false, name);
 
-        public static byte[] DecodeBc3(byte[] src, int width, int height) => Decode(src, width, height, true);
+        public static byte[] DecodeBc3(byte[] src, int width, int height, string name = "BC3 data") => Decode(src, width, height, true, name);
 
         static void Rgb565(int c, int[] into, int at)
         {
@@ -19,12 +25,12 @@ namespace Kollektion.Core.GameData
             into[at] = r; into[at + 1] = g; into[at + 2] = b; into[at + 3] = 255;
         }
 
-        static byte[] Decode(byte[] src, int width, int height, bool bc3)
+        static byte[] Decode(byte[] src, int width, int height, bool bc3, string name)
         {
             int blockSize = bc3 ? 16 : 8;
-            int blocks = ((width + 3) / 4) * ((height + 3) / 4);
-            if (src.Length < blocks * blockSize)
-                throw new ArgumentException($"{blocks * blockSize} bytes needed for {width}x{height}, {src.Length} given");
+            long blocks = (long)((width + 3) / 4) * ((height + 3) / 4);
+            if (width < 0 || height < 0 || src.Length < blocks * blockSize)
+                throw new InvalidDataException($"{name}: {blocks * blockSize} bytes needed for {width}x{height}, {src.Length} given");
             var dst = new byte[width * height * 4];
             var pal = new int[16];             // four RGBA colours
             var alpha = new int[8];

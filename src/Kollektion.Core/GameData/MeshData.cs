@@ -1,3 +1,7 @@
+// Reimplements UnityPy's MeshHandler (UnityPy/helpers/MeshHelper.py: vertex streams, channels and index buffers)
+// for the meshes this game ships. UnityPy is Copyright (c) 2019-2026 K0lb3 and released under the MIT
+// licence: LICENSES/UnityPy-MIT.txt.
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -49,6 +53,9 @@ namespace Kollektion.Core.GameData
         // UInt16, SInt16, UInt32, SInt32.
         static readonly int[] FormatSize = { 4, 2, 1, 1, 2, 2, 1, 1, 2, 2, 4, 4 };
 
+        // The channels whose values the exporters use as numbers: position, normal, UV0 and bone weights.
+        static readonly string[] Measured = { "position", "normal", null, null, "UV0", null, null, null, null, null, null, null, "bone weights" };
+
         public string Name { get; }
         public int VertexCount { get; }
         public double[][] Vertices { get; private set; }
@@ -95,10 +102,13 @@ namespace Kollektion.Core.GameData
         public static MeshData Read(Bundles bundles, Asset mesh) => Read(bundles, mesh, mesh.F, mesh.Name);
 
         /// <summary>Decodes raw vertex and index bytes. baseVertex must be 0: UnityPy doesn't apply it, so a mesh
-        /// using it would come out different from the Python pipeline's (and wrong in both); it fails here instead.</summary>
+        /// using it would come out different from the Python pipeline's (and wrong in both); it fails here instead.
+        /// So do UNorm and SNorm formats (2 to 5) on a channel the exporters read as numbers: UnityPy, and so the
+        /// Python, read them as raw integers, not as the -1..1 or 0..1 values they stand for.</summary>
         public static MeshData Decode(string name, int vertexCount, IReadOnlyList<VertexChannel> channels, byte[] data,
                                       byte[] indexBuffer, bool indices16, IReadOnlyList<SubMesh> subMeshes)
         {
+            if (vertexCount < 0) throw new InvalidDataException($"{name}: {vertexCount} vertices");
             int indexSize = indices16 ? 2 : 4;
             var indices = new uint[indexBuffer.Length / indexSize];
             for (int i = 0; i < indices.Length; i++)
@@ -108,10 +118,11 @@ namespace Kollektion.Core.GameData
             {
                 if (sm.Topology != 0) throw new NotSupportedException($"{name}: submesh topology {sm.Topology} (only triangles)");
                 if (sm.BaseVertex != 0) throw new NotSupportedException($"{name}: submesh baseVertex {sm.BaseVertex} (only 0)");
-                int first = sm.FirstByte / indexSize;
-                if (sm.FirstByte % indexSize != 0 || sm.IndexCount % 3 != 0 || first + sm.IndexCount > indices.Length)
+                long first = sm.FirstByte / indexSize;
+                if (sm.FirstByte < 0 || sm.IndexCount < 0 || sm.FirstByte % indexSize != 0 || sm.IndexCount % 3 != 0
+                    || first + sm.IndexCount > indices.Length)
                     throw new InvalidDataException($"{name}: submesh runs past the index buffer");
-                for (int i = first; i < first + sm.IndexCount; i += 3)
+                for (int i = (int)first; i < first + sm.IndexCount; i += 3)
                 {
                     for (int k = 0; k < 3; k++)
                         if (indices[i + k] >= vertexCount)
@@ -122,10 +133,17 @@ namespace Kollektion.Core.GameData
 
             var mesh = new MeshData(name, vertexCount, triangles);
             if (channels.Count == 0 || vertexCount == 0) return mesh;
+            for (int ch = 0; ch < channels.Count && ch < Measured.Length; ch++)
+            {
+                var c = channels[ch];
+                if (Measured[ch] != null && (c.Dimension & 0xF) > 0 && c.Format >= 2 && c.Format <= 5)
+                    throw new NotSupportedException($"{name}: {Measured[ch]} stored as a normalised integer (vertex format {c.Format}); " +
+                                                    "only float and half are read");
+            }
             int streamCount = 1 + channels.Max(c => c.Stream);
-            var streamOffset = new int[streamCount];
-            var stride = new int[streamCount];
-            int off = 0;
+            var streamOffset = new long[streamCount];
+            var stride = new long[streamCount];
+            long off = 0;
             for (int s = 0; s < streamCount; s++)
             {
                 foreach (var c in channels)
@@ -140,13 +158,13 @@ namespace Kollektion.Core.GameData
                 int dim = c.Dimension & 0xF;
                 if (dim == 0) continue;
                 int size = Size(name, c.Format);
-                int last = streamOffset[c.Stream] + (vertexCount - 1) * stride[c.Stream] + c.Offset + dim * size;
+                long last = streamOffset[c.Stream] + (vertexCount - 1) * stride[c.Stream] + c.Offset + dim * size;
                 if (last > data.Length) throw new InvalidDataException($"{name}: vertex data ends early (channel {ch})");
                 var values = new double[vertexCount][];
                 for (int v = 0; v < vertexCount; v++)
                 {
                     var item = values[v] = new double[dim];
-                    int p = streamOffset[c.Stream] + v * stride[c.Stream] + c.Offset;
+                    int p = (int)(streamOffset[c.Stream] + v * stride[c.Stream] + c.Offset);
                     for (int k = 0; k < dim; k++, p += size)
                         item[k] = c.Format switch
                         {
