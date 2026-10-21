@@ -1,0 +1,14 @@
+Testwagen: wheelbase 2.31 -> 2.75 m, rear shift -0.440 m
+  stretched.obj: moved 44 of 124 vertices
+  edge_values.obj: copied
+  regions.obj: removed 28 faces in [{'y': [1.35, None], 'z': [-0.65, None]}, {'x': [None, -0.8]}]; removed 5 faces in {'y': [0.3, 0.6], 'z': [0.85, 0.95]}; removed 0 faces in []; removed 2 pieces matching [{'x': [0.6, 0.9], 'minSize': {'y': 0.3}}, {'minVertices': 30}]; removed 1 pieces matching {'z': [-1.6, -1.4]}
+  pieces.obj: moved 44 of 124 vertices; moved 16 vertices of 1 pieces +0.300 m past z -1.0; moved 4 vertices of 1 pieces -0.200 m past z -1.5; moved 4 vertices of 1 pieces +0.250 m past z -1.0; moved 8 vertices of 1 pieces by [0.0, -0.1, 0.05]; scaled 8 vertices by [1.0, 1.2569, 1.0] about [0.0, 0.6, 0.0]; moved 8 vertices +0.250 m outward past |x| 0.7; moved 16 vertices +0.100 m outward past |x| 0.5
+  paint.obj: painted 6 faces from uv [0.635, 0.59]; painted 2 faces from uv [0.0264, 0.124]; painted 19 faces from uv [0.5, 0.5]; painted 6 faces from uv [0.9, 0.1]; painted 1 faces from uv [0.4, 0.4]; painted 95 faces from uv [0.1, 0.9]
+  shapes.obj: added 2 boxes; added 2 plates; added 5 tubes (28 rings); added 1 profile bands; added 2 decals
+  axle_clear.obj: removed 9 faces near the axle; removed 3 faces near the axle
+  insert.obj: moved 44 of 124 vertices; inserted 12 faces from meshes/part.obj; inserted 18 faces from extracted/shared/part_LOD0.obj; inserted 17 faces from generated/part_boxes.obj
+  relocate.obj: piece now at x +0.60..+0.90 y +0.90..+1.20 z -0.80..-0.60; piece now at x +0.13..+0.38 y +0.90..+1.10 z +0.57..+0.81
+  portal.obj: lifted 80 axle vertices, added 2 portal housings; removed 32 leaf-spring vertices, added 2 coils
+  coil.obj: lifted 80 axle vertices, added 2 portal housings; removed 32 leaf-spring vertices, added 2 coils
+  skinned_shapes.obj: added 2 tubes (14 rings); added 1 boxes; added 1 decals
+  our_shapes.obj: added 35 boxes; added 23 plates; added 35 boxes; added 10 tubes (36 rings)
