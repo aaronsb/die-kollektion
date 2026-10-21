@@ -130,6 +130,7 @@ def cmd_ci(_args):
         ("tool nodes", ["dotnet", "run", "--project", "tools/toolnodes-check", "-v", "quiet", "--"]
          + sorted(os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "vehicles", "*", "vehicle.json")))),
         ("loader decisions", ["dotnet", "run", "--project", "tools/loader-plan", "-v", "quiet", "--", "scenarios"]),
+        ("game-data reader (kollektion extract)", ["dotnet", "run", "--project", "tools/gamedata-check", "-v", "quiet"]),
     ]
     # The tests build fake game folders; folders exported by the Makefile and FORCE stay out of their way.
     env = {k: v for k, v in os.environ.items() if k not in ("DEPLOY_DIR", "FORCE", "GAME_DIR", "MY_GAMES")}
