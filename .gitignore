@@ -28,6 +28,8 @@ plugins/*/bin/
 plugins/*/obj/
 tools/*/bin/
 tools/*/obj/
+src/*/bin/
+src/*/obj/
 renders/
 logs/
 # Written into release zips only (tools/release.py)

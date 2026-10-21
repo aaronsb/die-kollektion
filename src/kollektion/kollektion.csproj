@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- `kollektion`: the CLI, and with no arguments the hub (docs/vehicle_factory.md, The hub). One source, two
+       targets: `make kollektion` publishes it self-contained as a single file for linux-x64 and win-x64. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>kollektion</AssemblyName>
+    <RootNamespace>Kollektion</RootNamespace>
+    <Version>0.7.0</Version>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <PathMap>$(MSBuildProjectDirectory)=kollektion</PathMap>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <DebugType>embedded</DebugType>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Kollektion.Core/Kollektion.Core.csproj" />
+  </ItemGroup>
+</Project>

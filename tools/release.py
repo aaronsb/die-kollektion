@@ -80,7 +80,13 @@ def versions():
     sections = changelog_sections()
     return {"plugin (plugins/VehicleMods/Plugin.cs)": ws.plugin_version(),
             "pack (packs/die-kollektion/manifest.json)": pack,
+            "kollektion (src/kollektion/kollektion.csproj)": kollektion_version(),
             "CHANGELOG.md (latest release)": sections[0][0] if sections else None}
+
+
+def kollektion_version():
+    m = re.search(r"<Version>([^<]+)</Version>", open(os.path.join(ROOT, "src", "kollektion", "kollektion.csproj")).read())
+    return m.group(1) if m else None
 
 
 def cmd_check_versions(args):
@@ -91,7 +97,7 @@ def cmd_check_versions(args):
     for k, v in found.items():
         print(f"{'ok  ' if not bad else '    '} {k}: {v}")
     if bad:
-        print("Versions disagree" + (f" with {want}" if want else "") + ": bump all three together.")
+        print("Versions disagree" + (f" with {want}" if want else "") + ": bump them all together.")
         return 1
     return 0
 
@@ -111,7 +117,8 @@ def cmd_ci(_args):
         ("python tools compile", [sys.executable, "-m", "py_compile"] + sorted(glob.glob(os.path.join(ROOT, "tools", "*.py")))
          + sorted(glob.glob(os.path.join(ROOT, "blender", "addons", "*", "*.py")))),
         ("versions agree", [sys.executable, "tools/release.py", "check-versions"]),
-        ("game-update handling", [sys.executable, "-W", "ignore", "-m", "unittest", "discover", "-s", "tests"]),
+        ("unit tests (game-update handling, kollektion on each target)",
+         [sys.executable, "-W", "ignore", "-m", "unittest", "discover", "-s", "tests"]),
         ("real names stay in the catalogue", [sys.executable, "tools/check_names.py"]),
         ("the catalogue is current", [sys.executable, "tools/catalogue.py", "--check"]),
         ("pack manifests", [sys.executable, "tools/pack.py", "check"]),
@@ -127,6 +134,10 @@ def cmd_ci(_args):
     # The tests build fake game folders; folders exported by the Makefile and FORCE stay out of their way.
     env = {k: v for k, v in os.environ.items() if k not in ("DEPLOY_DIR", "FORCE", "GAME_DIR", "MY_GAMES")}
     env["WERKSTATT_IN_TESTS"] = "1"    # werkstatt.py's gates refuse to run inside their own tests
+    # tests/test_kollektion.py: both builds, under Wine too when wine is installed. On CI the kollektion matrix job
+    # runs them on each OS instead.
+    if os.environ.get("GITHUB_ACTIONS") != "true":
+        env["KOLLEKTION_TESTS"] = "1"
     failed = []
     for name, cmd in steps:
         r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, env=env)

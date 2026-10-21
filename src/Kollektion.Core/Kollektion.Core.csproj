@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- What the plugin and `kollektion` must agree on (docs/vehicle_factory.md, Architecture). net6.0 with no BepInEx
+       or IL2CPP references, so the plugin can share it; per-OS differences live here and nowhere else. -->
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <PathMap>$(MSBuildProjectDirectory)=Kollektion.Core</PathMap>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+</Project>

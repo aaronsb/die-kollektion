@@ -4,6 +4,12 @@ All notable changes to Die Kollektion Werkstatt. The format follows [Keep a Chan
 
 ## [Unreleased]
 
+### Added
+- **`kollektion`, built for Linux and Windows from one source.** The start of the one program players will download and run: `make kollektion` builds it as a single self-contained file for each system (`build/kollektion/linux-x64/kollektion`, `build/kollektion/win-x64/kollektion.exe`). Today it has `kollektion status`, which finds the game through Steam's libraries and reports BepInEx, the loader, the saves folder and the game log, without changing anything. The same tests run the Linux build, the Windows build under Wine, and each build on its own system in CI, which keeps both builds for download.
+
+### Changed
+- **The plan puts players first** (`docs/vehicle_factory.md`, Migration plan): the truck build leaves Python next, then setup and the hub in the one program, then Windows, then a release with a Linux and a Windows zip that hold no scripts.
+
 ## [0.7.0] - 2026-10-20
 
 A Blender add-on for fitting accessories, placements the plugin applies in game, the bumper winch on our trucks while they carry the portable winch, and a loader that handles game updates inside the game.
