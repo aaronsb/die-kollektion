@@ -54,8 +54,12 @@ namespace Kollektion.Core.Build
         public bool Bool(string name, bool fallback)
         {
             if (!Has(name)) return fallback;
-            var v = Get(name);
-            return v.ValueKind == JsonValueKind.True || (v.ValueKind != JsonValueKind.False ? throw Error($"\"{name}\" must be true or false") : false);
+            switch (Get(name).ValueKind)
+            {
+                case JsonValueKind.True: return true;
+                case JsonValueKind.False: return false;
+                default: throw Error($"\"{name}\" must be true or false");
+            }
         }
 
         public string Str(string name) =>
