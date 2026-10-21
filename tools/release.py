@@ -130,7 +130,11 @@ def cmd_ci(_args):
         ("tool nodes", ["dotnet", "run", "--project", "tools/toolnodes-check", "-v", "quiet", "--"]
          + sorted(os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "vehicles", "*", "vehicle.json")))),
         ("loader decisions", ["dotnet", "run", "--project", "tools/loader-plan", "-v", "quiet", "--", "scenarios"]),
-        ("game-data reader (kollektion extract)", ["dotnet", "run", "--project", "tools/gamedata-check", "-v", "quiet"]),
+        ("game-data reader (kollektion extract)",
+         ["dotnet", "run", "--project", "tools/gamedata-check", "-f", "net10.0", "-v", "quiet"]),
+        # Core's net6.0 build, as the plugin will load it, run on the installed runtime.
+        ("game-data reader, net6.0 build",
+         ["dotnet", "run", "--project", "tools/gamedata-check", "-f", "net6.0", "-p:RollForward=Major", "-v", "quiet"]),
         ("the vehicle build matches meshlib.py", ["dotnet", "run", "--project", "tools/meshops-check", "-v", "quiet", "--",
                                                  "tests/meshops"]),
     ]

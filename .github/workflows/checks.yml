@@ -56,7 +56,8 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           dotnet run --project tools/meshops-check -v quiet -- tests/meshops
-          dotnet run --project tools/gamedata-check -v quiet
+          dotnet run --project tools/gamedata-check -f net10.0 -v quiet
+          dotnet run --project tools/gamedata-check -f net6.0 -p:RollForward=Major -v quiet
       # upload-artifact drops the execute bit; the release that packs this artifact sets it again.
       - uses: actions/upload-artifact@v4
         with:
