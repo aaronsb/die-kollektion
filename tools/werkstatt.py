@@ -847,7 +847,9 @@ def cmd_gates(args):
     else:
         print("addon    skip the Blender add-on test needs Blender, the Megaloceros built and `make extract` with upgrades.json")
     # The tests build fake game folders; the Makefile's exported folders and FORCE stay out of their way.
-    test_env = {k: v for k, v in os.environ.items() if k not in ("DEPLOY_DIR", "FORCE", "GAME_DIR", "MY_GAMES")}
+    # KOLLEKTION_TESTS stays out too: those tests publish both kollektion builds, which a deploy never needs.
+    test_env = {k: v for k, v in os.environ.items()
+                if k not in ("DEPLOY_DIR", "FORCE", "GAME_DIR", "MY_GAMES", "KOLLEKTION_TESTS")}
     test_env[IN_TESTS] = "1"
     for label, cmd in (("updates ", [sys.executable, "-W", "ignore", "-m", "unittest", "discover", "-s", "tests"]),
                        ("names   ", [sys.executable, "tools/check_names.py"]),
