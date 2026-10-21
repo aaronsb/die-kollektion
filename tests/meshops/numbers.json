@@ -1,4 +1,4 @@
-{"notes": "Written by tests/meshops/make_fixtures.py from CPython 3.14.8.",
+{"notes": "Written by tests/meshops/make_fixtures.py from CPython 3.14.8, as were expected/ and expected.log.",
 "numbers": [
 {"bits": 0, "f6": "0.000000", "f3": "0.000", "s3": "+0.000", "f2": "0.00", "s2": "+0.00", "repr": "0.0", "round4": 0},
 {"bits": -9223372036854775808, "f6": "-0.000000", "f3": "-0.000", "s3": "-0.000", "f2": "-0.00", "s2": "-0.00", "repr": "-0.0", "round4": 0},

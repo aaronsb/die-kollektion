@@ -15,11 +15,14 @@ namespace Kollektion.Core.Build
 
         public static double Length(double[] v) => Math.Sqrt(Dot(v, v));
 
-        /// <summary>meshlib's _normalised: each component over the length.</summary>
-        public static double[] Normalised(double[] v)
-        {
-            var n = Length(v);
-            return new[] { v[0] / n, v[1] / n, v[2] / n };
-        }
+        /// <summary>meshlib's _normalised: each component over the length. A zero vector throws, as Python's
+        /// division by zero does, where IEEE would make NaNs.</summary>
+        public static double[] Normalised(double[] v) => Scaled(v, Length(v), "normalise a zero-length vector");
+
+        /// <summary>v's components each divided by length; what names the operation when the length is zero.</summary>
+        public static double[] Scaled(double[] v, double length, string what) =>
+            length != 0.0
+                ? new[] { v[0] / length, v[1] / length, v[2] / length }
+                : throw new InvalidOperationException("can't " + what);
     }
 }

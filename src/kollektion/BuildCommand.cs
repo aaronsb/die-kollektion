@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text.Json;
 using Kollektion.Core;
 using Kollektion.Core.Build;
 
@@ -55,16 +53,17 @@ namespace Kollektion
             output ??= Path.Combine(vehicleDir, "build");
             try
             {
-                using var document = JsonDocument.Parse(text);
-                var build = new VehicleBuild(manifest, Path.GetFullPath(extracted), generated == null ? null : Path.GetFullPath(generated), Console.Out);
-                var missing = build.Run(document.RootElement, Path.GetFullPath(output));
+                using var document = VehicleBuild.Parse(text);
+                var build = new VehicleBuild(manifest, extracted, generated, Console.Out);
+                var missing = build.Run(document.RootElement, output);
                 if (missing.Count == 0) return 0;
                 Console.Error.WriteLine("missing game meshes; export them from your own install first (README, \"Building from source\"):\n  " +
-                                        string.Join("\n  ", missing));
+                                        string.Join("\n  ", missing) + "\n" +
+                                        $"(extracted/ is {Path.GetFullPath(extracted)}" +
+                                        (generated == null ? ")" : $", generated/ is {Path.GetFullPath(generated)})"));
                 return 1;
             }
-            catch (Exception e) when (e is JsonException || e is FormatException || e is InvalidOperationException ||
-                                      e is KeyNotFoundException || e is IOException || e is UnauthorizedAccessException)
+            catch (BuildException e)
             {
                 Console.Error.WriteLine($"{manifest}: {e.Message}");
                 return 1;

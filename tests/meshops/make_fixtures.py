@@ -5,10 +5,15 @@ vehicle that runs every operation on them, and what tools/build_vehicle.py and t
     python3 tests/meshops/make_fixtures.py      rewrite tests/meshops/{game,gen,vehicle,expected,numbers.json}
 
 game/ stands in for extracted/ (which git ignores everywhere), gen/ for the vehicle's generated/. Run it again only
-when meshlib.py or build_vehicle.py changes on purpose; the C# port must then match the new expectations.
+when meshlib.py or build_vehicle.py changes on purpose; the C# port must then match the new expectations. Its inputs
+are this file and our_shapes.json, never a live vehicle, so editing a truck can't change a fixture. It needs CPython
+3.12 or later: sum() compensates from 3.12 on, and the port reproduces that; numbers.json records the version used.
 """
 import contextlib, io, json, math, os, random, shutil, struct, sys, tempfile
 from decimal import Decimal, ROUND_HALF_EVEN
+
+assert sys.implementation.name == "cpython" and sys.version_info >= (3, 12), \
+    "make_fixtures.py needs CPython 3.12 or later (its compensated sum()), not " + sys.version
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
@@ -210,7 +215,8 @@ DEFINITION = {
              "include": [{"minSize": {"x": 0.5}}, {"x": [-0.1, 0.2], "y": [1.05, 1.25]}],
              "exclude": [{"x": [0.05, 0.2]}]},
             {"op": "insertPart", "file": "extracted/shared/part_LOD0.obj", "unitSize": 0.2},
-            {"op": "insertPart", "file": "generated/part_boxes.obj", "box": [{"x": [1.5, None]}]}]},
+            {"op": "insertPart", "file": "generated/part_boxes.obj", "box": [{"x": [1.5, None]}]},
+            {"op": "insertPart", "file": "meshes/part.obj", "box": [], "notes": "an empty box inserts everything"}]},
         "Body/relocate": {"file": "relocate.obj", "stretch": False, "ops": [
             {"op": "relocatePiece", "select": {"x": [-0.31, -0.09], "y": [0.89, 1.21], "minVertices": 8},
              "rotateY": -90, "anchorTo": [0.6, None, -0.7]},
@@ -277,7 +283,8 @@ def numbers():
         c = max(-1.0, min(1.0, math.cos(a)))
         trig.append({"bits": bits(a), "cos": bits(math.cos(a)), "sin": bits(math.sin(a)), "tan": bits(math.tan(a / 2)),
                      "acos": bits(math.acos(c))})
-    return {"notes": "Written by tests/meshops/make_fixtures.py from CPython " + sys.version.split()[0] + ".",
+    return {"notes": "Written by tests/meshops/make_fixtures.py from CPython " + sys.version.split()[0] +
+                     ", as were expected/ and expected.log.",
             "numbers": rows, "sums": sums, "hypots": hypots, "trig": trig}
 
 
@@ -299,11 +306,10 @@ def main():
     part().write(os.path.join(HERE, "vehicle", "meshes", "part.obj"))
     part(0.4).write(os.path.join(game, "shared", "part_LOD0.obj"))
     part(1.6).write(os.path.join(HERE, "gen", "part_boxes.obj"))
-    # Our own trucks' added parts (their manifest data, no game geometry): the many near-axis plate and tube normals
-    # whose zero components get their sign from Python's compensated sum.
-    ours = json.load(open(os.path.join(ROOT, "vehicles", "glyptodon", "vehicle.json")))
-    DEFINITION["meshes"]["Body/our_shapes"] = {"file": "our_shapes.obj", "stretch": False, "ops": [
-        op for op in ours["meshes"]["Parts/Mammoth/Mammoth_body_LOD3"]["ops"] if op["op"] in ("addBoxes", "addPlates", "addTubes")]}
+    # Our own trucks' added parts (their manifest data, frozen in our_shapes.json; no game geometry): the many
+    # near-axis plate and tube normals whose zero components get their sign from Python's compensated sum.
+    with open(os.path.join(HERE, "our_shapes.json")) as f:
+        DEFINITION["meshes"]["Body/our_shapes"] = {"file": "our_shapes.obj", "stretch": False, "ops": json.load(f)["ops"]}
     with open(os.path.join(HERE, "vehicle", "vehicle.json"), "w") as f:
         json.dump(DEFINITION, f, indent=1)
         f.write("\n")

@@ -160,9 +160,10 @@ namespace Kollektion.Core.Build
         /// piece must match. Returns the piece's bounds after the move.</summary>
         public static (double[] Lo, double[] Hi) RelocatePiece(ObjFile obj, Selection select, double rotateY, double?[] anchorTo)
         {
+            if (anchorTo != null && anchorTo.Length != 3) throw new ArgumentException("anchorTo must be [x, y, z]", nameof(anchorTo));
             var matches = Pieces.Find(obj).FindAll(p => select.Matches(p.Lo, p.Hi, p.Vertices.Count));
             if (matches.Count != 1)
-                throw new InvalidOperationException($"relocatePiece selection matched {matches.Count} pieces");
+                throw new InvalidOperationException($"the selection matched {matches.Count} pieces; it must match exactly one");
             var idx = matches[0].Vertices;
             var (_, hi) = Pieces.Bounds(obj, idx);
             var anchor = new double[3];
@@ -207,7 +208,7 @@ namespace Kollektion.Core.Build
             IReadOnlyList<Selection> exclude, double unitSize)
         {
             if (obj.Skinned)
-                throw new InvalidOperationException("insertPart does not skin inserted geometry; the base mesh is skinned");
+                throw new InvalidOperationException("the base mesh is skinned, and inserted geometry would have no skinning");
             var excluded = new HashSet<int>();
             foreach (var p in Pieces.Find(part))
             {

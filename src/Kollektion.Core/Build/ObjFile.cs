@@ -58,45 +58,69 @@ namespace Kollektion.Core.Build
 
         static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
+        /// <summary>Reads an OBJ, refusing (FormatException, naming the line) a statement short of numbers, a face
+        /// corner indexing past what the file has, or bw lines that don't pair with the v lines.</summary>
         public static ObjFile Read(string path)
         {
             var o = new ObjFile();
-            using var reader = new StreamReader(path, new UTF8Encoding(false), false);
-            string line;
-            while ((line = reader.ReadLine()) != null)
+            using (var reader = new StreamReader(path, new UTF8Encoding(false), false))
             {
-                var p = Split(line);
-                if (p.Count == 0) continue;
-                switch (p[0])
+                string line;
+                var number = 0;
+                while ((line = reader.ReadLine()) != null)
                 {
-                    case "#":
-                        o.Header.Add(line);
-                        break;
-                    case "v":
-                        o.V.Add(new[] { F(p[1]), F(p[2]), F(p[3]) });
-                        o.Color.Add(p.Count >= 7 ? new[] { F(p[4]), F(p[5]), F(p[6]) } : null);
-                        break;
-                    case "bw":
-                        o.Bw.Add(new BoneWeights(new[] { I(p[1]), I(p[2]), I(p[3]), I(p[4]) },
-                            new[] { F(p[5]), F(p[6]), F(p[7]), F(p[8]) }));
-                        break;
-                    case "vt":
-                        o.Vt.Add(new[] { F(p[1]), F(p[2]) });
-                        break;
-                    case "vn":
-                        o.Vn.Add(new[] { F(p[1]), F(p[2]), F(p[3]) });
-                        break;
-                    case "bp":
-                        o.Bp.Add(line);
-                        break;
-                    case "f":
-                        var face = new Corner[p.Count - 1];
-                        for (var i = 1; i < p.Count; i++) face[i - 1] = ParseCorner(p[i]);
-                        o.Faces.Add(face);
-                        break;
+                    number++;
+                    try
+                    {
+                        ReadLine(o, line);
+                    }
+                    catch (Exception e) when (e is FormatException || e is IndexOutOfRangeException || e is ArgumentOutOfRangeException || e is OverflowException)
+                    {
+                        throw new FormatException($"{path} line {number}: can't read \"{line}\"", e);
+                    }
                 }
             }
+            if (o.Bw.Count != 0 && o.Bw.Count != o.V.Count)
+                throw new FormatException($"{path}: {o.Bw.Count} bw lines for {o.V.Count} vertices; a skinned OBJ has one per v line");
+            for (var n = 0; n < o.Faces.Count; n++)
+                foreach (var c in o.Faces[n])
+                    if (c.V < 0 || c.V >= o.V.Count || c.Vt < -1 || c.Vt >= o.Vt.Count || c.Vn < -1 || c.Vn >= o.Vn.Count)
+                        throw new FormatException($"{path}: face {n + 1} names a vertex, UV or normal the file doesn't have");
             return o;
+        }
+
+        static void ReadLine(ObjFile o, string line)
+        {
+            var p = Split(line);
+            if (p.Count == 0) return;
+            switch (p[0])
+            {
+                case "#":
+                    o.Header.Add(line);
+                    break;
+                case "v":
+                    o.V.Add(new[] { F(p[1]), F(p[2]), F(p[3]) });
+                    o.Color.Add(p.Count >= 7 ? new[] { F(p[4]), F(p[5]), F(p[6]) } : null);
+                    break;
+                case "bw":
+                    o.Bw.Add(new BoneWeights(new[] { I(p[1]), I(p[2]), I(p[3]), I(p[4]) },
+                        new[] { F(p[5]), F(p[6]), F(p[7]), F(p[8]) }));
+                    break;
+                case "vt":
+                    o.Vt.Add(new[] { F(p[1]), F(p[2]) });
+                    break;
+                case "vn":
+                    o.Vn.Add(new[] { F(p[1]), F(p[2]), F(p[3]) });
+                    break;
+                case "bp":
+                    o.Bp.Add(line);
+                    break;
+                case "f":
+                    var face = new Corner[p.Count - 1];
+                    for (var i = 1; i < p.Count; i++) face[i - 1] = ParseCorner(p[i]);
+                    o.Faces.Add(face);
+                    break;
+            }
         }
 
         public void Write(string path)
