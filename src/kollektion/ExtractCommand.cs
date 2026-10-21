@@ -69,10 +69,25 @@ namespace Kollektion
             {
                 Extraction.Run(game, vehicles, extra, outDir, Console.WriteLine);
             }
-            catch (Exception e) when (e is IOException || e is InvalidDataException || e is NotSupportedException
-                                      || e is UnauthorizedAccessException)
+            catch (GameDataException e)
             {
                 Console.Error.WriteLine($"extract: {e.Message}");
+                Console.Error.WriteLine(
+                    "The game's files look damaged or changed while they were read. If Steam is updating the game, let it\n" +
+                    "finish; otherwise let Steam verify them (Library, right-click Over the Hill, Properties, Installed Files,\n" +
+                    "Verify integrity of game files), then run extract again. Nothing was written: " + outDir + " is as it was.");
+                return 1;
+            }
+            catch (Exception e)
+            {
+                // Bad arguments or manifests, an output folder that can't be written, or a fault of extract's own.
+                bool expected = e is IOException || e is UnauthorizedAccessException || e is InvalidDataException
+                                || e is NotSupportedException || e is ArgumentException;
+                if (e is OutOfMemoryException)
+                    Console.Error.WriteLine("extract: ran out of memory (it needs about 600 MB); close other programs and run it again");
+                else
+                    Console.Error.WriteLine($"extract: {(expected ? e.Message : $"{e.GetType().Name}: {e.Message}")}");
+                Console.Error.WriteLine($"Nothing was written: {outDir} is as it was.");
                 return 1;
             }
             Console.WriteLine($"Extracted into {outDir} in {clock.Elapsed.TotalSeconds:0.0} s (never share or commit it).");

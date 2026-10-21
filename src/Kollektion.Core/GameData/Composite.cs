@@ -1,3 +1,6 @@
+// ResizeNearest follows Pillow's nearest-neighbour scaling (Pillow 13.0.0, src/libImaging/Geometry.c,
+// ImagingScaleAffine), used under Pillow's MIT-CMU licence (HPND): LICENSES/Pillow-MIT-CMU.txt.
+
 using System;
 using System.IO;
 
@@ -13,7 +16,7 @@ namespace Kollektion.Core.GameData
         public static Image Bake(Image skin, Image mask, out int glassTexels)
         {
             var outImg = skin.ToRgb();
-            var m = Resize(mask.ToRgb(), skin.Width, skin.Height);
+            var m = ResizeNearest(mask.ToRgb(), skin.Width, skin.Height);
             var px = (byte[])outImg.Pixels.Clone();
             glassTexels = 0;
             for (int i = 0, n = skin.Width * skin.Height; i < n; i++)
@@ -27,22 +30,30 @@ namespace Kollektion.Core.GameData
             return new Image(outImg.Width, outImg.Height, 3, px);
         }
 
-        /// <summary>Pillow's resize with NEAREST: each output texel takes the source texel under its centre.</summary>
-        static Image Resize(Image img, int width, int height)
+        /// <summary>Pillow's resize with NEAREST (libImaging/Geometry.c, ImagingScaleAffine): the source position
+        /// starts at half a step and adds the step (source size / output size) texel by texel, in doubles, so its
+        /// rounding drift is Pillow's; each output texel takes the source texel the position falls in, and stays zero
+        /// when it falls outside.</summary>
+        public static Image ResizeNearest(Image img, int width, int height)
         {
             if (img.Width == width && img.Height == height) return img;
-            var px = new byte[width * height * img.Channels];
-            double sx = (double)img.Width / width, sy = (double)img.Height / height;
-            for (int y = 0; y < height; y++)
+            int n = img.Channels;
+            var px = new byte[width * height * n];
+            double ax = (double)img.Width / width, ay = (double)img.Height / height;
+            var xin = new int[width];
+            double xo = ax * 0.5;
+            for (int x = 0; x < width; x++, xo += ax)
+                xin[x] = xo < 0 ? -1 : (int)xo;
+            double yo = ay * 0.5;
+            for (int y = 0; y < height; y++, yo += ay)
             {
-                int yi = Math.Min(img.Height - 1, (int)((y + 0.5) * sy));
+                int yi = yo < 0 ? -1 : (int)yo;
+                if (yi < 0 || yi >= img.Height) continue;
                 for (int x = 0; x < width; x++)
-                {
-                    int xi = Math.Min(img.Width - 1, (int)((x + 0.5) * sx));
-                    Buffer.BlockCopy(img.Pixels, (yi * img.Width + xi) * img.Channels, px, (y * width + x) * img.Channels, img.Channels);
-                }
+                    if (xin[x] >= 0 && xin[x] < img.Width)
+                        Buffer.BlockCopy(img.Pixels, (yi * img.Width + xin[x]) * n, px, (y * width + x) * n, n);
             }
-            return new Image(width, height, img.Channels, px);
+            return new Image(width, height, n, px);
         }
 
         /// <summary>Bakes <c>&lt;textures&gt;/&lt;donor&gt;_composite.png</c> from the skin and masks there.</summary>

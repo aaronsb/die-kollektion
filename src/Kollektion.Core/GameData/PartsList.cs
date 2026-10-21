@@ -26,9 +26,9 @@ namespace Kollektion.Core.GameData
                 {
                     kind = b.ScriptName(mb);
                 }
-                catch (InvalidDataException)
+                catch (UnresolvedReferenceException)
                 {
-                    continue;
+                    continue;                   // a script in no bundle read here: not one of the game's part kinds
                 }
                 if (kind != null && Kinds.Contains(kind))
                     parts[mb.PathId] = new PyDict
@@ -53,7 +53,6 @@ namespace Kollektion.Core.GameData
                 };
             }
             if (result.Count == 0) throw new InvalidDataException("no CarInfo found: pass the scriptableobjects, cars and monoscripts bundles");
-            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outPath)));
             PyJson.WriteFile(outPath, new PyDict { ["cars"] = result });
             log($"{outPath}: {result.Count} cars, {parts.Count} parts");
         }

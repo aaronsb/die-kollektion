@@ -31,7 +31,10 @@ namespace Kollektion.Core.GameData
         static List<object> Floats(double[] v) => v.Select(x => (object)x).ToList();
 
         /// <summary>Script class names by MonoScript path id, from the monoscripts bundle. The node facts look a
-        /// MonoBehaviour's script up by path id alone, as the Python does.</summary>
+        /// MonoBehaviour's script up by path id alone, as export_node_facts.py does, ignoring which file m_Script
+        /// points into; that is why this second resolver exists beside <see cref="Bundles.ScriptName"/>, which follows
+        /// the reference properly. nodes.json keeps the Python's lookup so it stays byte-identical; nothing else should
+        /// use it.</summary>
         public static Dictionary<long, string> ScriptsByPathId(Bundles b, Bundle monoscripts)
         {
             var scripts = new Dictionary<long, string>();
@@ -72,9 +75,10 @@ namespace Kollektion.Core.GameData
                 return found;
             }
 
-            void Walk(Asset t, string path, double[] pos, double[] rot, double[] scale)
+            void Walk(Asset t, string path, double[] pos, double[] rot, double[] scale, int depth)
             {
-                var go = b.Deref(t, t.F["m_GameObject"]);
+                if (depth > ObjExport.MaxDepth) throw new InvalidDataException($"{rootName}: its transforms form a loop");
+                var go = b.Deref(t, t.F["m_GameObject"]) ?? throw new InvalidDataException($"{path ?? rootName} has no GameObject");
                 var lp = ObjExport.Vec(t.F["m_LocalPosition"]);
                 var lr = ObjExport.Quat(t.F["m_LocalRotation"]);
                 var ls = ObjExport.Vec(t.F["m_LocalScale"]);
@@ -96,16 +100,15 @@ namespace Kollektion.Core.GameData
                 foreach (var c in b.Children(t))
                 {
                     var name = b.NodeName(c);
-                    Walk(c, path == null ? name : $"{path}/{name}", here, hereRot, hereScale);
+                    Walk(c, path == null ? name : $"{path}/{name}", here, hereRot, hereScale, depth + 1);
                 }
             }
 
-            Walk(root, null, new double[] { 0, 0, 0 }, new double[] { 0, 0, 0, 1 }, new double[] { 1, 1, 1 });
-            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outPath)));
-            Output.WriteText(outPath, PyJson.Dump(new PyDict
+            Walk(root, null, new double[] { 0, 0, 0 }, new double[] { 0, 0, 0, 1 }, new double[] { 1, 1, 1 }, 0);
+            PyJson.WriteFile(outPath, new PyDict
             {
                 ["root"] = rootName, ["convention"] = "Unity car-root space: x right, y up, z forward", ["nodes"] = nodes,
-            }));
+            });
             log($"{nodes.Count} nodes -> {outPath}");
         }
     }

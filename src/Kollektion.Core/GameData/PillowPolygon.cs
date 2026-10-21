@@ -1,3 +1,8 @@
+// A line-by-line port of Pillow's polygon filler (Pillow 13.0.0, src/libImaging/Draw.c: ImagingDrawPolygon,
+// polygon_generic and their helpers, and src/_imaging.c's _draw_polygon). Draw.c is Copyright (c) 1996-2006 by
+// Fredrik Lundh and Copyright (c) 1997-2006 by Secret Labs AB; Pillow is Copyright (c) 2010 by Jeffrey 'Alex' Clark
+// and contributors. Used under Pillow's MIT-CMU licence (HPND), whose full text is in LICENSES/Pillow-MIT-CMU.txt.
+
 using System;
 using System.Collections.Generic;
 
