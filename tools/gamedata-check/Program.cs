@@ -362,6 +362,7 @@ try
     Refused("bundle: a damaged first block is refused on load", firstBlockDamaged);
     var serialised = SyntheticBundle.Make(new[] { ("CAB-test", 4u, entry) }, 256, true);
     Refused("bundle: an entry marked serialised that isn't is refused", serialised.Bytes);
+    Refused("bundle: an entry that runs past the data is refused", SyntheticBundle.Make(new[] { ("CAB-test.resS", 0u, entry) }, 256, true, 1).Bytes);
 
     var lastBlock = good.Blocks.Count - 1;
     long lastAt = good.DataOffset + good.Blocks.Take(lastBlock).Sum(x => (long)x.Compressed);
@@ -407,6 +408,31 @@ try
                                       "output: a write that fails is passed on");
     Check(File.ReadAllText(outFile) == "old" && Directory.GetFiles(Path.GetDirectoryName(outFile)).Length == 1,
           "output: a failed write leaves the old file and no temporary");
+
+    // Replacing the output folder whole: a write that fails halfway leaves the old folder and nothing beside it; one
+    // that succeeds replaces it entirely; a partial folder of a killed run is removed.
+    var whole = Path.Combine(temp, "whole");
+    Directory.CreateDirectory(Path.Combine(whole, "mammoth"));
+    File.WriteAllText(Path.Combine(whole, "mammoth", "old.obj"), "old");
+    var abandoned = Path.Combine(temp, "whole.partial-4194305");            // never a process id, on Linux or Windows
+    Directory.CreateDirectory(abandoned);
+    var wholeLog = new List<string>();
+    Throws<InvalidOperationException>(() => Extraction.ReplaceWhole(whole, (dir, l) =>
+    {
+        Output.WriteText(Path.Combine(dir, "mammoth", "new.obj"), "new");
+        throw new InvalidOperationException("stop halfway");
+    }, wholeLog.Add), "replace whole: a write that fails is passed on");
+    bool Beside() => Directory.GetDirectories(temp).Any(d => Path.GetFileName(d).StartsWith("whole.", StringComparison.Ordinal));
+    Check(Directory.GetFiles(whole, "*", SearchOption.AllDirectories).Select(Path.GetFileName).SequenceEqual(new[] { "old.obj" }) && !Beside(),
+          "replace whole: a failed write leaves the old folder as it was, no partial folder, and a killed run's removed");
+    Extraction.ReplaceWhole(whole, (dir, l) =>
+    {
+        Output.WriteText(Path.Combine(dir, "mammoth", "new.obj"), "new");
+        l($"{Path.Combine(dir, "mammoth", "new.obj")}: written");
+    }, wholeLog.Add);
+    Check(Directory.GetFiles(whole, "*", SearchOption.AllDirectories).Select(Path.GetFileName).SequenceEqual(new[] { "new.obj" }) && !Beside()
+          && wholeLog.Last() == $"{Path.Combine(whole, "mammoth", "new.obj")}: written",
+          "replace whole: a write that succeeds replaces the folder entirely, its log naming the final paths");
 
     // The extraction as a whole, on a fake game folder of synthetic bundles: it fails before writing anything, and an
     // existing output folder is left as it was with no partial folder beside it.

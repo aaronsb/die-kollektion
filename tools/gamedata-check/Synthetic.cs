@@ -16,7 +16,10 @@ sealed class SyntheticBundle
     public List<(uint Decompressed, uint Compressed, ushort Flags)> Blocks = new List<(uint, uint, ushort)>();
     public byte[] Data;
 
-    public static SyntheticBundle Make(IReadOnlyList<(string Name, uint Flags, byte[] Bytes)> entries, int blockSize, bool lz4)
+    /// <summary>overclaim is added to the last entry's size in the directory, to make one that runs past the
+    /// data.</summary>
+    public static SyntheticBundle Make(IReadOnlyList<(string Name, uint Flags, byte[] Bytes)> entries, int blockSize, bool lz4,
+                                       long overclaim = 0)
     {
         var b = new SyntheticBundle { Data = entries.SelectMany(e => e.Bytes).ToArray() };
         var blocks = new MemoryStream();
@@ -40,10 +43,11 @@ sealed class SyntheticBundle
         }
         WriteBE(info, entries.Count);
         long offset = 0;
-        foreach (var (name, flags, bytes) in entries)
+        for (int i = 0; i < entries.Count; i++)
         {
+            var (name, flags, bytes) = entries[i];
             WriteBE(info, offset);
-            WriteBE(info, (long)bytes.Length);
+            WriteBE(info, bytes.Length + (i == entries.Count - 1 ? overclaim : 0));
             WriteBE(info, (int)flags);
             var n = Encoding.ASCII.GetBytes(name + "\0");
             info.Write(n, 0, n.Length);
