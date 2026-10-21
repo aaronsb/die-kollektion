@@ -71,22 +71,9 @@ namespace Kollektion.Core.GameData
 
         static int ColourType(int channels) => channels switch { 1 => 0, 2 => 4, 3 => 2, 4 => 6, _ => -1 };
 
-        /// <summary>Writes under a temporary name and renames it into place, so an interrupted run leaves the old file
-        /// or none (Blender loads a partial PNG as an empty image).</summary>
-        public static void Write(string path, Image image)
-        {
-            var tmp = path + ".part";
-            try
-            {
-                using (var f = new FileStream(tmp, FileMode.Create, FileAccess.Write))
-                    Write(f, image);
-                File.Move(tmp, path, true);
-            }
-            finally
-            {
-                if (File.Exists(tmp)) File.Delete(tmp);
-            }
-        }
+        /// <summary>Writes through <see cref="Output"/>, so an interrupted run leaves the old file or none (Blender loads
+        /// a partial PNG as an empty image).</summary>
+        public static void Write(string path, Image image) => Output.Write(path, s => Write(s, image));
 
         public static void Write(Stream output, Image image)
         {

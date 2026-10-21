@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
 using AssetsTools.NET.Extra;
 
 namespace Kollektion.Core.GameData
@@ -16,14 +16,15 @@ namespace Kollektion.Core.GameData
             new[] { 0.8, 0.8, 0.8 }, new[] { 0.9, 0.2, 0.2 }, new[] { 0.2, 0.4, 0.9 }, new[] { 0.2, 0.8, 0.2 }, new[] { 0.9, 0.8, 0.1 },
         };
 
-        static string F6(double v) => PyFormat.Fixed(v, 6);
+        /// <summary>A Transform chain longer than this is a loop in damaged data, not a prefab.</summary>
+        public const int MaxDepth = 1000;
 
         /// <summary>The node's mesh (MeshFilter, MeshCollider or SkinnedMeshRenderer) in car-root space, metres
         /// (export_car_mesh.py): only translate and scale may lie between node and root.</summary>
-        public static string CarMesh(Bundles b, Asset root, string rootName, string path, string outDir, Action<string> log)
+        public static void CarMesh(Bundles b, Asset root, string rootName, string path, string outDir, Action<string> log)
         {
             var node = b.FindChild(root, path);
-            var go = b.Deref(node, node.F["m_GameObject"]);
+            var go = b.Deref(node, node.F["m_GameObject"]) ?? throw new InvalidDataException($"{path} has no GameObject");
             var meshRef = b.Components(go).FirstOrDefault(c => c.Type == AssetClassID.MeshFilter
                                                                || c.Type == AssetClassID.MeshCollider
                                                                || c.Type == AssetClassID.SkinnedMeshRenderer);
@@ -33,8 +34,11 @@ namespace Kollektion.Core.GameData
 
             double[] scale = { 1, 1, 1 }, offset = { 0, 0, 0 };
             long rootGo = root.F["m_GameObject"]["m_PathID"].AsLong;
-            for (var t = node; t.F["m_GameObject"]["m_PathID"].AsLong != rootGo; t = b.Deref(t, t.F["m_Father"]))
+            int depth = 0;
+            for (var t = node; t.F["m_GameObject"]["m_PathID"].AsLong != rootGo;
+                 t = b.Deref(t, t.F["m_Father"]) ?? throw new InvalidDataException($"{path} doesn't lie under {rootName}"))
             {
+                if (++depth > MaxDepth) throw new InvalidDataException($"{path}: its parents form a loop");
                 if (Math.Abs(t.F["m_LocalRotation"]["w"].AsFloat) < 0.9999)
                     throw new InvalidDataException($"{b.NodeName(t)} is rotated; only translate/scale chains are supported");
                 var s = Vec(t.F["m_LocalScale"]);
@@ -46,96 +50,89 @@ namespace Kollektion.Core.GameData
                 }
             }
 
-            var sb = new StringBuilder();
-            sb.Append($"# {mesh.Name} from {rootName}; car-root space, metres, x negated (right-handed)\n");
-            var w = mesh.BoneWeights;
-            var bi = mesh.BoneIndices;
-            bool skinned = w != null && w.Length > 0;
+            var obj = new ObjWriter().Line($"# {mesh.Name} from {rootName}; car-root space, metres, x negated (right-handed)");
+            var (weights, bones) = Skin(mesh);
             for (int i = 0; i < mesh.VertexCount; i++)
             {
                 var v = mesh.Vertices[i];
                 double px = v[0] * scale[0] + offset[0], py = v[1] * scale[1] + offset[1], pz = v[2] * scale[2] + offset[2];
-                sb.Append("v ").Append(F6(-px)).Append(' ').Append(F6(py)).Append(' ').Append(F6(pz));
-                if (skinned)
+                if (weights == null)
                 {
-                    int best = 0;
-                    for (int k = 1; k < 4; k++)
-                        if (w[i][k] > w[i][best]) best = k;
-                    var c = BoneColours[(int)((long)bi[i][best] % BoneColours.Length)];
-                    foreach (var x in c) sb.Append(' ').Append(PyFormat.Fixed(x, 3));
+                    obj.Vertex(-px, py, pz);
+                    continue;
                 }
-                sb.Append('\n');
-                if (skinned)
-                {
-                    // Extension: per-vertex skinning, parallel to the v lines (ignored by Blender).
-                    sb.Append("bw ").Append(string.Join(" ", bi[i].Select(x => ((long)x).ToString())))
-                      .Append(' ').Append(string.Join(" ", w[i].Select(F6))).Append('\n');
-                }
+                int best = 0;
+                for (int k = 1; k < 4; k++)
+                    if (weights[i][k] > weights[i][best]) best = k;
+                long bone = (long)bones[i][best];
+                obj.Vertex(-px, py, pz, BoneColours[(int)(((bone % BoneColours.Length) + BoneColours.Length) % BoneColours.Length)]);
+                // Extension: per-vertex skinning, parallel to the v lines (ignored by Blender).
+                obj.Line("bw " + string.Join(" ", bones[i].Select(x => ((long)x).ToString(CultureInfo.InvariantCulture)))
+                         + " " + string.Join(" ", weights[i].Select(x => PyFormat.Fixed(x, 6))));
             }
             // Extension: bind poses in the original mesh space, row-major, one line per bone.
             var bindPose = meshAsset.F["m_BindPose"];
             if (!bindPose.IsDummy)
                 foreach (var m in bindPose["Array"].Children)
-                {
-                    sb.Append("bp");
-                    for (int r = 0; r < 4; r++)
-                        for (int c = 0; c < 4; c++)
-                            sb.Append(' ').Append(PyFormat.Fixed(m[$"e{r}{c}"].AsFloat, 8));
-                    sb.Append('\n');
-                }
-            AppendTail(sb, mesh);
+                    obj.Line("bp " + string.Join(" ", Enumerable.Range(0, 16).Select(k => PyFormat.Fixed(m[$"e{k / 4}{k % 4}"].AsFloat, 8))));
+            AppendTail(obj, mesh);
             var outPath = Path.Combine(outDir, path.Replace("/", "__") + ".obj");
-            Output.WriteText(outPath, sb.ToString());
+            Output.WriteText(outPath, obj.ToString());
             log($"{outPath}: {mesh.VertexCount} vertices, {mesh.Triangles.Count} triangles, uv={PyBool(mesh.UV0)} normals={PyBool(mesh.Normals)}");
-            return outPath;
         }
+
+        /// <summary>The mesh's skinning as four weights and four bone indices per vertex, or nulls when it has no
+        /// weights (export_car_mesh.py writes no skinning then). Unity stores one, two or four influences per vertex;
+        /// fewer than four are padded with weight 0 on bone 0, the influences Unity leaves out. (export_car_mesh.py
+        /// reads four and fails on fewer.)</summary>
+        public static (double[][] Weights, double[][] Bones) Skin(MeshData mesh)
+        {
+            var w = mesh.BoneWeights;
+            if (w == null || w.Length == 0) return (null, null);
+            var bi = mesh.BoneIndices ?? throw new InvalidDataException($"{mesh.Name}: bone weights without bone indices");
+            if (bi.Length != w.Length) throw new InvalidDataException($"{mesh.Name}: {w.Length} bone weights for {bi.Length} bone indices");
+            if (w[0].Length > 4 || bi[0].Length > 4)
+                throw new InvalidDataException($"{mesh.Name}: {w[0].Length} bone weights per vertex (at most 4)");
+            return (w.Select(Pad4).ToArray(), bi.Select(Pad4).ToArray());
+        }
+
+        static double[] Pad4(double[] v) => v.Length == 4 ? v : v.Concat(new double[4 - v.Length]).ToArray();
 
         /// <summary>Mesh assets by name, each vertex mesh × scale + offset with x negated (export_named_mesh.py); the
         /// first mesh of each name wins.</summary>
         public static void NamedMeshes(Bundles b, Bundle bundle, string outDir, double scale, double[] offset,
                                        IReadOnlyList<string> names, Action<string> log)
         {
-            var found = new Dictionary<string, Asset>();
-            foreach (var asset in b.OfType(AssetClassID.Mesh, new HashSet<string>(names), bundle))
-                if (!found.ContainsKey(asset.Name)) found[asset.Name] = asset;
-            Directory.CreateDirectory(outDir);
+            var wanted = new HashSet<string>(names);
+            var meshes = new Dictionary<string, MeshData>();
+            foreach (var asset in b.OfType(AssetClassID.Mesh, wanted, bundle))
+                if (!meshes.ContainsKey(asset.Name)) meshes[asset.Name] = MeshData.Read(b, asset);
             foreach (var name in names)
             {
-                if (!found.TryGetValue(name, out var asset)) throw new InvalidDataException($"no Mesh named {name}");
-                var mesh = MeshData.Read(b, asset);
-                var sb = new StringBuilder();
-                sb.Append($"# {mesh.Name}; scale {PyFormat.Repr(scale)}, offset ({PyFormat.Repr(offset[0])}, {PyFormat.Repr(offset[1])}, " +
-                          $"{PyFormat.Repr(offset[2])}); car-root space, metres, x negated (right-handed)\n");
+                if (!meshes.TryGetValue(name, out var mesh)) throw new InvalidDataException($"no Mesh named {name}");
+                var obj = new ObjWriter().Line(
+                    $"# {mesh.Name}; scale {PyFormat.Repr(scale)}, offset ({PyFormat.Repr(offset[0])}, {PyFormat.Repr(offset[1])}, " +
+                    $"{PyFormat.Repr(offset[2])}); car-root space, metres, x negated (right-handed)");
                 foreach (var v in mesh.Vertices ?? Array.Empty<double[]>())
-                    sb.Append("v ").Append(F6(-v[0] * scale + offset[0])).Append(' ').Append(F6(v[1] * scale + offset[1]))
-                      .Append(' ').Append(F6(v[2] * scale + offset[2])).Append('\n');
-                AppendTail(sb, mesh);
+                    obj.Vertex(-v[0] * scale + offset[0], v[1] * scale + offset[1], v[2] * scale + offset[2]);
+                AppendTail(obj, mesh);
                 var outPath = Path.Combine(outDir, name + ".obj");
-                Output.WriteText(outPath, sb.ToString());
+                Output.WriteText(outPath, obj.ToString());
                 log($"{outPath}: {mesh.VertexCount} vertices, {mesh.Triangles.Count} triangles, uv={PyBool(mesh.UV0)} normals={PyBool(mesh.Normals)}");
             }
         }
 
         static string PyBool(double[][] a) => a != null && a.Length > 0 ? "True" : "False";
 
-        static void AppendTail(StringBuilder sb, MeshData mesh)
+        static void AppendTail(ObjWriter obj, MeshData mesh)
         {
             bool hasUv = mesh.UV0 != null && mesh.UV0.Length > 0, hasN = mesh.Normals != null && mesh.Normals.Length > 0;
             if (hasUv)
-                foreach (var uv in mesh.UV0) sb.Append("vt ").Append(F6(uv[0])).Append(' ').Append(F6(uv[1])).Append('\n');
+                foreach (var uv in mesh.UV0) obj.TexCoord(uv[0], uv[1]);
             if (hasN)   // stored as half4 in this game; w is padding
-                foreach (var n in mesh.Normals)
-                    sb.Append("vn ").Append(F6(-n[0])).Append(' ').Append(F6(n[1])).Append(' ').Append(F6(n[2])).Append('\n');
+                foreach (var n in mesh.Normals) obj.Normal(-n[0], n[1], n[2]);
             foreach (var (a, b, c) in mesh.Triangles)
-            {
-                sb.Append('f');
-                foreach (var i in new[] { a + 1, c + 1, b + 1 })     // reversed winding for the mirrored axis
-                {
-                    var s = i.ToString();
-                    sb.Append(' ').Append(s).Append('/').Append(hasUv ? s : "").Append('/').Append(hasN ? s : "");
-                }
-                sb.Append('\n');
-            }
+                obj.Face(a + 1, c + 1, b + 1, hasUv, hasN);     // reversed winding for the mirrored axis
         }
 
         public static double[] Vec(AssetsTools.NET.AssetTypeValueField f) => new double[] { f["x"].AsFloat, f["y"].AsFloat, f["z"].AsFloat };

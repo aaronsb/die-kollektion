@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Text;
 
 namespace Kollektion.Core.GameData
@@ -23,7 +22,6 @@ namespace Kollektion.Core.GameData
             }
         }
 
-        public void Add(string key, object value) => this[key] = value;
         public bool ContainsKey(string key) => values.ContainsKey(key);
         public int Count => keys.Count;
 
@@ -48,9 +46,9 @@ namespace Kollektion.Core.GameData
             return sb.ToString();
         }
 
-        /// <summary>Writes under a temporary name and renames it into place, so an interrupted run leaves the old file
-        /// or none, never a truncated one (as tools/export_upgrades.py and export_parts.py do).</summary>
-        public static void WriteFile(string path, object value) => Output.WriteAtomic(path, Dump(value));
+        /// <summary>Writes the JSON through <see cref="Output"/>: atomically, so an interrupted run leaves the old file or
+        /// none, never a truncated one.</summary>
+        public static void WriteFile(string path, object value) => Output.WriteText(path, Dump(value));
 
         static void Write(StringBuilder sb, object value, int level)
         {
@@ -134,21 +132,6 @@ namespace Kollektion.Core.GameData
                 }
             }
             sb.Append('"');
-        }
-    }
-
-    /// <summary>File output shared by the exporters: UTF-8 without a BOM, "\n" line ends on every OS.</summary>
-    public static class Output
-    {
-        static readonly UTF8Encoding Utf8 = new UTF8Encoding(false);
-
-        public static void WriteText(string path, string text) => File.WriteAllText(path, text, Utf8);
-
-        public static void WriteAtomic(string path, string text)
-        {
-            var tmp = path + ".tmp";
-            File.WriteAllText(tmp, text, Utf8);
-            File.Move(tmp, path, true);
         }
     }
 }

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using AssetsTools.NET.Extra;
 
@@ -30,8 +29,13 @@ namespace Kollektion.Core.GameData
         static List<object> Rounded(double[] v) => v.Select(x => (object)(PyFormat.Round(x, 6) + 0.0)).ToList();
 
         /// <summary>Python's list indexing of the enum names: a value past the end stays a number, a negative one
-        /// counts from the end.</summary>
-        static object EnumName(string[] names, int v) => v < names.Length ? names[v >= 0 ? v : names.Length + v] : (object)v;
+        /// counts from the end, and one before the start is refused (Python raises there).</summary>
+        static object EnumName(string[] names, int v)
+        {
+            if (v >= names.Length) return v;
+            if (v < -names.Length) throw new InvalidDataException($"enum value {v} out of range");
+            return names[v >= 0 ? v : names.Length + v];
+        }
 
         public static double[,] MatMul(double[,] a, double[,] m)
         {
@@ -85,21 +89,24 @@ namespace Kollektion.Core.GameData
             foreach (var c in b.Components(go))
             {
                 if (c.Type != AssetClassID.MonoBehaviour) continue;
+                // As the Python, a reference that leads nowhere is skipped (damaged data still fails).
                 try
                 {
                     if (b.ScriptName(c) != "VehicleUpgradeObject") continue;
                 }
-                catch (InvalidDataException)
+                catch (UnresolvedReferenceException)
                 {
                     continue;                   // a script that can't be resolved: not ours
                 }
                 Asset reference;
+                string kind = null;
                 var pointer = c.F["vehiclePartReference"];
                 try
                 {
                     reference = pointer.IsDummy ? null : b.Deref(c, pointer);
+                    if (reference != null) kind = b.ScriptName(reference);
                 }
-                catch (InvalidDataException)
+                catch (UnresolvedReferenceException)
                 {
                     reference = null;
                 }
@@ -108,7 +115,7 @@ namespace Kollektion.Core.GameData
                 {
                     ["name"] = reference.F["m_Name"].IsDummy ? null : reference.F["m_Name"].AsString,
                     ["itemId"] = reference.F["ItemId"].IsDummy ? null : (object)reference.F["ItemId"].AsLong,
-                    ["kind"] = b.ScriptName(reference),
+                    ["kind"] = kind,
                 };
                 if (!reference.F["CosmeticType"].IsDummy) part["cosmeticType"] = EnumName(CosmeticTypes, reference.F["CosmeticType"].AsInt);
                 if (!reference.F["UpgradeType"].IsDummy) part["upgradeType"] = EnumName(UpgradeTypes, reference.F["UpgradeType"].AsInt);
@@ -121,7 +128,7 @@ namespace Kollektion.Core.GameData
                             var la = b.Deref(reference, l);
                             if (la != null) linked.Add(la.F["m_Name"].AsString);
                         }
-                        catch (InvalidDataException)
+                        catch (UnresolvedReferenceException)
                         {
                         }
                     }
@@ -147,9 +154,10 @@ namespace Kollektion.Core.GameData
             var nodes = new List<PyDict>();
             var meshes = new List<(string Option, string Path, Asset Mesh, double[,] M)>();
 
-            void Walk(Asset t, string path, string parentPath, double[,] matrix, double[] rot, double[] scale, string option)
+            void Walk(Asset t, string path, string parentPath, double[,] matrix, double[] rot, double[] scale, string option, int depth)
             {
-                var go = b.Deref(t, t.F["m_GameObject"]);
+                if (depth > ObjExport.MaxDepth) throw new InvalidDataException($"{rootName}: its transforms form a loop");
+                var go = b.Deref(t, t.F["m_GameObject"]) ?? throw new InvalidDataException($"{path ?? rootName} has no GameObject");
                 var lp = ObjExport.Vec(t.F["m_LocalPosition"]);
                 var lr = ObjExport.Quat(t.F["m_LocalRotation"]);
                 var ls = ObjExport.Vec(t.F["m_LocalScale"]);
@@ -185,16 +193,15 @@ namespace Kollektion.Core.GameData
                 foreach (var c in b.Children(t))
                 {
                     var name = b.NodeName(c);
-                    Walk(c, path == null ? name : $"{path}/{name}", path, here, hereRot, hereScale, hereOption);
+                    Walk(c, path == null ? name : $"{path}/{name}", path, here, hereRot, hereScale, hereOption, depth + 1);
                 }
             }
 
             var identity = new double[4, 4];
             for (int i = 0; i < 4; i++) identity[i, i] = 1;
             if (cosmeticRoot != null)
-                Walk(root, null, null, identity, new double[] { 0, 0, 0, 1 }, new double[] { 1, 1, 1 }, null);
+                Walk(root, null, null, identity, new double[] { 0, 0, 0, 1 }, new double[] { 1, 1, 1 }, null, 0);
             var outJson = Path.Combine(outDir, "upgrades.json");
-            Directory.CreateDirectory(outDir);
             if (nodes.Count == 0)
             {
                 // Not every car has upgrade nodes; the add-on then shows the vehicle without any, and extraction goes on.
@@ -207,40 +214,36 @@ namespace Kollektion.Core.GameData
                 return;
             }
 
-            Directory.CreateDirectory(Path.Combine(outDir, "upgrades"));
             var files = new Dictionary<string, string>();
             foreach (var group in meshes.GroupBy(m => m.Option))
             {
                 var name = group.Key.Substring(cosmeticRoot.Length + 1).Replace("/", "__") + ".obj";
                 files[group.Key] = "upgrades/" + name;
-                var sb = new StringBuilder($"# upgrade option {group.Key} from {rootName}; car-root space, metres, x negated (right-handed)\n");
+                var obj = new ObjWriter().Line($"# upgrade option {group.Key} from {rootName}; car-root space, metres, x negated (right-handed)");
                 int first = 0;
                 foreach (var (_, path, meshAsset, m) in group)
                 {
                     var md = MeshData.Read(b, meshAsset);
-                    sb.Append("o ").Append(path).Append('\n');
+                    obj.Line("o " + path);
                     foreach (var v in md.Vertices ?? Array.Empty<double[]>())
                     {
                         double x = v[0], y = v[1], z = v[2];
                         double px = m[0, 0] * x + m[0, 1] * y + m[0, 2] * z + m[0, 3];
                         double py = m[1, 0] * x + m[1, 1] * y + m[1, 2] * z + m[1, 3];
                         double pz = m[2, 0] * x + m[2, 1] * y + m[2, 2] * z + m[2, 3];
-                        sb.Append("v ").Append(PyFormat.Fixed(-px, 6)).Append(' ').Append(PyFormat.Fixed(py, 6))
-                          .Append(' ').Append(PyFormat.Fixed(pz, 6)).Append('\n');
+                        obj.Vertex(-px, py, pz);
                     }
                     // A mirrored node (negative scale determinant) keeps its winding; the x flip reverses it.
                     double det = m[0, 0] * (m[1, 1] * m[2, 2] - m[1, 2] * m[2, 1]) - m[0, 1] * (m[1, 0] * m[2, 2] - m[1, 2] * m[2, 0])
                                  + m[0, 2] * (m[1, 0] * m[2, 1] - m[1, 1] * m[2, 0]);
                     foreach (var (a, bb, c) in md.Triangles)
                     {
-                        var tri = det > 0 ? new[] { a, c, bb } : new[] { a, bb, c };
-                        sb.Append('f');
-                        foreach (var i in tri) sb.Append(' ').Append((first + i + 1).ToString());
-                        sb.Append('\n');
+                        if (det > 0) obj.Face(first + a + 1, first + c + 1, first + bb + 1);
+                        else obj.Face(first + a + 1, first + bb + 1, first + c + 1);
                     }
                     first += md.VertexCount;
                 }
-                Output.WriteAtomic(Path.Combine(outDir, "upgrades", name), sb.ToString());
+                Output.WriteText(Path.Combine(outDir, "upgrades", name), obj.ToString());
             }
             foreach (var entry in nodes)
                 if (files.TryGetValue((string)entry["path"], out var f)) entry["file"] = f;
