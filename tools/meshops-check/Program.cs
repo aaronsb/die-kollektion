@@ -104,6 +104,8 @@ try
         var error = c.GetProperty("error").ValueKind == JsonValueKind.Null ? null : c.GetProperty("error").GetString();
         PreviousBuild();
         File.WriteAllText(manifest, text);
+        if (c.TryGetProperty("files", out var files))
+            foreach (var f in files.EnumerateObject()) File.WriteAllText(Path.Combine(refusals, f.Name), f.Value.GetString());
         try
         {
             Build(manifest, bad, out var missingHere);
