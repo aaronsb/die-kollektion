@@ -7,6 +7,8 @@ All notable changes to Die Kollektion Werkstatt. The format follows [Keep a Chan
 ### Added
 - **`kollektion`, built for Linux and Windows from one source.** The start of the one program players will download and run: `make kollektion` builds it as a single self-contained file for each system (`build/kollektion/linux-x64/kollektion`, `build/kollektion/win-x64/kollektion.exe`). Today it has `kollektion status`, which finds the game through Steam's libraries and reports BepInEx, the loader, the saves folder and the game log, without changing anything. The same tests run the Linux build, the Windows build under Wine, and each build on its own system in CI, which keeps both builds for download.
 
+- **The truck build without Python.** `kollektion extract` reads the game's files with AssetsTools.NET and writes what `make extract` writes, and `kollektion build` builds a vehicle as `tools/build_vehicle.py` does, on Linux and Windows from the same code. Both match the Python pipeline exactly: every mesh and data file byte for byte, every texture pixel for pixel, all six vehicles. `tools/golden.py` freezes the Python output and compares against it. The small generators and the icon tracing still run in Python; `make` still uses the Python pipeline.
+
 ### Changed
 - **The plan puts players first** (`docs/vehicle_factory.md`, Migration plan): the truck build leaves Python next, then setup and the hub in the one program, then Windows, then a release with a Linux and a Windows zip that hold no scripts.
 

@@ -50,6 +50,13 @@ jobs:
         env:
           KOLLEKTION_TESTS: "1"
         run: python -m unittest discover -s tests -p test_kollektion.py -v
+      # The truck build and the game-data reader on Windows' own C runtime, whose maths can differ from glibc's in
+      # the last bit (the checks job runs both on Linux).
+      - name: Vehicle build and game-data reader on Windows
+        if: runner.os == 'Windows'
+        run: |
+          dotnet run --project tools/meshops-check -v quiet -- tests/meshops
+          dotnet run --project tools/gamedata-check -v quiet
       # upload-artifact drops the execute bit; the release that packs this artifact sets it again.
       - uses: actions/upload-artifact@v4
         with:
