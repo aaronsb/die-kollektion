@@ -84,12 +84,10 @@ namespace Kollektion.Core.GameData
             return donors.ToList();
         }
 
-        /// <summary>Runs the whole extraction and puts it in place of outDir in one step: everything is written into
-        /// a sibling folder &lt;out&gt;.partial-&lt;pid&gt;, which replaces outDir only when the whole run has
-        /// succeeded and no bundle changed while it was read; on any failure outDir is left as it was and the partial
-        /// folder removed. extraDonors are stock cars no manifest names, extracted as tools/export_donor.py alone
-        /// extracts them (body, colliders, axles, node facts, atlas maps). Donor names are checked before anything is
-        /// written; an existing outDir is replaced only when it is empty or holds an earlier extraction.</summary>
+        /// <summary>Runs the whole extraction and puts it in place of outDir in one step (<see cref="ReplaceWhole"/>),
+        /// once no bundle changed while it was read. extraDonors are stock cars no manifest names, extracted as
+        /// tools/export_donor.py alone extracts them (body, colliders, axles, node facts, atlas maps). Donor names
+        /// are checked before anything is written.</summary>
         public static void Run(string game, string vehiclesDir, IEnumerable<string> extraDonors, string outDir, Action<string> log)
         {
             var aa = AddressablesFolder(game);
@@ -109,6 +107,24 @@ namespace Kollektion.Core.GameData
             if (bad.Count > 0)
                 throw new DonorNameException($"not a car's name: {string.Join(", ", bad.Select(d => $"\"{d}\""))} (letters, digits and _ only)");
 
+            var stamps = new Dictionary<string, (long, DateTime)>();
+            ReplaceWhole(outDir, (stage, stageLog) =>
+            {
+                Extract(paths, donors, extra, stage, stamps, stageLog);
+                foreach (var kv in stamps)
+                    if (Bundles.Stamp(kv.Key) != kv.Value)
+                        throw new GameDataException($"{Path.GetFileName(kv.Key)} changed while it was read (is Steam updating the game?)");
+            }, log);
+        }
+
+        /// <summary>Replaces outDir whole with what write puts in the folder it is given, or leaves it as it was:
+        /// write fills a sibling &lt;out&gt;.partial-&lt;pid&gt;, which takes outDir's place only when write returns (the
+        /// old tree kept until then), and is removed when write throws. Its log names files where they will be once
+        /// the folder is in place. outDir must be new, empty or an earlier extraction (it has mammoth/), so a mistyped
+        /// --out can't replace a folder of the player's; partial folders of runs that were killed are removed
+        /// first.</summary>
+        public static void ReplaceWhole(string outDir, Action<string, Action<string>> write, Action<string> log)
+        {
             var target = Path.GetFullPath(outDir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             var parent = target.Length == 0 ? null : Path.GetDirectoryName(target);
             if (string.IsNullOrEmpty(parent)) throw new IOException($"{outDir} is a drive's root; name a folder to extract into");
@@ -116,14 +132,10 @@ namespace Kollektion.Core.GameData
             Directory.CreateDirectory(parent);
             RemoveAbandoned(target, log);
             var stage = $"{target}.partial-{Environment.ProcessId}";
-            var stamps = new Dictionary<string, (long, DateTime)>();
             try
             {
-                // The log names files where they will be once the extraction is in place.
-                Extract(paths, donors, extra, stage, stamps, line => log(line.Replace(stage, target)));
-                foreach (var kv in stamps)
-                    if (Bundles.Stamp(kv.Key) != kv.Value)
-                        throw new GameDataException($"{Path.GetFileName(kv.Key)} changed while it was read (is Steam updating the game?)");
+                Directory.CreateDirectory(stage);
+                write(stage, line => log(line.Replace(stage, target)));
                 Swap(stage, target, log);
             }
             finally
