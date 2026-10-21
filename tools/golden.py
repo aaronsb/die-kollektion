@@ -125,10 +125,12 @@ def diff_png(a, b):
     if ia.size != ib.size:
         return f"{ia.size} vs {ib.size} expected"
     ia, ib = ia.convert("RGBA"), ib.convert("RGBA")
-    box = ImageChops.difference(ia, ib).getbbox()
+    # All four channels: getbbox() on RGBA looks at alpha alone unless told otherwise.
+    box = ImageChops.difference(ia, ib).getbbox(alpha_only=False)
     if not box:
         return "same pixels, different file"
-    n = sum(1 for p, q in zip(ia.getdata(), ib.getdata()) if p != q)
+    a, b = ia.tobytes(), ib.tobytes()
+    n = sum(1 for i in range(0, len(a), 4) if a[i:i + 4] != b[i:i + 4])
     return f"{n} pixels differ (within {box})"
 
 
