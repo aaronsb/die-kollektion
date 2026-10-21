@@ -16,6 +16,7 @@ namespace Kollektion
         const string Usage =
             "Die Kollektion {0} ({1})\n\n" +
             "Usage: kollektion <command>\n\n" +
+            "  build <vehicle.json> [--extracted DIR] [--generated DIR] [--out DIR]   a vehicle's meshes\n" +
             "  status [--json]   where the game, BepInEx and Die Kollektion are on this machine (reads only)\n" +
             "  extract --out <dir>  the parts the build reads, from your own game (never shared; extract --help)\n" +
             "  version           this program's version\n";
@@ -25,6 +26,7 @@ namespace Kollektion
             var cmd = args.Length > 0 ? args[0] : "help";
             switch (cmd)
             {
+                case "build": return BuildCommand.Run(args);
                 case "status":
                     return Status(Array.IndexOf(args, "--json") > 0);
                 case "extract": return ExtractCommand.Run(args);
