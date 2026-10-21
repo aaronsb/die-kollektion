@@ -238,7 +238,8 @@ var rgba32 = Textures.DecodeBottomUp("rgba", 4, 1, 2, new byte[] { 1, 2, 3, 4, 5
 Check(rgba32.Channels == 4 && Textures.FlipRows(rgba32).Pixels.SequenceEqual(new byte[] { 5, 6, 7, 8, 1, 2, 3, 4 }),
       "RGBA32: 4 channels, rows flipped top to bottom as UnityPy's image");
 Throws<InvalidDataException>(() => Textures.DecodeBottomUp("short", 4, 2, 2, new byte[15]), "texture: image data that ends early is refused");
-Throws<InvalidDataException>(() => Textures.DecodeBottomUp("huge", 4, 100000, 2, new byte[16]), "texture: an impossible size is refused");
+// 65536 x 65536 x 4 overflows an int to 0, so without the size check an empty image of that size would pass.
+Throws<InvalidDataException>(() => Textures.DecodeBottomUp("huge", 4, 65536, 65536, new byte[16]), "texture: an impossible size is refused");
 Throws<NotSupportedException>(() => Textures.DecodeBottomUp("etc", 34, 4, 4, new byte[16]), "texture: an unknown format is refused");
 
 // Sprites, against UnityPy's get_image_from_sprite: Rectangle packing keeps the whole rect, Tight masks it by the mesh,
@@ -390,13 +391,14 @@ try
     var ow = new BinaryWriter(objectBytes);
     ow.Write(4); ow.Write("Body".ToCharArray()); ow.Write(0);                // a Mesh: m_Name first
     ow.Write(2); ow.Write(new byte[24]); ow.Write(5u); ow.Write(7); ow.Write("Car_Ute".ToCharArray()); ow.Write((byte)0);
+    ow.Write(0x7FFFFFF0); ow.Write(new byte[12]);                          // a GameObject claiming 2 billion components
     var objects = new AssetsTools.NET.AssetsFileReader(new MemoryStream(objectBytes.ToArray()));
     Check(Bundles.PeekName(objects, 0, 12, AssetsTools.NET.Extra.AssetClassID.Mesh) == "Body"
           && Bundles.PeekName(objects, 12, 44, AssetsTools.NET.Extra.AssetClassID.GameObject) == "Car_Ute",
           "PeekName: a Mesh's name, and a GameObject's after its components and layer");
     Throws<InvalidDataException>(() => Bundles.PeekName(objects, 0, 6, AssetsTools.NET.Extra.AssetClassID.Mesh),
                                  "PeekName: a name longer than its object is refused");
-    Throws<InvalidDataException>(() => Bundles.PeekName(objects, 12, 20, AssetsTools.NET.Extra.AssetClassID.GameObject),
+    Throws<InvalidDataException>(() => Bundles.PeekName(objects, 56, 16, AssetsTools.NET.Extra.AssetClassID.GameObject),
                                  "PeekName: more components than the object holds are refused");
     Throws<NotSupportedException>(() => Bundles.PeekName(objects, 0, 12, AssetsTools.NET.Extra.AssetClassID.MonoBehaviour),
                                   "PeekName: a type whose name isn't first is refused");
@@ -406,7 +408,7 @@ try
     Output.WriteText(outFile, "old");
     Throws<InvalidOperationException>(() => Output.Write(outFile, s => { s.WriteByte(1); throw new InvalidOperationException("stop"); }),
                                       "output: a write that fails is passed on");
-    Check(File.ReadAllText(outFile) == "old" && Directory.GetFiles(Path.GetDirectoryName(outFile)).Length == 1,
+    Check(File.Exists(outFile) && File.ReadAllText(outFile) == "old" && Directory.GetFiles(Path.GetDirectoryName(outFile)).Length == 1,
           "output: a failed write leaves the old file and no temporary");
 
     // Replacing the output folder whole: a write that fails halfway leaves the old folder and nothing beside it; one
