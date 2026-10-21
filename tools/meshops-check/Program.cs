@@ -127,6 +127,21 @@ try
         rows++;
     }
     Check(rows > 0 && failed == failedBefore, $"{rows} numbers' formats, sums and hypots match CPython's");
+
+    // The C library's trigonometry against glibc's: informational, since a last-bit difference rarely reaches the
+    // sixth decimal the OBJs print; the byte comparisons above are the gate.
+    int angles = 0, differ = 0;
+    foreach (var row in numbers.RootElement.GetProperty("trig").EnumerateArray())
+    {
+        double Bits(string key) => BitConverter.Int64BitsToDouble(row.GetProperty(key).GetInt64());
+        var a = Bits("bits");
+        var c = Py.Max(-1.0, Py.Min(1.0, Math.Cos(a)));
+        if (Math.Cos(a) != Bits("cos") || Math.Sin(a) != Bits("sin") || Math.Tan(a / 2) != Bits("tan") || Math.Acos(c) != Bits("acos"))
+            differ++;
+        angles++;
+    }
+    Console.WriteLine($"note cos, sin, tan and acos {(differ == 0 ? "agree with glibc's" : "differ from glibc's in the last bit")} " +
+                      $"on {(differ == 0 ? angles : differ)} of {angles} angles");
 }
 finally
 {

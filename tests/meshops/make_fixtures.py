@@ -268,8 +268,17 @@ def numbers():
         hypots.append({"bits": [bits(a), bits(b)], "hypot": bits(math.hypot(a, b))})
     hypots.append({"bits": [bits(3.0), bits(4.0)], "hypot": bits(5.0)})
     hypots.append({"bits": [bits(5e-324), bits(1e-320)], "hypot": bits(math.hypot(5e-324, 1e-320))})
+    # The C library's cos, sin, tan and acos (glibc here) on the angles the operations use: coil and housing steps,
+    # tube sides, fillet turns. A C library that rounds differently shows here first (informational).
+    trig = []
+    angles = [2 * math.pi * 4.5 * s / 72 for s in range(73)] + [2 * math.pi * k / 20 for k in range(20)]
+    angles += [math.pi / 8 + 2 * math.pi * j / 8 for j in range(8)] + [rng.uniform(0, math.pi) for _ in range(60)]
+    for a in angles:
+        c = max(-1.0, min(1.0, math.cos(a)))
+        trig.append({"bits": bits(a), "cos": bits(math.cos(a)), "sin": bits(math.sin(a)), "tan": bits(math.tan(a / 2)),
+                     "acos": bits(math.acos(c))})
     return {"notes": "Written by tests/meshops/make_fixtures.py from CPython " + sys.version.split()[0] + ".",
-            "numbers": rows, "sums": sums, "hypots": hypots}
+            "numbers": rows, "sums": sums, "hypots": hypots, "trig": trig}
 
 
 def main():
@@ -315,7 +324,7 @@ def main():
     with open(os.path.join(HERE, "numbers.json"), "w") as f:
         data = numbers()
         f.write("{\"notes\": " + json.dumps(data["notes"]))
-        for key in ("numbers", "sums", "hypots"):
+        for key in ("numbers", "sums", "hypots", "trig"):
             f.write(f",\n\"{key}\": [\n" + ",\n".join(json.dumps(row) for row in data[key]) + "\n]")
         f.write("}\n")
     print(out.getvalue(), end="")
