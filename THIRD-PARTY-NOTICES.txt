@@ -1,0 +1,58 @@
+Die Kollektion Werkstatt: third-party notices
+=============================================
+
+Die Kollektion Werkstatt is licensed under the GNU GPL 3.0 or later (LICENSE; COPYING.md has the details). It
+includes, or contains code derived from, the third-party software below. The `kollektion` executable is published
+self-contained: it carries the .NET runtime and AssetsTools.NET inside it. Each licence's full text is in the file
+named under LICENSES/.
+
+
+1. AssetsTools.NET 3.0.5
+   https://github.com/nesrak1/AssetsTools.NET (NuGet package AssetsTools.NET 3.0.5)
+   Copyright (c) 2020 nesrak1
+   MIT License: LICENSES/AssetsTools.NET-MIT.txt
+   Used by src/Kollektion.Core (the game-data reader) and bundled, unmodified, in the `kollektion` executable.
+
+   AssetsTools.NET itself contains:
+
+   a. lz4net (LZ4ps, the safe C# LZ4 codec)
+      Copyright (c) 2013, Milosz Krajewski
+      BSD 2-Clause License: LICENSES/lz4net-BSD-2-Clause.txt
+
+   b. The LZMA SDK's C# decoder, by Igor Pavlov, placed by its author in the public domain.
+
+
+2. The .NET runtime
+   https://github.com/dotnet/runtime
+   Copyright (c) .NET Foundation and Contributors
+   MIT License: LICENSES/dotnet-runtime-MIT.txt
+   Bundled in the self-contained `kollektion` executable. The runtime's own third-party notices are in its
+   THIRD-PARTY-NOTICES.TXT: https://github.com/dotnet/runtime/blob/main/THIRD-PARTY-NOTICES.TXT (also in the
+   Microsoft.NETCore.App.Runtime.<rid> NuGet package of the version the executable was published with).
+
+
+3. Code derived from Pillow
+   https://github.com/python-pillow/Pillow (version 13.0.0)
+
+   a. src/Kollektion.Core/GameData/PillowPolygon.cs is a line-by-line port of Pillow's polygon filler
+      (src/libImaging/Draw.c and src/_imaging.c's _draw_polygon).
+      Draw.c: Copyright (c) 1996-2006 by Fredrik Lundh; Copyright (c) 1997-2006 by Secret Labs AB.
+      The Python Imaging Library (PIL): Copyright (c) 1997-2011 by Secret Labs AB; Copyright (c) 1995-2011 by
+      Fredrik Lundh and contributors. Pillow: Copyright (c) 2010 by Jeffrey 'Alex' Clark and contributors.
+      MIT-CMU License (HPND): LICENSES/Pillow-MIT-CMU.txt
+
+   b. src/Kollektion.Core/GameData/Composite.cs's ResizeNearest follows Pillow's nearest-neighbour scaling
+      (src/libImaging/Geometry.c, ImagingScaleAffine), under the same licence.
+
+   c. src/Kollektion.Core/GameData/Bcn.cs ports Pillow's BC1/BC3 decoder (src/libImaging/BcnDecode.c), whose
+      contents its authors put in the public domain under CC0 1.0
+      (https://creativecommons.org/publicdomain/zero/1.0/). Credited as a courtesy.
+
+
+4. Code derived from UnityPy
+   https://github.com/K0lb3/UnityPy (version 1.25.4)
+   Copyright (c) 2019-2026 K0lb3
+   MIT License: LICENSES/UnityPy-MIT.txt
+   src/Kollektion.Core/GameData/MeshData.cs reimplements UnityPy's MeshHandler (helpers/MeshHelper.py), and
+   src/Kollektion.Core/GameData/Textures.cs its Texture2DConverter and SpriteHelper (export/), for the meshes,
+   textures and sprites the game ships.

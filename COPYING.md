@@ -4,11 +4,15 @@ Copyright © 2026 Aaron Bockelie.
 
 | What | Where | Licence |
 |---|---|---|
-| Code: the plugin, tools, build scripts and future Die Kollektion Werkstatt add-on and CLI | `plugins/`, `tools/`, and any other source file | GNU GPL 3.0 or later ([`LICENSE`](LICENSE)) |
+| Code: the plugin, `kollektion` and Kollektion.Core, tools, build scripts and the Blender add-on | `plugins/`, `src/`, `tools/`, `blender/`, and any other source file | GNU GPL 3.0 or later ([`LICENSE`](LICENSE)) |
 | Art: cab models and their meshes, generated parts, icons, vehicle definitions and pack content | `vehicles/` | Creative Commons Attribution-ShareAlike 4.0 International ([`LICENSES/CC-BY-SA-4.0.txt`](LICENSES/CC-BY-SA-4.0.txt)) |
 | Documentation | `docs/`, `README.md`, `AGENTS.md`, `CLAUDE.md` files | CC BY-SA 4.0 |
 
 You may use, change and share all of it, commercially too, as long as what you distribute carries its complete source under the same licence (GPL for code) or the same terms (CC BY-SA for art), with attribution.
+
+## Third-party code
+
+`kollektion` bundles AssetsTools.NET (MIT, with lz4net under BSD-2-Clause and the public-domain LZMA SDK) and the .NET runtime (MIT); parts of Kollektion.Core are ports of Pillow (MIT-CMU), UnityPy (MIT) and Pillow's BCn decoder (CC0). [`THIRD-PARTY-NOTICES.txt`](THIRD-PARTY-NOTICES.txt) lists each, with its licence text in [`LICENSES/`](LICENSES/).
 
 ## Packs are data
 

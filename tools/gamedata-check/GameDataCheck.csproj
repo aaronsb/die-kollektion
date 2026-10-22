@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Offline check of Kollektion.Core's game-data layer (GameData/): the bundle reader's refusals of damaged
+       bundles, Pillow-rounding BC1/BC3, PNG, Pillow's polygon fill and resize, UnityPy's sprites, mesh decoding, the
+       all-or-nothing output, and numbers and JSON as Python writes them, against values taken from CPython, Pillow and
+       UnityPy. Needs no game files; `python3 tools/release.py ci` runs it.
+       Built for kollektion's runtime (net10.0) and the plugin's (net6.0, the game's bundled .NET): `dotnet run -f
+       net6.0` runs it there. net10.0 is the default, so a plain `dotnet run` (as release.py runs it) needs no
+       framework named. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net10.0;net6.0</TargetFrameworks>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Kollektion.Core/Kollektion.Core.csproj" />
+  </ItemGroup>
+</Project>

@@ -5,6 +5,9 @@ __pycache__/
 
 # Game data, extracted locally from the player's own install (tools/export_game_data.sh); never committed
 extracted/
+# `kollektion extract` stages into these and swaps them in; only a killed run leaves one behind
+extracted.partial-*/
+extracted.old-*/
 
 # Per vehicle: build output (tools/build_vehicle.py) and parts generated from extracted game data
 vehicles/*/build/
