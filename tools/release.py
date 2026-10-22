@@ -5,7 +5,9 @@
                                                          (and equal VERSION when given)
     python3 tools/release.py notes VERSION               print that version's CHANGELOG.md section
     python3 tools/release.py ci                          every check that needs no game files (what CI runs)
-    python3 tools/release.py build VERSION [--dry-run]   `make release`: check, compile, package, tag, publish
+    python3 tools/release.py build VERSION [--dry-run] [--prerelease]
+                                                         `make release`: check, compile, package, tag, publish
+                                                         (--prerelease: marked so on GitHub, so Nexus skips it)
     python3 tools/release.py check-assets VERSION        the GitHub release has its zips and SHA256SUMS, and they match
     python3 tools/release.py nexus-files VERSION DIR [NEXUS_CHANGELOG CHANGELOG]
                                                          for the Nexus workflow: the release's Werkstatt zip, checked
@@ -166,15 +168,16 @@ def game_hashes():
 
 def cmd_build(args):
     dry = "--dry-run" in args
-    args = [a for a in args if a != "--dry-run"]
+    pre = "--prerelease" in args
+    args = [a for a in args if a not in ("--dry-run", "--prerelease")]
     if not args or not re.fullmatch(r"\d+\.\d+\.\d+", args[0]):
         print("Name the version: make release VERSION=x.y.z [DRY_RUN=1]")
         return 2
     version, tag = args[0], f"v{args[0]}"
     ws = werkstatt()
 
-    # 1. Refusals.
-    dirty = sh("git", "status", "--porcelain").stdout.strip()
+    # 1. Refusals. Untracked files don't count: the zip packs tracked files only.
+    dirty = sh("git", "status", "--porcelain", "--untracked-files=no").stdout.strip()
     if dirty:
         print("Uncommitted changes; a release is built from a clean checkout:\n" + dirty)
         return 1
@@ -258,7 +261,9 @@ def cmd_build(args):
     publish = [["git", "tag", "-a", tag, "-m", f"Die Kollektion Werkstatt {version}"],
                ["git", "push", "origin", tag],
                ["gh", "release", "create", tag, *assets, sums_path, "--verify-tag",
-                "--title", f"Die Kollektion Werkstatt {version}", "--notes-file", notes_path]]
+                "--title", f"Die Kollektion Werkstatt {version}", "--notes-file", notes_path]
+               # A prerelease never fires nexus.yml, which runs on full releases only.
+               + (["--prerelease"] if pre else [])]
     if dry:
         print("\nDRY RUN: built everything; would now run:")
         for cmd in publish:
