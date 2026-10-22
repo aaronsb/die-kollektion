@@ -4,7 +4,7 @@
 PY      := .venv/bin/python
 WS      := python3 tools/werkstatt.py
 GAME_DIR ?= $(shell python3 tools/werkstatt.py game-dir 2>/dev/null)
-export GAME_DIR MY_GAMES DEPLOY_DIR FORCE BEPINEX_ARCHIVE PROFILE VERSION DRY_RUN
+export GAME_DIR MY_GAMES DEPLOY_DIR FORCE BEPINEX_ARCHIVE PROFILE VERSION DRY_RUN PRERELEASE
 
 .DEFAULT_GOAL := start
 .PHONY: start help doctor setup bepinex extract build check contact loop pack deploy undeploy update status save-add save-test save-real all release nexus-images blender-addon kollektion
@@ -94,5 +94,5 @@ blender-addon: ## Zip the Blender add-on for Edit > Preferences > Add-ons > Inst
 nexus-images: ## Maintainers: render the Nexus page's banner and gallery into docs/nexus/images/ (needs Blender, built vehicles)
 	$(PY) tools/nexus_images.py
 
-release: ## Maintainers: tag and publish a release (VERSION=x.y.z; DRY_RUN=1 builds everything but publishes nothing)
-	@python3 tools/release.py build $(VERSION) $(if $(filter 1,$(DRY_RUN)),--dry-run)
+release: ## Maintainers: tag and publish a release (VERSION=x.y.z; DRY_RUN=1 builds everything but publishes nothing; PRERELEASE=1 marks it a prerelease, which Nexus skips)
+	@python3 tools/release.py build $(VERSION) $(if $(filter 1,$(DRY_RUN)),--dry-run) $(if $(filter 1,$(PRERELEASE)),--prerelease)

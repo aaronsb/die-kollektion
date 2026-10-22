@@ -4,6 +4,10 @@ All notable changes to Die Kollektion Werkstatt. The format follows [Keep a Chan
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-21
+
+A prerelease of groundwork: `kollektion`, one program for Linux and Windows, and the truck build ported to it without Python. Nothing you install or play changes yet; `make` and the plugin work as in 0.7.0.
+
 ### Added
 - **`kollektion`, built for Linux and Windows from one source.** The start of the one program players will download and run: `make kollektion` builds it as a single self-contained file for each system (`build/kollektion/linux-x64/kollektion`, `build/kollektion/win-x64/kollektion.exe`). Today it has `kollektion status`, which finds the game through Steam's libraries and reports BepInEx, the loader, the saves folder and the game log, without changing anything. The same tests run the Linux build, the Windows build under Wine, and each build on its own system in CI, which keeps both builds for download.
 
